@@ -1,0 +1,59 @@
+services:
+  nginx:
+    build: ./docker/nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - front
+      - back
+
+  front:
+    build: ./frontend
+
+  back:
+    build: ./services/auth
+    volumes:
+      - ./services/auth:/var/www
+    working_dir: /var/www
+    command: ["bash", "-lc", "composer install --no-interaction --ignore-platform-reqs && php-fpm"]
+    environment:
+      DB_HOST: sql
+      DB_PORT: 5432
+      DB_DATABASE: auth
+      DB_USERNAME: marketplace
+      DB_PASSWORD: marketplace
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      MAIL_HOST: mail
+      MAIL_PORT: 1025
+    depends_on:
+      sql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  sql:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: marketplace
+      POSTGRES_PASSWORD: marketplace
+      POSTGRES_DB: auth
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U marketplace -d auth"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+
+  mail:
+    image: mailhog/mailhog
+    ports:
+      - "8025:8025"
+
+volumes:
+  postgres_data:
