@@ -1,25 +1,29 @@
 # Auth Service layout
 
-Native PHP 8.5 Auth service (PSR-4, PHPUnit, PostgreSQL, Redis, JWT, Mailhog, Nginx TLS).
+Bootstrap for Auth: native PHP 8.5, Docker Compose, JWT + RBAC roles, Inertia.js + React.
+
+## Authentication and authorization
+
+| Layer | Choice | Why |
+| --- | --- | --- |
+| Authentication | **JWT** (`lcobucci/jwt`) | Spec: access (15–30 min) + refresh (7–30 days), user id and roles in the access token. Not Laravel Sanctum (Auth is not Laravel). |
+| Token store | **Redis** | Blacklist, sessions, refresh rotation, separate TTLs |
+| Authorization | **RBAC + ABAC** | Roles: **Customer** (self-register), **Analyst** (Admin assigns), **Admin** (seed only). RBAC = role permissions; ABAC = extra checks on attributes. Validated inside Auth, not in a gateway. |
+
+Login/register/refresh are not implemented yet — packages and layout only.
+
+## Inertia.js
+
+`@inertiajs/react` in `frontend/`. Auth PHP renders Inertia pages (`Welcome`) without Laravel. Nginx: `/` → PHP, `/assets/` → Vite build, `/api/` → JSON health.
 
 ## Docker Compose
 
-| Service | Role |
-| --- | --- |
-| `nginx` | Ports 80 → 443, self-signed TLS |
-| `front` | Frontend placeholder |
-| `back` | PHP-FPM 8.5 (`services/auth`) |
-| `sql` | PostgreSQL |
-| `redis` | Sessions, refresh tokens, token blacklist (to be implemented) |
-| `mail` | Mailhog (SMTP 1025, UI 8025) |
+`nginx`, `front`, `back`, `sql`, `redis`, `mail`
 
-App URL: `https://localhost` (browser warning on self-signed cert is expected).
+```powershell
+docker compose up --build
+```
 
-## Packages
-
-- `lcobucci/jwt` — access/refresh JWT
-- PHPUnit — unit and integration tests
-
-## Not implemented yet
-
-Registration, profile, RBAC/ABAC, `/refresh`, `/logout`. This commit is structure only.
+- https://localhost — Inertia Welcome page (accept self-signed cert)
+- https://localhost/api/ — `{"service":"auth","status":"ok"}`
+- http://localhost:8025 — Mailhog
