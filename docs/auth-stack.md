@@ -1,29 +1,19 @@
-# Auth Service layout
+# Auth bootstrap — Laravel Breeze + Inertia (React)
 
-Bootstrap for Auth: native PHP 8.5, Docker Compose, JWT + RBAC roles, Inertia.js + React.
+Auth package: Laravel Breeze (session). Inertia.js for the UI. JWT and roles are not in this init.
 
-## Authentication and authorization
-
-| Layer | Choice | Why |
-| --- | --- | --- |
-| Authentication | **JWT** (`lcobucci/jwt`) | Spec: access (15–30 min) + refresh (7–30 days), user id and roles in the access token. Not Laravel Sanctum (Auth is not Laravel). |
-| Token store | **Redis** | Blacklist, sessions, refresh rotation, separate TTLs |
-| Authorization | **RBAC + ABAC** | Roles: **Customer** (self-register), **Analyst** (Admin assigns), **Admin** (seed only). RBAC = role permissions; ABAC = extra checks on attributes. Validated inside Auth, not in a gateway. |
-
-Login/register/refresh are not implemented yet — packages and layout only.
-
-## Inertia.js
-
-`@inertiajs/react` in `frontend/`. Auth PHP renders Inertia pages (`Welcome`) without Laravel. Nginx: `/` → PHP, `/assets/` → Vite build, `/api/` → JSON health.
-
-## Docker Compose
-
-`nginx`, `front`, `back`, `sql`, `redis`, `mail`
+## Run
 
 ```powershell
 docker compose up --build
 ```
 
-- https://localhost — Inertia Welcome page (accept self-signed cert)
-- https://localhost/api/ — `{"service":"auth","status":"ok"}`
+Open:
+
+- https://localhost — `/register`, `/login`
+- https://localhost/spa/ — frontend stub
 - http://localhost:8025 — Mailhog
+
+Self-signed certificate: continue in the browser.
+
+Compose: `front`, `back` (Laravel PHP 8.4-FPM), `sql`, `redis`, `nginx` (80→443), `mail`.
