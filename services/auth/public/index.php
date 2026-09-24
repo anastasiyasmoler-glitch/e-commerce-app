@@ -1,20 +1,20 @@
 <?php
 
-declare(strict_types=1);
+use Illuminate\Foundation\Application;
+use Illuminate\Http\Request;
 
-require dirname(__DIR__) . '/vendor/autoload.php';
+define('LARAVEL_START', microtime(true));
 
-use Auth\Health;
-use Auth\Http\Inertia;
-
-$uri = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
-
-if ($uri === '/api' || $uri === '/api/' || $uri === '/api/health') {
-    header('Content-Type: application/json; charset=utf-8');
-    echo json_encode((new Health())->payload(), JSON_THROW_ON_ERROR);
-    exit;
+// Determine if the application is in maintenance mode...
+if (file_exists($maintenance = __DIR__.'/../storage/framework/maintenance.php')) {
+    require $maintenance;
 }
 
-Inertia::render('Welcome', [
-    'appName' => 'Auth Service',
-]);
+// Register the Composer autoloader...
+require __DIR__.'/../vendor/autoload.php';
+
+// Bootstrap Laravel and handle the request...
+/** @var Application $app */
+$app = require_once __DIR__.'/../bootstrap/app.php';
+
+$app->handleRequest(Request::capture());
