@@ -51,6 +51,12 @@ services:
       MAIL_PORT: "1025"
     volumes:
       - ./services/auth:/var/www/html
+    healthcheck:
+      test: ["CMD-SHELL", "php -r \"exit(@fsockopen('127.0.0.1', 9000) ? 0 : 1);\""]
+      interval: 5s
+      timeout: 3s
+      retries: 60
+      start_period: 30s
     depends_on:
       sql:
         condition: service_healthy
@@ -75,8 +81,10 @@ services:
       - ./services/auth/public:/var/www/html/public
       - ./docker/nginx/certs:/etc/nginx/certs
     depends_on:
-      - back
-      - front
+      back:
+        condition: service_healthy
+      front:
+        condition: service_started
 
 volumes:
   postgres_data:

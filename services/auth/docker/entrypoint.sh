@@ -14,7 +14,10 @@ if ! grep -qE '^APP_KEY=base64:' .env; then
 fi
 
 npm install --legacy-peer-deps
-npm run build
+
+if [ ! -f public/build/manifest.json ]; then
+    npm run build
+fi
 
 chown -R www-data:www-data storage bootstrap/cache public/build || true
 chmod -R ug+rwx storage bootstrap/cache
