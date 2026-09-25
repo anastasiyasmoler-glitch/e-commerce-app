@@ -1,0 +1,90 @@
+services:
+  sql:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: marketplace
+      POSTGRES_PASSWORD: marketplace
+      POSTGRES_DB: auth
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U marketplace -d auth"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  mail:
+    image: mailhog/mailhog:v1.0.1
+    ports:
+      - "8025:8025"
+
+  back:
+    build:
+      context: ./services/auth
+      dockerfile: Dockerfile
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "true"
+      APP_URL: https://localhost
+      DB_CONNECTION: pgsql
+      DB_HOST: sql
+      DB_PORT: "5432"
+      DB_DATABASE: auth
+      DB_USERNAME: marketplace
+      DB_PASSWORD: marketplace
+      REDIS_CLIENT: phpredis
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      SESSION_DRIVER: redis
+      SESSION_SECURE_COOKIE: "true"
+      CACHE_STORE: redis
+      MAIL_MAILER: smtp
+      MAIL_HOST: mail
+      MAIL_PORT: "1025"
+    volumes:
+      - ./services/auth:/var/www/html
+    healthcheck:
+      test: ["CMD-SHELL", "php -r \"exit(@fsockopen('127.0.0.1', 9000) ? 0 : 1);\""]
+      interval: 5s
+      timeout: 3s
+      retries: 60
+      start_period: 30s
+    depends_on:
+      sql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mail:
+        condition: service_started
+
+  front:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+
+  nginx:
+    build:
+      context: ./docker/nginx
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./services/auth/public:/var/www/html/public
+      - ./docker/nginx/certs:/etc/nginx/certs
+    depends_on:
+      back:
+        condition: service_healthy
+      front:
+        condition: service_started
+
+volumes:
+  postgres_data:
