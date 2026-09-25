@@ -1,6 +1,6 @@
-# Auth bootstrap — Laravel Breeze + Inertia (React)
+# Auth — Laravel Breeze + Inertia (React)
 
-Auth package: Laravel Breeze (session). Inertia.js for the UI. JWT and roles are not in this init.
+Session auth (Breeze). Roles: Spatie (`admin`, `customer`, `analyst`). JWT is not in this branch.
 
 ## Run
 
@@ -8,12 +8,10 @@ Auth package: Laravel Breeze (session). Inertia.js for the UI. JWT and roles are
 docker compose up --build
 ```
 
-Open:
-
-- https://localhost — `/register`, `/login`
-- https://localhost/spa/ — frontend stub
-- http://localhost:8025 — Mailhog
+Open https://localhost — `/register`, `/login`.
 
 Self-signed certificate: continue in the browser.
 
-Compose: `front`, `back` (Laravel PHP 8.4-FPM), `sql`, `redis`, `nginx` (80→443), `mail`.
+Seeded admin: `admin@example.com` / `password` (роль `admin`, отдельной админ-страницы нет). Self-register gets role `customer`.
+
+Compose: `front`, `back`, `sql`, `redis`, `nginx` (80→443), `mail` (http://localhost:8025).
