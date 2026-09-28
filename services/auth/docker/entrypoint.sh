@@ -13,6 +13,10 @@ if ! grep -qE '^APP_KEY=base64:' .env; then
     php artisan key:generate --force --no-interaction
 fi
 
+if ! grep -qE '^JWT_SECRET=.+' .env || grep -qE '^JWT_SECRET=$' .env; then
+    php artisan jwt:secret --force --no-interaction || true
+fi
+
 npm install --legacy-peer-deps
 
 if [ ! -f public/build/manifest.json ]; then
