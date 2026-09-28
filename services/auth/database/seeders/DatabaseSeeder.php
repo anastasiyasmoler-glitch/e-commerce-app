@@ -19,10 +19,17 @@ class DatabaseSeeder extends Seeder
             ['email' => 'admin@example.com'],
             [
                 'name' => 'Admin',
+                'phone' => '+10000000000',
                 'password' => Hash::make('password'),
                 'email_verified_at' => now(),
             ],
         );
+
+        if ($admin->phone === null) {
+            $admin->phone = '+10000000000';
+            $admin->save();
+        }
+
         $admin->syncRoles(['admin']);
     }
 }
