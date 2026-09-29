@@ -25,8 +25,10 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-Route::get('/admin', [AdminController::class, 'index'])
-    ->middleware(['auth', 'verified', 'role:admin'])
-    ->name('admin.users');
+Route::middleware(['auth', 'verified', 'role:admin'])->group(function () {
+    Route::get('/admin', [AdminController::class, 'index'])->name('admin.users');
+    Route::patch('/admin/users/{user}/analyst', [AdminController::class, 'updateAnalyst'])
+        ->name('admin.users.analyst');
+});
 
 require __DIR__.'/auth.php';
