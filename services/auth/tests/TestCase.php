@@ -12,6 +12,8 @@ abstract class TestCase extends BaseTestCase
     {
         parent::setUp();
 
+        $this->withoutVite();
+
         if (! Schema::hasTable('roles')) {
             return;
         }
