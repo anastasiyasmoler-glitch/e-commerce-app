@@ -19,6 +19,8 @@ class AdminController extends Controller
 
     public function index(): Response
     {
+        $this->authorize('viewAny', User::class);
+
         return Inertia::render('Admin/Users', [
             'users' => $this->admin->listUsersForAdmin(),
         ]);
