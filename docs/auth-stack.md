@@ -12,6 +12,6 @@ Open https://localhost — `/register`, `/login`.
 
 Self-signed certificate: continue in the browser.
 
-Seeded admin: `admin@example.com` / `password` (роль `admin`, отдельной админ-страницы нет). Self-register gets role `customer`.
+Seeded admin: `admin@example.com` / `password` (роль `admin`). Staff UI: `/admin` (Users, роль `analyst`). Self-register gets role `customer`.
 
 Compose: `front`, `back`, `sql`, `redis`, `nginx` (80→443), `mail` (http://localhost:8025).
