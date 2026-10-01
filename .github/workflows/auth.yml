@@ -1,0 +1,111 @@
+name: Auth
+
+on:
+  push:
+    paths:
+      - 'services/auth/**'
+      - '.github/workflows/auth.yml'
+  pull_request:
+    paths:
+      - 'services/auth/**'
+      - '.github/workflows/auth.yml'
+
+concurrency:
+  group: auth-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint and format
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/auth
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Laravel Pint
+        run: php vendor/bin/pint --test
+
+  test:
+    name: Unit and integration tests
+    needs: lint
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/auth
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, xml, ctype, iconv, intl, pdo_sqlite, sqlite3, bcmath, tokenizer
+          coverage: none
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: services/auth/package-lock.json
+
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Prepare Laravel env
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: Build Vite assets
+        run: |
+          npm ci
+          npm run build
+
+      - name: PHPUnit
+        run: php vendor/bin/phpunit
+        env:
+          APP_ENV: testing
+
+  docker:
+    name: Build and publish image
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/metadata-action@v5
+        id: meta
+        with:
+          images: ghcr.io/${{ github.repository }}/auth
+          tags: |
+            type=raw,value=latest
+            type=sha,prefix=
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: services/auth
+          file: services/auth/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
