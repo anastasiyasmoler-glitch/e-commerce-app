@@ -2,13 +2,7 @@ name: Auth
 
 on:
   push:
-    paths:
-      - 'services/auth/**'
-      - '.github/workflows/auth.yml'
   pull_request:
-    paths:
-      - 'services/auth/**'
-      - '.github/workflows/auth.yml'
 
 concurrency:
   group: auth-${{ github.workflow }}-${{ github.ref }}
@@ -18,9 +12,6 @@ jobs:
   lint:
     name: Lint and format
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: services/auth
     steps:
       - uses: actions/checkout@v4
 
@@ -39,9 +30,6 @@ jobs:
     name: Unit and integration tests
     needs: lint
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: services/auth
     steps:
       - uses: actions/checkout@v4
 
@@ -55,7 +43,7 @@ jobs:
         with:
           node-version: '22'
           cache: npm
-          cache-dependency-path: services/auth/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Install Composer dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
@@ -104,8 +92,8 @@ jobs:
 
       - uses: docker/build-push-action@v6
         with:
-          context: services/auth
-          file: services/auth/Dockerfile
+          context: .
+          file: Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

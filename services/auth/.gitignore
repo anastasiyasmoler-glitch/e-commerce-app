@@ -21,6 +21,9 @@
 /storage/*.key
 /storage/pail
 /vendor
+/docker/nginx/certs/*.pem
+/docker/nginx/certs/*.key
+!/docker/nginx/certs/.gitkeep
 _ide_helper.php
 Homestead.json
 Homestead.yaml
