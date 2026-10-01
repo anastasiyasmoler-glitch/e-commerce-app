@@ -36,7 +36,7 @@ services:
 
   back:
     build:
-      context: ./services/auth
+      context: .
       dockerfile: Dockerfile
     environment:
       APP_ENV: local
@@ -62,7 +62,7 @@ services:
       GOOGLE_CLIENT_SECRET: mock-google-secret
       GOOGLE_REDIRECT_URI: https://localhost/auth/google/callback
     volumes:
-      - ./services/auth:/var/www/html
+      - .:/var/www/html
     healthcheck:
       test: ["CMD-SHELL", "php -r \"exit(@fsockopen('127.0.0.1', 9000) ? 0 : 1);\""]
       interval: 5s
@@ -92,7 +92,7 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - ./services/auth/public:/var/www/html/public
+      - ./public:/var/www/html/public
       - ./docker/nginx/certs:/etc/nginx/certs
     depends_on:
       back:
