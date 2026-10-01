@@ -78,7 +78,7 @@ class SocialAuthTest extends TestCase
     public function test_callback_redirects_to_login_when_state_is_invalid(): void
     {
         $provider = Mockery::mock();
-        $provider->shouldReceive('user')->once()->andThrow(new InvalidStateException());
+        $provider->shouldReceive('user')->once()->andThrow(new InvalidStateException);
         Socialite::shouldReceive('driver')->with('google')->andReturn($provider);
 
         $this->get(route('auth.google.callback'))

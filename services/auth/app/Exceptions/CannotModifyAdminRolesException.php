@@ -4,6 +4,4 @@ namespace App\Exceptions;
 
 use RuntimeException;
 
-class CannotModifyAdminRolesException extends RuntimeException
-{
-}
+class CannotModifyAdminRolesException extends RuntimeException {}

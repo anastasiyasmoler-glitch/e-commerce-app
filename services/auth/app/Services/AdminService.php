@@ -43,7 +43,7 @@ class AdminService
     public function setAnalyst(int $userId, bool $analyst): void
     {
         if ($this->users->hasRole($userId, 'admin')) {
-            throw new CannotModifyAdminRolesException();
+            throw new CannotModifyAdminRolesException;
         }
 
         if ($analyst) {
