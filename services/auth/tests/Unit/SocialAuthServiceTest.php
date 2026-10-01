@@ -20,7 +20,7 @@ class SocialAuthServiceTest extends TestCase
 
     public function test_returns_user_found_by_provider_without_creating(): void
     {
-        $existing = new User();
+        $existing = new User;
         $existing->id = 3;
 
         $users = Mockery::mock(SocialUserRepositoryInterface::class);
@@ -41,7 +41,7 @@ class SocialAuthServiceTest extends TestCase
 
     public function test_returns_user_found_by_email_without_creating(): void
     {
-        $existing = new User();
+        $existing = new User;
         $existing->id = 4;
 
         $users = Mockery::mock(SocialUserRepositoryInterface::class);
@@ -62,7 +62,7 @@ class SocialAuthServiceTest extends TestCase
 
     public function test_creates_customer_when_user_does_not_exist(): void
     {
-        $created = new User();
+        $created = new User;
         $created->id = 9;
 
         $users = Mockery::mock(SocialUserRepositoryInterface::class);
