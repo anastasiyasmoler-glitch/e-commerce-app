@@ -7,11 +7,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         ca-certificates \
         libssl-dev \
         libzip-dev \
+        cmake \
         $PHPIZE_DEPS \
-    && pecl install mongodb \
+    && MAKEFLAGS="-j1" pecl install mongodb \
     && docker-php-ext-enable mongodb \
     && docker-php-ext-install zip bcmath opcache \
-    && apt-get purge -y --auto-remove $PHPIZE_DEPS \
+    && apt-get purge -y --auto-remove $PHPIZE_DEPS cmake \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
