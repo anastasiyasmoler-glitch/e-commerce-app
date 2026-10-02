@@ -26,4 +26,33 @@ class MongoNotificationLogRepository implements NotificationLogRepositoryInterfa
     {
         return NotificationLog::query()->find($id);
     }
+
+    public function markSent(NotificationLog $log): NotificationLog
+    {
+        $log->status = NotificationLog::STATUS_SENT;
+        $log->sent_at = now();
+        $log->error_message = null;
+        $log->save();
+
+        return $log;
+    }
+
+    public function markFailed(NotificationLog $log, string $errorMessage): NotificationLog
+    {
+        $log->status = NotificationLog::STATUS_FAILED;
+        $log->attempts = (int) $log->attempts + 1;
+        $log->error_message = $errorMessage;
+        $log->save();
+
+        return $log;
+    }
+
+    public function markDlq(NotificationLog $log): NotificationLog
+    {
+        $log->status = NotificationLog::STATUS_FAILED;
+        $log->is_dlq = true;
+        $log->save();
+
+        return $log;
+    }
 }
