@@ -3,9 +3,14 @@
 namespace App\Services;
 
 use App\Contracts\KafkaPublisherInterface;
+use App\Mail\OrderCancelledMail;
+use App\Mail\OrderConfirmedMail;
+use App\Mail\OrderPaidMail;
+use App\Mail\UserRegisteredMail;
 use App\Models\NotificationLog;
 use App\Repositories\Contracts\NotificationLogRepositoryInterface;
 use Illuminate\Contracts\Mail\Mailer;
+use Illuminate\Mail\Mailable;
 use InvalidArgumentException;
 use Throwable;
 
@@ -31,12 +36,9 @@ class NotificationDispatchService
 
         for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
             try {
-                $this->mailer->html(
-                    $this->htmlBody($event, $payload),
-                    function ($message) use ($recipient, $event): void {
-                        $message->to($recipient)->subject($this->subject($event));
-                    }
-                );
+                $mailable = $this->mailableFor($event, $payload);
+                $mailable->to($recipient);
+                $this->mailer->send($mailable);
 
                 return $this->logs->markSent($log);
             } catch (Throwable $exception) {
@@ -60,36 +62,18 @@ class NotificationDispatchService
         return $log;
     }
 
-    private function subject(string $event): string
-    {
-        return match ($event) {
-            'user.registered' => 'Welcome',
-            'order.paid' => 'Payment received',
-            'order.confirmed' => 'Order confirmed',
-            'order.cancelled' => 'Order cancelled',
-            default => 'Notification',
-        };
-    }
-
     /**
      * @param  array<string, mixed>  $payload
      */
-    private function htmlBody(string $event, array $payload): string
+    private function mailableFor(string $event, array $payload): Mailable
     {
-        $name = (string) ($payload['name'] ?? $payload['email'] ?? 'there');
-
         return match ($event) {
-            'user.registered' => "<p>Welcome, {$this->e($name)}.</p>",
-            'order.paid' => '<p>We received your payment.</p>',
-            'order.confirmed' => '<p>Your order is confirmed.</p>',
-            'order.cancelled' => '<p>Your order was cancelled.</p>',
-            default => '<p>Notification</p>',
+            'user.registered' => new UserRegisteredMail($payload),
+            'order.paid' => new OrderPaidMail($payload),
+            'order.confirmed' => new OrderConfirmedMail($payload),
+            'order.cancelled' => new OrderCancelledMail($payload),
+            default => throw new InvalidArgumentException("Unknown notification event [{$event}]."),
         };
-    }
-
-    private function e(string $value): string
-    {
-        return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
     }
 
     private function backoffMicroseconds(int $failedAttempt): int
