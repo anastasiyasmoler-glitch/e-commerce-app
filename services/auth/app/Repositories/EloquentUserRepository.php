@@ -21,4 +21,16 @@ class EloquentUserRepository implements UserRepository
     {
         return User::query()->find($id);
     }
+
+    public function save(User $user): User
+    {
+        $user->save();
+
+        return $user;
+    }
+
+    public function delete(User $user): void
+    {
+        $user->delete();
+    }
 }
