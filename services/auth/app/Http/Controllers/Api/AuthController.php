@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Cookies\RefreshTokenCookie;
 use App\Http\Requests\Api\LoginRequest;
-use App\Http\Requests\Api\RefreshRequest;
 use App\Http\Requests\Api\RegisterRequest;
 use App\Models\User;
 use App\Services\JwtAuthService;
@@ -13,37 +13,40 @@ use Illuminate\Http\Request;
 
 class AuthController extends Controller
 {
-    public function __construct(private readonly JwtAuthService $auth) {}
+    public function __construct(
+        private readonly JwtAuthService $auth,
+        private readonly RefreshTokenCookie $refreshCookie,
+    ) {}
 
     public function register(RegisterRequest $request): JsonResponse
     {
-        $tokens = $this->auth->register($request->safe()->only(['name', 'email', 'password']));
-
-        return response()->json($tokens, 201);
+        return $this->tokenResponse(
+            $this->auth->register($request->safe()->only(['name', 'email', 'password'])),
+            201,
+        );
     }
 
     public function login(LoginRequest $request): JsonResponse
     {
-        $tokens = $this->auth->login(
+        return $this->tokenResponse($this->auth->login(
             (string) $request->validated('email'),
             (string) $request->validated('password'),
-        );
-
-        return response()->json($tokens);
+        ));
     }
 
-    public function refresh(RefreshRequest $request): JsonResponse
+    public function refresh(Request $request): JsonResponse
     {
-        return response()->json(
-            $this->auth->refresh((string) $request->validated('refresh_token')),
-        );
+        $refreshToken = (string) $request->cookie((string) config('jwt.refresh_cookie'), '');
+
+        return $this->tokenResponse($this->auth->refresh($refreshToken));
     }
 
     public function logout(Request $request): JsonResponse
     {
-        $this->auth->logout($request->input('refresh_token'));
+        $this->auth->logout($request->cookie((string) config('jwt.refresh_cookie')));
 
-        return response()->json(['message' => 'Successfully logged out.']);
+        return response()->json(['message' => 'Successfully logged out.'])
+            ->withCookie($this->refreshCookie->forget());
     }
 
     public function me(Request $request): JsonResponse
@@ -57,5 +60,17 @@ class AuthController extends Controller
             'email' => $user->email,
             'roles' => $user->getRoleNames()->values()->all(),
         ]);
+    }
+
+    /**
+     * @param  array{access_token: string, refresh_token: string, token_type: string, expires_in: int}  $tokens
+     */
+    private function tokenResponse(array $tokens, int $status = 200): JsonResponse
+    {
+        $refresh = $tokens['refresh_token'];
+        unset($tokens['refresh_token']);
+
+        return response()->json($tokens, $status)
+            ->withCookie($this->refreshCookie->make($refresh));
     }
 }
