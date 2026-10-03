@@ -4,13 +4,14 @@ namespace Tests\Feature\Api;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
 class JwtAuthTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_register_returns_tokens_and_assigns_customer(): void
+    public function test_register_returns_access_and_sets_refresh_cookie(): void
     {
         $response = $this->postJson('/api/register', [
             'name' => 'Api User',
@@ -20,7 +21,9 @@ class JwtAuthTest extends TestCase
         ]);
 
         $response->assertCreated()
-            ->assertJsonStructure(['access_token', 'refresh_token', 'token_type', 'expires_in']);
+            ->assertJsonStructure(['access_token', 'token_type', 'expires_in'])
+            ->assertJsonMissingPath('refresh_token')
+            ->assertCookie((string) config('jwt.refresh_cookie'));
 
         $user = User::query()->where('email', 'api@example.com')->first();
         $this->assertNotNull($user);
@@ -48,40 +51,42 @@ class JwtAuthTest extends TestCase
 
     public function test_refresh_rotates_tokens(): void
     {
-        $login = $this->registerAndLogin();
-        $oldRefresh = $login['refresh_token'];
+        $login = $this->registerUser();
+        $oldRefresh = $this->refreshCookieValue($login);
 
-        $refresh = $this->postJson('/api/refresh', [
-            'refresh_token' => $oldRefresh,
-        ]);
+        $refresh = $this->withUnencryptedCookie((string) config('jwt.refresh_cookie'), $oldRefresh)
+            ->postJson('/api/refresh');
 
         $refresh->assertOk()
-            ->assertJsonStructure(['access_token', 'refresh_token']);
+            ->assertJsonStructure(['access_token', 'token_type', 'expires_in'])
+            ->assertJsonMissingPath('refresh_token')
+            ->assertCookie((string) config('jwt.refresh_cookie'));
 
-        $this->assertNotSame($oldRefresh, $refresh->json('refresh_token'));
+        $this->assertNotSame($oldRefresh, $this->refreshCookieValue($refresh));
 
-        $this->postJson('/api/refresh', [
-            'refresh_token' => $oldRefresh,
-        ])->assertUnauthorized();
+        $this->withUnencryptedCookie((string) config('jwt.refresh_cookie'), $oldRefresh)
+            ->postJson('/api/refresh')
+            ->assertUnauthorized();
     }
 
     public function test_logout_blacklists_access_and_refresh(): void
     {
-        $tokens = $this->registerAndLogin();
+        $tokens = $this->registerUser();
+        $refresh = $this->refreshCookieValue($tokens);
 
-        $this->postJson('/api/logout', [
-            'refresh_token' => $tokens['refresh_token'],
-        ], [
-            'Authorization' => 'Bearer '.$tokens['access_token'],
-        ])->assertOk();
+        $this->withUnencryptedCookie((string) config('jwt.refresh_cookie'), $refresh)
+            ->postJson('/api/logout', [], [
+                'Authorization' => 'Bearer '.$tokens->json('access_token'),
+            ])
+            ->assertOk();
 
         $this->getJson('/api/me', [
-            'Authorization' => 'Bearer '.$tokens['access_token'],
+            'Authorization' => 'Bearer '.$tokens->json('access_token'),
         ])->assertUnauthorized();
 
-        $this->postJson('/api/refresh', [
-            'refresh_token' => $tokens['refresh_token'],
-        ])->assertUnauthorized();
+        $this->withUnencryptedCookie((string) config('jwt.refresh_cookie'), $refresh)
+            ->postJson('/api/refresh')
+            ->assertUnauthorized();
     }
 
     public function test_login_rejects_invalid_credentials(): void
@@ -92,21 +97,26 @@ class JwtAuthTest extends TestCase
         ])->assertUnauthorized();
     }
 
-    /**
-     * @return array{access_token: string, refresh_token: string}
-     */
-    private function registerAndLogin(): array
+    public function test_refresh_without_cookie_is_unauthorized(): void
     {
-        $response = $this->postJson('/api/register', [
+        $this->postJson('/api/refresh')->assertUnauthorized();
+    }
+
+    private function registerUser(): TestResponse
+    {
+        return $this->postJson('/api/register', [
             'name' => 'Api User',
             'email' => 'rotate@example.com',
             'password' => 'password',
             'password_confirmation' => 'password',
         ]);
+    }
 
-        return [
-            'access_token' => $response->json('access_token'),
-            'refresh_token' => $response->json('refresh_token'),
-        ];
+    private function refreshCookieValue(TestResponse $response): string
+    {
+        $cookie = $response->getCookie((string) config('jwt.refresh_cookie'), false);
+        $this->assertNotNull($cookie);
+
+        return (string) $cookie->getValue();
     }
 }
