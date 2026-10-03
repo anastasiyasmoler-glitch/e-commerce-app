@@ -16,6 +16,7 @@ class JwtAuthTest extends TestCase
         $response = $this->postJson('/api/register', [
             'name' => 'Api User',
             'email' => 'api@example.com',
+            'phone' => '375291111111',
             'password' => 'password',
             'password_confirmation' => 'password',
         ]);
@@ -46,6 +47,7 @@ class JwtAuthTest extends TestCase
         $this->getJson('/api/me', ['Authorization' => 'Bearer '.$access])
             ->assertOk()
             ->assertJsonPath('email', 'jwt@example.com')
+            ->assertJsonPath('phone', $user->phone)
             ->assertJsonPath('roles.0', 'customer');
     }
 
@@ -107,6 +109,7 @@ class JwtAuthTest extends TestCase
         return $this->postJson('/api/register', [
             'name' => 'Api User',
             'email' => 'rotate@example.com',
+            'phone' => '375292222222',
             'password' => 'password',
             'password_confirmation' => 'password',
         ]);
