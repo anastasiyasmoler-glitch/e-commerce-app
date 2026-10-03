@@ -22,6 +22,7 @@ abstract class TestCase extends BaseTestCase
         parent::setUp();
 
         $this->app['auth']->shouldUse('web');
+        $this->withoutVite();
 
         if (! Schema::hasTable('roles')) {
             return;
