@@ -7,7 +7,7 @@ use App\Models\User;
 interface UserRepository
 {
     /**
-     * @param  array{name: string, email: string, password: string}  $attributes
+     * @param  array{name: string, email: string, phone: string, password: string}  $attributes
      */
     public function create(array $attributes): User;
 

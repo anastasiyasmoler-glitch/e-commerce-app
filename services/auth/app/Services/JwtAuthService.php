@@ -19,7 +19,7 @@ class JwtAuthService
     ) {}
 
     /**
-     * @param  array{name: string, email: string, password: string}  $attributes
+     * @param  array{name: string, email: string, phone: string, password: string}  $attributes
      * @return array{access_token: string, refresh_token: string, token_type: string, expires_in: int}
      */
     public function register(array $attributes): array

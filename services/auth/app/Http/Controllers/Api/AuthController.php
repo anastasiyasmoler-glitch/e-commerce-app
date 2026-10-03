@@ -21,7 +21,7 @@ class AuthController extends Controller
     public function register(RegisterRequest $request): JsonResponse
     {
         return $this->tokenResponse(
-            $this->auth->register($request->safe()->only(['name', 'email', 'password'])),
+            $this->auth->register($request->safe()->only(['name', 'email', 'phone', 'password'])),
             201,
         );
     }
