@@ -9,6 +9,11 @@ use Illuminate\Validation\Rule;
 
 class ProfileUpdateRequest extends FormRequest
 {
+    public function authorize(): bool
+    {
+        return $this->user()->can('update', $this->user());
+    }
+
     /**
      * @return array<string, ValidationRule|array<mixed>|string>
      */
@@ -16,6 +21,12 @@ class ProfileUpdateRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255'],
+            'phone' => [
+                'required',
+                'string',
+                'max:32',
+                Rule::unique(User::class)->ignore($this->user()->id),
+            ],
             'email' => [
                 'required',
                 'string',
