@@ -57,6 +57,10 @@ services:
       MAIL_MAILER: smtp
       MAIL_HOST: mail
       MAIL_PORT: "1025"
+      JWT_SECRET: ${JWT_SECRET:-local-dev-jwt-secret-change-me-32ch}
+      JWT_TTL: "15"
+      JWT_REFRESH_TTL: "10080"
+      JWT_BLACKLIST_ENABLED: "true"
       OIDC_ISSUER: http://oidc:8080/google
       GOOGLE_CLIENT_ID: mock-google-client
       GOOGLE_CLIENT_SECRET: mock-google-secret

@@ -8,10 +8,20 @@ use Spatie\Permission\Models\Role;
 
 abstract class TestCase extends BaseTestCase
 {
+    public function createApplication()
+    {
+        putenv('APP_ENV=testing');
+        $_ENV['APP_ENV'] = 'testing';
+        $_SERVER['APP_ENV'] = 'testing';
+
+        return parent::createApplication();
+    }
+
     protected function setUp(): void
     {
         parent::setUp();
 
+        $this->app['auth']->shouldUse('web');
         $this->withoutVite();
 
         if (! Schema::hasTable('roles')) {

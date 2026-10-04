@@ -12,15 +12,12 @@ Owns:
 
 - registration and login
 - staff UI (Breeze + Inertia) on **session**
+- JWT API for the future SPA
 - Spatie roles `admin`, `customer`, `analyst`
 
-Product email belongs to Notification. Mailhog here is only for Auth’s own mail (password reset, etc.).
+Product email belongs to Notification.
 
-## Two clients (when JWT branch is used)
-
-On **`develop`** there is **no** JWT API — only sessions.
-
-On **`feature/AUTH-2-jwt`** (not merged): session stays for `/admin`; SPA uses JWT (`/api/*`, access in JSON, refresh HttpOnly cookie, Redis).
+JWT API is on **`develop`**: access in JSON, refresh HttpOnly cookie, Redis for refresh hashes and access blacklist. Staff UI stays on session.
 
 ## Layout
 
@@ -28,17 +25,16 @@ Service root: `services/auth/` (compose, nginx, Laravel, frontend stub, `.github
 
 ## Stack
 
-- PHP 8.4, Laravel 13, Spatie, Breeze + Inertia
-- PostgreSQL 16, Redis 7 (sessions + cache)
-- Nginx 443, Mailhog :8025
-- Mock OIDC :8080 (Google-like login)
+- PHP 8.4, Laravel 13, Spatie, Breeze + Inertia, tymon/jwt-auth
+- PostgreSQL 16, Redis 7 (sessions, cache, refresh keys)
+- Nginx 443, Mailhog :8025, mock OIDC :8080
 
 ## Docker
 
 | Service | Role |
 |---|---|
 | `sql` | PostgreSQL |
-| `redis` | Sessions and cache |
+| `redis` | Sessions, cache, JWT blacklist/refresh |
 | `mail` | Mailhog |
 | `oidc` | Mock Google |
 | `back` | php-fpm |
@@ -50,7 +46,13 @@ cd services/auth
 docker compose up --build
 ```
 
-https://localhost — `/register`, `/login`, `/admin` (admin only). Seed: `admin@example.com` / `password`. Google: `/login` → mock at :8080.
+https://localhost — `/register`, `/login`, `/admin`. Seed: `admin@example.com` / `password`.
+
+## JWT API
+
+- `POST /api/register`, `/api/login`, `/api/refresh`, `/api/logout`, `GET /api/me`
+- `GET|PATCH /api/profile`, `PUT /api/profile/password`, `DELETE /api/profile`
+- Refresh cookie `refresh_token`. Access in JSON. `/api/*` uses `auth:api`, not `role:admin`.
 
 ## Roles
 
@@ -58,9 +60,7 @@ https://localhost — `/register`, `/login`, `/admin` (admin only). Seed: `admin
 |---|---|
 | `admin` | seeder |
 | `customer` | self-register and Google |
-| `analyst` | checkbox on `/admin` |
-
-`role:admin` guards `/admin`. JWT routes (other branch) currently only check `auth:api`, not admin.
+| `analyst` | `/admin` |
 
 ## Tests
 
@@ -68,9 +68,8 @@ https://localhost — `/register`, `/login`, `/admin` (admin only). Seed: `admin
 php vendor/bin/phpunit
 ```
 
-## Out of scope here (`develop`)
+## Out of scope
 
-- JWT `/api/login` (see `feature/AUTH-2-jwt`)
 - Kafka `user.registered` producer
 - OpenAPI
 - Replacing Inertia with the shop SPA
