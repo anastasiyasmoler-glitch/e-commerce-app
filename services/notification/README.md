@@ -71,4 +71,4 @@ https://localhost:8443 (self-signed).
 php vendor/bin/phpunit
 ```
 
-Pipeline/retry tests and live Kafka/Mongo/Mailhog coverage are still open on NOTIF-2.
+Unit: `NotificationLogTest`, `NotificationDispatchServiceTest` (успех SMTP, 3 фейла → DLQ, неизвестный топик). Живой Kafka/Mongo/Mailhog в PHPUnit нет.
