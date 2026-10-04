@@ -17,7 +17,7 @@ This service owns:
 
 It does **not** send email to end users (Mailhog is only for local mail capture). Product email belongs to Notification.
 
-JWT API is on this branch: access token in JSON, refresh token in an HttpOnly cookie, Redis store for refresh hashes and access blacklist.
+JWT API is on **`develop`**: access token in JSON, refresh token in an HttpOnly cookie, Redis for refresh hashes and access blacklist. Staff UI stays on session.
 
 ## Layout
 
