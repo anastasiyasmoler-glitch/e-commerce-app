@@ -1,6 +1,6 @@
 # Auth — Laravel Breeze + Inertia (React)
 
-Session auth (Breeze). Roles: Spatie (`admin`, `customer`, `analyst`). JWT is not in this branch.
+Session auth (Breeze) for Inertia. Spatie (`admin`, `customer`, `analyst`). JWT **нет в `develop`**; полный JWT API на `feature/AUTH-2-jwt` (не влита). Kafka producer нет.
 
 Корень сервиса — `services/auth` (здесь `docker-compose.yml`, Laravel, nginx, `frontend`, `.github`).
 
