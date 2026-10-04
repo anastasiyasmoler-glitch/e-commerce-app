@@ -1,54 +1,69 @@
 # Notification Service
 
-Sends email for the e-commerce monorepo and stores notification history in MongoDB.
-This service is the only one allowed to send mail. Auth and Order publish events; they do not SMTP.
+Sends email for the e-commerce monorepo and stores history in MongoDB.
+Only this service sends product mail. Auth and Order should publish Kafka events; they must not SMTP.
 
-Host HTTPS is **8443** so it does not collide with Auth on 443.
+Host HTTPS is **8443** (Auth uses 443). Mailhog UI: http://localhost:8026.
 
 ## Role
 
-- Consumer of Kafka events (welcome mail, order mail) — next ticket
-- History documents in MongoDB — this ticket
-- REST history API for Admin/Analyst — later
+- Kafka **consumer** — welcome and order mail (this ticket, NOTIF-2)
+- History in MongoDB `notification_logs`
+- REST list for Admin/Analyst — NOTIF-3
+- UI — NOTIF-4
 
-## Layout
-
-Service root is `services/notification/` (Compose, nginx, Laravel, frontend stub).
+Auth does **not** publish `user.registered` yet. Each service compose has its **own** Kafka. Registration will not produce mail until a producer exists and both sides share one broker.
 
 ## Stack
 
-- PHP 8.5, Laravel 13, PSR-4
-- MongoDB 7 — collection `notification_logs`
-- Apache Kafka (broker in Compose; consumer not wired yet)
-- Mailhog (UI http://localhost:8026)
-- Nginx: container 443, host **8443**; HTTP host **8081** redirects to HTTPS
-- `front` — SPA stub at `/spa/`
+- PHP 8.5, Laravel 13, `longlang/phpkafka`, `mongodb/laravel-mongodb`
+- MongoDB 7
+- Apache Kafka 3.9.1 (KRaft), group `notification-service-group`
+- Mailhog
+- Nginx: container 443, host 8443; HTTP 8081 → HTTPS
+
+## Kafka
+
+| Topic | Mail |
+|---|---|
+| `user.registered` | Welcome |
+| `order.paid` | Paid |
+| `order.confirmed` | Confirmed |
+| `order.cancelled` | Cancelled (`reason: out_of_stock` in payload) |
+| `notifications.dlq` | After 3 failed SMTP attempts (`is_dlq` in Mongo). No replay. |
+
+Payload JSON must include `email` or `recipient`.
+
+Consumer (not started by compose):
+
+```powershell
+docker compose exec back php artisan kafka:consume-notifications
+```
+
+Retry: 3 attempts, backoff 200ms × 2^(n-1). See `config/kafka.php`.
 
 ## History document
 
 Fields: `event`, `channel`, `recipient`, `payload`, `status`, `attempts`, `error_message`, `is_dlq`, `sent_at`.
 Statuses: `pending`, `sent`, `failed`.
-Access: `NotificationLogRepositoryInterface` → `MongoNotificationLogRepository`.
 
 ## Docker
 
 | Service | Role |
 |---|---|
-| `mongo` | History store |
-| `kafka` | Broker (9092) |
+| `mongo` | History |
+| `kafka` | Broker 9092 |
 | `mail` | Mailhog |
 | `back` | php-fpm |
 | `front` | Stub SPA |
 | `nginx` | TLS + FastCGI |
-
-## Run
 
 ```powershell
 cd services/notification
 docker compose up --build
 ```
 
-Open https://localhost:8443 (self-signed cert). Mailhog: http://localhost:8026.
+https://localhost:8443 (self-signed).
 
 ## Tests
 
@@ -56,4 +71,4 @@ Open https://localhost:8443 (self-signed cert). Mailhog: http://localhost:8026.
 php vendor/bin/phpunit
 ```
 
-No Kafka consumer, welcome mail, or REST list in this ticket.
+Pipeline/retry tests and live Kafka/Mongo/Mailhog coverage are still open on NOTIF-2.
