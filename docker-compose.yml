@@ -201,6 +201,45 @@ services:
         aliases: [back]
       events: {}
 
+  notification-consumer:
+    build:
+      context: ./services/notification
+      dockerfile: Dockerfile
+    command: ["php", "artisan", "kafka:consume-notifications"]
+    restart: unless-stopped
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "true"
+      APP_URL: https://localhost:8443
+      DB_CONNECTION: mongodb
+      MONGODB_DSN: mongodb://mongo:27017
+      MONGODB_HOST: mongo
+      MONGODB_PORT: "27017"
+      MONGODB_DATABASE: notification
+      SESSION_DRIVER: file
+      CACHE_STORE: file
+      QUEUE_CONNECTION: sync
+      MAIL_MAILER: smtp
+      MAIL_HOST: mail
+      MAIL_PORT: "1025"
+      MAIL_FROM_ADDRESS: notifications@example.com
+      MAIL_FROM_NAME: Notification
+      KAFKA_BROKERS: kafka:9092
+    volumes:
+      - ./services/notification:/var/www/html
+    depends_on:
+      notification-back:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+      mail:
+        condition: service_started
+    networks:
+      notification: {}
+      events: {}
+
   notification-front:
     build:
       context: ./services/notification/frontend
