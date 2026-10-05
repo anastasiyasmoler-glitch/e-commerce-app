@@ -21,4 +21,4 @@ until php -r "exit(@fsockopen(getenv('MONGODB_HOST') ?: 'mongo', (int) (getenv('
     sleep 2
 done
 
-exec docker-php-entrypoint php-fpm
+exec docker-php-entrypoint "$@"
