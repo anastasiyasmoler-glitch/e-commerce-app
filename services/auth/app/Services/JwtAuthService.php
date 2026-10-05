@@ -7,6 +7,7 @@ use App\Contracts\UserRepository;
 use App\Exceptions\InvalidRefreshTokenException;
 use App\Models\User;
 use Illuminate\Auth\AuthenticationException;
+use Illuminate\Auth\Events\Registered;
 use Illuminate\Support\Str;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use Tymon\JWTAuth\JWTGuard;
@@ -26,6 +27,8 @@ class JwtAuthService
     {
         $user = $this->users->create($attributes);
         $user->assignRole('customer');
+
+        event(new Registered($user));
 
         return $this->issuePair($user);
     }
