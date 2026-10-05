@@ -6,7 +6,7 @@ Start here. `docs/auth-stack.md` is a short run sheet.
 
 ## Role
 
-Auth is checkpoint 1. Other services must not call Auth over HTTP for business logic. They consume events later (Kafka for Auth↔Notification). **This service does not publish Kafka yet.**
+Auth is checkpoint 1. Other services must not call Auth over HTTP for business logic. They consume events later (Kafka for Auth↔Notification). After registration Auth publishes `user.registered` (email, name, user_id). Isolated Auth compose has no Kafka: publish is logged and registration still succeeds. Use the root compose for a real broker.
 
 Owns:
 
@@ -70,6 +70,5 @@ php vendor/bin/phpunit
 
 ## Out of scope
 
-- Kafka `user.registered` producer
 - OpenAPI
 - Replacing Inertia with the shop SPA

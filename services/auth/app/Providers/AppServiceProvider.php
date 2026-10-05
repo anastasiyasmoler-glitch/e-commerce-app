@@ -2,10 +2,13 @@
 
 namespace App\Providers;
 
+use App\Contracts\KafkaPublisherInterface;
 use App\Contracts\RefreshTokenStore;
 use App\Contracts\UserRepository;
 use App\Infrastructure\ArrayRefreshTokenStore;
 use App\Infrastructure\RedisRefreshTokenStore;
+use App\Kafka\ArrayKafkaPublisher;
+use App\Kafka\LonglangKafkaPublisher;
 use App\Models\User;
 use App\Policies\UserPolicy;
 use App\Repositories\Contracts\AdminUserRepositoryInterface;
@@ -33,6 +36,14 @@ class AppServiceProvider extends ServiceProvider
         });
         $this->app->bind(AdminUserRepositoryInterface::class, EloquentAdminUserRepository::class);
         $this->app->bind(SocialUserRepositoryInterface::class, EloquentSocialUserRepository::class);
+        $this->app->singleton(ArrayKafkaPublisher::class);
+        $this->app->bind(KafkaPublisherInterface::class, function ($app) {
+            if ($app->environment('testing')) {
+                return $app->make(ArrayKafkaPublisher::class);
+            }
+
+            return $app->make(LonglangKafkaPublisher::class);
+        });
     }
 
     public function boot(): void
