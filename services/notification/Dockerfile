@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         $PHPIZE_DEPS \
     && MAKEFLAGS="-j1" pecl install mongodb \
     && docker-php-ext-enable mongodb \
-    && docker-php-ext-install zip bcmath opcache \
+    && docker-php-ext-install zip bcmath \
     && apt-get purge -y --auto-remove $PHPIZE_DEPS cmake \
     && rm -rf /var/lib/apt/lists/*
 
