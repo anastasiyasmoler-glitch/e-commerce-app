@@ -30,7 +30,7 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
-    networks: [auth]
+    networks: [auth, events]
 
   mongo:
     image: mongo:7
@@ -173,7 +173,10 @@ services:
       MONGODB_PORT: "27017"
       MONGODB_DATABASE: notification
       SESSION_DRIVER: file
-      CACHE_STORE: file
+      REDIS_CLIENT: phpredis
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      CACHE_STORE: redis
       QUEUE_CONNECTION: sync
       MAIL_MAILER: smtp
       MAIL_HOST: mail
@@ -195,6 +198,8 @@ services:
       start_period: 30s
     depends_on:
       mongo:
+        condition: service_healthy
+      redis:
         condition: service_healthy
       kafka:
         condition: service_started
