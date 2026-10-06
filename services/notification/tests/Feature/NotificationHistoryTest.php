@@ -39,6 +39,21 @@ class NotificationHistoryTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_admin_token_is_accepted_when_the_user_is_not_stored_locally(): void
+    {
+        $this->bindLogs($this->log());
+
+        $user = new User;
+        $user->forceFill(['id' => 4242]);
+
+        $this->withToken($this->tokenFor($user, ['admin']))
+            ->getJson('/api/notifications')
+            ->assertOk()
+            ->assertJsonPath('data.0.recipient', 'ada@example.com');
+
+        $this->assertDatabaseCount('users', 0);
+    }
+
     public function test_admin_can_list_and_show_a_notification(): void
     {
         $log = $this->log();
