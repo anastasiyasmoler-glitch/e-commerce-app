@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\User;
 use App\Repositories\Contracts\SocialUserRepositoryInterface;
+use Illuminate\Auth\Events\Registered;
 use InvalidArgumentException;
 
 class SocialAuthService
@@ -38,6 +39,8 @@ class SocialAuthService
 
         $user = $this->users->createOAuthUser($name, $email, $provider, $providerId);
         $this->users->assignRole($user->id, 'customer');
+
+        event(new Registered($user));
 
         return $user;
     }
