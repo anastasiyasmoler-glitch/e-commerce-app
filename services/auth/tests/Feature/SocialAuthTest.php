@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Kafka\ArrayKafkaPublisher;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Socialite\Facades\Socialite;
@@ -86,6 +87,41 @@ class SocialAuthTest extends TestCase
             ->assertSessionHasErrors('email');
 
         $this->assertGuest();
+    }
+
+    public function test_callback_publishes_user_registered_for_a_new_google_user(): void
+    {
+        $publisher = $this->app->make(ArrayKafkaPublisher::class);
+
+        $this->fakeGoogleUser('Ada Lovelace', 'ada@example.com', 'sub-ada');
+
+        $this->get(route('auth.google.callback'))
+            ->assertRedirect(route('dashboard', absolute: false));
+
+        $this->assertCount(1, $publisher->messages);
+        $this->assertSame('user.registered', $publisher->messages[0]['topic']);
+        $this->assertSame('user.registered', $publisher->messages[0]['body']['event']);
+        $this->assertSame('ada@example.com', $publisher->messages[0]['body']['email']);
+        $this->assertSame('Ada Lovelace', $publisher->messages[0]['body']['name']);
+        $this->assertArrayHasKey('user_id', $publisher->messages[0]['body']);
+    }
+
+    public function test_callback_does_not_publish_user_registered_for_an_existing_email(): void
+    {
+        $existing = User::factory()->create([
+            'email' => 'ada@example.com',
+        ]);
+        $existing->assignRole('customer');
+
+        $publisher = $this->app->make(ArrayKafkaPublisher::class);
+        $publisher->messages = [];
+
+        $this->fakeGoogleUser('Ada', 'ada@example.com', 'sub-ada');
+
+        $this->get(route('auth.google.callback'))
+            ->assertRedirect(route('dashboard', absolute: false));
+
+        $this->assertSame([], $publisher->messages);
     }
 
     private function fakeGoogleUser(string $name, string $email, string $id): void
