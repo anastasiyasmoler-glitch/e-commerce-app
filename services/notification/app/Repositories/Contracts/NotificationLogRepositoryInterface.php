@@ -3,6 +3,7 @@
 namespace App\Repositories\Contracts;
 
 use App\Models\NotificationLog;
+use Illuminate\Database\Eloquent\Collection;
 
 interface NotificationLogRepositoryInterface
 {
@@ -12,6 +13,11 @@ interface NotificationLogRepositoryInterface
     public function createPending(string $event, string $channel, string $recipient, array $payload): NotificationLog;
 
     public function findById(string $id): ?NotificationLog;
+
+    /**
+     * @return Collection<int, NotificationLog>
+     */
+    public function listLatest(): Collection;
 
     public function markSent(NotificationLog $log): NotificationLog;
 

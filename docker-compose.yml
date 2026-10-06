@@ -181,6 +181,10 @@ services:
       MAIL_FROM_ADDRESS: notifications@example.com
       MAIL_FROM_NAME: Notification
       KAFKA_BROKERS: kafka:9092
+      JWT_SECRET: ${JWT_SECRET:-local-dev-jwt-secret-change-me-32ch}
+      JWT_TTL: "15"
+      JWT_REFRESH_TTL: "10080"
+      JWT_BLACKLIST_ENABLED: "true"
     volumes:
       - ./services/notification:/var/www/html
     healthcheck:
