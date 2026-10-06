@@ -4,6 +4,7 @@ namespace App\Repositories;
 
 use App\Models\NotificationLog;
 use App\Repositories\Contracts\NotificationLogRepositoryInterface;
+use Illuminate\Database\Eloquent\Collection;
 
 class MongoNotificationLogRepository implements NotificationLogRepositoryInterface
 {
@@ -25,6 +26,13 @@ class MongoNotificationLogRepository implements NotificationLogRepositoryInterfa
     public function findById(string $id): ?NotificationLog
     {
         return NotificationLog::query()->find($id);
+    }
+
+    public function listLatest(): Collection
+    {
+        return NotificationLog::query()
+            ->orderByDesc('created_at')
+            ->get();
     }
 
     public function markSent(NotificationLog $log): NotificationLog
