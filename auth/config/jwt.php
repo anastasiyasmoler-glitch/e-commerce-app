@@ -126,7 +126,7 @@ return [
     'refresh_cookie' => env('JWT_REFRESH_COOKIE', 'refresh_token'),
     'refresh_cookie_path' => env('JWT_REFRESH_COOKIE_PATH', '/'),
     'refresh_cookie_secure' => filter_var(env('JWT_REFRESH_COOKIE_SECURE', true), FILTER_VALIDATE_BOOLEAN),
-    'refresh_cookie_same_site' => env('JWT_REFRESH_COOKIE_SAME_SITE', 'lax'),
+    'refresh_cookie_same_site' => env('JWT_REFRESH_COOKIE_SAME_SITE', 'none'),
 
     /*
     |--------------------------------------------------------------------------
