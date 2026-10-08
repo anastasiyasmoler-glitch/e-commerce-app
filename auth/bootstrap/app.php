@@ -15,6 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
         web: __DIR__.'/../routes/web.php',
         api: __DIR__.'/../routes/api.php',
+        apiPrefix: '',
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
@@ -28,22 +29,36 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        $exceptions->shouldRenderJsonWhen(
-            fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
-        );
+        $isJwtJson = function (Request $request): bool {
+            return $request->expectsJson()
+                || $request->is([
+                    'login',
+                    'register',
+                    'refresh',
+                    'logout',
+                    'me',
+                    'profile',
+                    'profile/*',
+                    'admin/*',
+                    'forgot-password',
+                    'reset-password',
+                ]);
+        };
+
+        $exceptions->shouldRenderJsonWhen($isJwtJson);
 
         $exceptions->render(function (InvalidRefreshTokenException $e) {
             return response()->json(['message' => $e->getMessage()], 401);
         });
 
-        $exceptions->render(function (AuthenticationException $e, Request $request) {
-            if ($request->is('api/*')) {
+        $exceptions->render(function (AuthenticationException $e, Request $request) use ($isJwtJson) {
+            if ($isJwtJson($request)) {
                 return response()->json(['message' => $e->getMessage() ?: 'Unauthenticated.'], 401);
             }
         });
 
-        $exceptions->render(function (JWTException $e, Request $request) {
-            if ($request->is('api/*')) {
+        $exceptions->render(function (JWTException $e, Request $request) use ($isJwtJson) {
+            if ($isJwtJson($request)) {
                 return response()->json(['message' => 'Unauthenticated.'], 401);
             }
         });
