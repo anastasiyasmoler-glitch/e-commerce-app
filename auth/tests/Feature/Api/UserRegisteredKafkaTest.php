@@ -14,7 +14,7 @@ class UserRegisteredKafkaTest extends TestCase
     {
         $publisher = $this->app->make(ArrayKafkaPublisher::class);
 
-        $this->postJson('/api/register', [
+        $this->postJson('/register', [
             'name' => 'Kafka User',
             'email' => 'kafka-user@example.com',
             'phone' => '375293333333',
@@ -32,7 +32,7 @@ class UserRegisteredKafkaTest extends TestCase
 
     public function test_login_does_not_publish_user_registered(): void
     {
-        $this->postJson('/api/register', [
+        $this->postJson('/register', [
             'name' => 'Once',
             'email' => 'once@example.com',
             'phone' => '375294444444',
@@ -43,7 +43,7 @@ class UserRegisteredKafkaTest extends TestCase
         $publisher = $this->app->make(ArrayKafkaPublisher::class);
         $publisher->messages = [];
 
-        $this->postJson('/api/login', [
+        $this->postJson('/login', [
             'email' => 'once@example.com',
             'password' => 'password',
         ])->assertOk();

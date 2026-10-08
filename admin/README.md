@@ -8,6 +8,6 @@ npm install
 npm run dev
 ```
 
-http://localhost:5174 — dashboard mock from the Domo `admin.html` layout. Auth login and `/api/admin/users` are next.
+http://localhost:5174 — dashboard mock from the Domo `admin.html` layout. Auth login and `/admin/users` are next.
 
 Access JWT will stay in memory, not localStorage.

@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Http;
 class AuthIdentityClient
 {
     /**
-     * Ask Auth `GET /api/me` who this access token belongs to.
+     * Ask Auth `GET /me` who this access token belongs to.
      *
      * @return list<string>|null null when the token is missing or Auth rejects it
      *
@@ -27,7 +27,7 @@ class AuthIdentityClient
                 'verify' => (bool) config('services.auth.verify_ssl', false),
             ])
             ->acceptJson()
-            ->get($baseUrl.'/api/me');
+            ->get($baseUrl.'/me');
 
         if ($response->unauthorized()) {
             return null;
