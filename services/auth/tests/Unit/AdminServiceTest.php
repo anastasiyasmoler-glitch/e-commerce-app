@@ -36,5 +36,7 @@ class AdminServiceTest extends TestCase
         $users->shouldReceive('assignRole')->once()->with(2, 'analyst');
 
         (new AdminService($users))->setAnalyst(2, true);
+
+        $this->addToAssertionCount(1);
     }
 }

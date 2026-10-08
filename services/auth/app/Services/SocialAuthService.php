@@ -5,12 +5,14 @@ namespace App\Services;
 use App\Models\User;
 use App\Repositories\Contracts\SocialUserRepositoryInterface;
 use Illuminate\Auth\Events\Registered;
+use Illuminate\Contracts\Events\Dispatcher;
 use InvalidArgumentException;
 
 class SocialAuthService
 {
     public function __construct(
         private readonly SocialUserRepositoryInterface $users,
+        private readonly Dispatcher $events,
     ) {}
 
     public function findOrCreateFromOAuth(
@@ -40,7 +42,7 @@ class SocialAuthService
         $user = $this->users->createOAuthUser($name, $email, $provider, $providerId);
         $this->users->assignRole($user->id, 'customer');
 
-        event(new Registered($user));
+        $this->events->dispatch(new Registered($user));
 
         return $user;
     }
