@@ -3,13 +3,12 @@
 namespace Tests\Feature;
 
 use App\Models\NotificationLog;
-use App\Models\User;
 use App\Repositories\Contracts\NotificationLogRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Mockery;
 use Tests\TestCase;
-use Tymon\JWTAuth\Facades\JWTAuth;
 
 class NotificationHistoryTest extends TestCase
 {
@@ -19,39 +18,35 @@ class NotificationHistoryTest extends TestCase
     {
         parent::setUp();
 
-        config([
-            'jwt.secret' => 'testing-jwt-secret-key-32-chars-min',
-            'jwt.blacklist_enabled' => false,
-        ]);
+        config(['services.auth.base_url' => 'https://auth.test']);
+
+        Http::fake(function ($request) {
+            $header = $request->header('Authorization')[0] ?? '';
+
+            if (str_contains($header, 'admin-token')) {
+                return Http::response(['id' => 2, 'roles' => ['admin']], 200);
+            }
+
+            if (str_contains($header, 'customer-token')) {
+                return Http::response(['id' => 1, 'roles' => ['customer']], 200);
+            }
+
+            return Http::response(['message' => 'Unauthenticated.'], 401);
+        });
     }
 
     public function test_guest_cannot_list_notifications(): void
     {
         $this->getJson('/api/notifications')->assertUnauthorized();
+
+        Http::assertNothingSent();
     }
 
     public function test_customer_cannot_list_notifications(): void
     {
-        $user = User::factory()->create();
-
-        $this->withToken($this->tokenFor($user, ['customer']))
+        $this->withToken('customer-token')
             ->getJson('/api/notifications')
             ->assertForbidden();
-    }
-
-    public function test_admin_token_is_accepted_when_the_user_is_not_stored_locally(): void
-    {
-        $this->bindLogs($this->log());
-
-        $user = new User;
-        $user->forceFill(['id' => 4242]);
-
-        $this->withToken($this->tokenFor($user, ['admin']))
-            ->getJson('/api/notifications')
-            ->assertOk()
-            ->assertJsonPath('data.0.recipient', 'ada@example.com');
-
-        $this->assertDatabaseCount('users', 0);
     }
 
     public function test_admin_can_list_and_show_a_notification(): void
@@ -59,10 +54,7 @@ class NotificationHistoryTest extends TestCase
         $log = $this->log();
         $this->bindLogs($log);
 
-        $user = User::factory()->create();
-        $token = $this->tokenFor($user, ['admin']);
-
-        $this->withToken($token)
+        $this->withToken('admin-token')
             ->getJson('/api/notifications')
             ->assertOk()
             ->assertJsonPath('data.0.id', '507f1f77bcf86cd799439011')
@@ -70,7 +62,7 @@ class NotificationHistoryTest extends TestCase
             ->assertJsonPath('data.0.recipient', 'ada@example.com')
             ->assertJsonPath('data.0.status', NotificationLog::STATUS_SENT);
 
-        $this->withToken($token)
+        $this->withToken('admin-token')
             ->getJson('/api/notifications/507f1f77bcf86cd799439011')
             ->assertOk()
             ->assertJsonPath('data.id', '507f1f77bcf86cd799439011')
@@ -81,19 +73,9 @@ class NotificationHistoryTest extends TestCase
     {
         $this->bindLogs($this->log());
 
-        $user = User::factory()->create();
-
-        $this->withToken($this->tokenFor($user, ['admin']))
+        $this->withToken('admin-token')
             ->getJson('/api/notifications/missing')
             ->assertNotFound();
-    }
-
-    /**
-     * @param  list<string>  $roles
-     */
-    private function tokenFor(User $user, array $roles): string
-    {
-        return JWTAuth::claims(['roles' => $roles])->fromUser($user);
     }
 
     private function log(): NotificationLog
