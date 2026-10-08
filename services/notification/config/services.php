@@ -14,6 +14,11 @@ return [
     |
     */
 
+    'auth' => [
+        'base_url' => env('AUTH_BASE_URL', 'https://auth-nginx'),
+        'verify_ssl' => filter_var(env('AUTH_VERIFY_SSL', false), FILTER_VALIDATE_BOOLEAN),
+    ],
+
     'postmark' => [
         'key' => env('POSTMARK_API_KEY'),
     ],
