@@ -1,7 +1,10 @@
 import { Bell, LogOut, Shield, User } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { useAuth } from '../../auth/AuthProvider'
 
 export function AdminHeader() {
+  const { user, logout } = useAuth()
+
   return (
     <>
       <div className="topbar">
@@ -28,9 +31,9 @@ export function AdminHeader() {
             </button>
             <span className="header-action">
               <User size={22} />
-              <span>Admin</span>
+              <span>{user?.name ?? 'Admin'}</span>
             </span>
-            <button type="button" className="header-action" aria-label="Log out">
+            <button type="button" className="header-action" aria-label="Log out" onClick={() => void logout()}>
               <LogOut size={22} />
               <span>Exit</span>
             </button>
