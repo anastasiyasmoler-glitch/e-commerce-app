@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Responses\JwtTokenResponse;
+use App\Services\JwtAuthService;
 use App\Services\SocialAuthService;
-use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Http\JsonResponse;
 use InvalidArgumentException;
 use Laravel\Socialite\Facades\Socialite;
 use Laravel\Socialite\Two\InvalidStateException;
@@ -15,6 +15,8 @@ class SocialAuthController extends Controller
 {
     public function __construct(
         private readonly SocialAuthService $social,
+        private readonly JwtAuthService $auth,
+        private readonly JwtTokenResponse $tokens,
     ) {}
 
     public function redirect(): SymfonyRedirectResponse
@@ -22,14 +24,12 @@ class SocialAuthController extends Controller
         return Socialite::driver('google')->redirect();
     }
 
-    public function callback(Request $request): RedirectResponse
+    public function callback(): JsonResponse
     {
         try {
             $oauthUser = Socialite::driver('google')->user();
         } catch (InvalidStateException) {
-            return redirect()->route('login')->withErrors([
-                'email' => 'Sign-in was cancelled or expired. Try again.',
-            ]);
+            return response()->json(['message' => 'Sign-in was cancelled or expired. Try again.'], 401);
         }
 
         try {
@@ -40,14 +40,9 @@ class SocialAuthController extends Controller
                 (string) $oauthUser->getId(),
             );
         } catch (InvalidArgumentException) {
-            return redirect()->route('login')->withErrors([
-                'email' => 'The identity provider did not return an email address.',
-            ]);
+            return response()->json(['message' => 'The identity provider did not return an email address.'], 401);
         }
 
-        Auth::login($user);
-        $request->session()->regenerate();
-
-        return redirect()->intended(route('dashboard', absolute: false));
+        return $this->tokens->make($this->auth->issueForUser($user));
     }
 }

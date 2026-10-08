@@ -96,6 +96,14 @@ class JwtAuthService
     /**
      * @return array{access_token: string, refresh_token: string, token_type: string, expires_in: int}
      */
+    public function issueForUser(User $user): array
+    {
+        return $this->issuePair($user);
+    }
+
+    /**
+     * @return array{access_token: string, refresh_token: string, token_type: string, expires_in: int}
+     */
     private function issuePair(User $user, ?string $accessToken = null): array
     {
         $access = $accessToken ?? JWTAuth::fromUser($user);

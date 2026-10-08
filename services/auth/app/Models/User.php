@@ -19,6 +19,8 @@ class User extends Authenticatable implements JWTSubject
     /** @use HasFactory<UserFactory> */
     use HasFactory, HasRoles, Notifiable, SoftDeletes;
 
+    protected string $guard_name = 'web';
+
     protected function casts(): array
     {
         return [

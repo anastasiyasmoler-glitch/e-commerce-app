@@ -17,13 +17,7 @@ if ! grep -qE '^JWT_SECRET=.+' .env || grep -qE '^JWT_SECRET=$' .env; then
     php artisan jwt:secret --force --no-interaction || true
 fi
 
-npm install --legacy-peer-deps
-
-if [ ! -f public/build/manifest.json ]; then
-    npm run build
-fi
-
-chown -R www-data:www-data storage bootstrap/cache public/build || true
+chown -R www-data:www-data storage bootstrap/cache || true
 chmod -R ug+rwx storage bootstrap/cache
 
 echo "Waiting for PostgreSQL..."

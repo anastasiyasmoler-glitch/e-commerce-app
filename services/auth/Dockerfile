@@ -5,7 +5,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         unzip \
         curl \
         ca-certificates \
-        gnupg \
         libpq-dev \
         libzip-dev \
         libssl-dev \
@@ -13,8 +12,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && docker-php-ext-install pdo_pgsql zip bcmath opcache \
     && pecl install redis \
     && docker-php-ext-enable redis \
-    && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
-    && apt-get install -y --no-install-recommends nodejs \
     && apt-get purge -y --auto-remove $PHPIZE_DEPS \
     && rm -rf /var/lib/apt/lists/*
 

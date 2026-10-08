@@ -85,11 +85,6 @@ services:
         condition: service_started
     networks: [default, microservices-net]
 
-  front:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-
   nginx:
     build:
       context: ./docker/nginx
@@ -103,8 +98,6 @@ services:
     depends_on:
       back:
         condition: service_healthy
-      front:
-        condition: service_started
     networks:
       default: {}
       microservices-net:
