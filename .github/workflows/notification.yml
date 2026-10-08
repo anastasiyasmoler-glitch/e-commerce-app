@@ -3,11 +3,11 @@ name: Notification
 on:
   push:
     paths:
-      - 'services/notification/**'
+      - 'notification/**'
       - '.github/workflows/notification.yml'
   pull_request:
     paths:
-      - 'services/notification/**'
+      - 'notification/**'
       - '.github/workflows/notification.yml'
 
 concurrency:
@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: services/notification
+        working-directory: notification
     steps:
       - uses: actions/checkout@v4
 
@@ -41,7 +41,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: services/notification
+        working-directory: notification
     steps:
       - uses: actions/checkout@v4
 
@@ -93,8 +93,8 @@ jobs:
 
       - uses: docker/build-push-action@v6
         with:
-          context: services/notification
-          file: services/notification/Dockerfile
+          context: notification
+          file: notification/Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

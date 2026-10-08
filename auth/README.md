@@ -22,7 +22,7 @@ Product email belongs to Notification.
 
 ## Layout
 
-Service root: `services/auth/` (compose, nginx, Laravel, `.github`).
+Service root: `auth/` (compose, nginx, Laravel, `.github`).
 
 ## Stack
 
@@ -42,7 +42,7 @@ Service root: `services/auth/` (compose, nginx, Laravel, `.github`).
 | `nginx` | 80 → 443 |
 
 ```powershell
-cd services/auth
+cd auth
 docker compose up --build
 ```
 

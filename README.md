@@ -21,12 +21,12 @@ docker network create microservices-net
 Start Notification first (it owns Kafka), then Auth:
 
 ```powershell
-cd services/notification
+cd notification
 docker compose up --build
 ```
 
 ```powershell
-cd services/auth
+cd auth
 docker compose up --build
 ```
 
