@@ -17,8 +17,8 @@ Self-signed certificate: continue in the browser.
 
 Seeded admin: `admin@example.com` / `password` (роль `admin`). Staff UI: `/admin` (Users, роль `analyst`). Self-register gets role `customer`.
 
-Compose: `front` (образ из `./frontend`), `back`, `sql`, `redis`, `nginx` (80→443), `mail` (http://localhost:8025), `oidc` (http://localhost:8080, мок Google). Isolated compose has no Kafka.
+Compose: `front` (образ из `./frontend`), `back`, `sql`, `redis`, `nginx` (80→443), `mail` (http://localhost:8025), `oidc` (http://localhost:8080, мок Google). `back` joins external network `microservices-net` and publishes to `kafka:9092`.
 
-To publish `user.registered` and see mail, use the repo-root `docker-compose.yml` plus Notification consumer.
+To see the welcome mail, create the network once (`docker network create microservices-net`), start `services/notification` (Kafka and `consumer`), then this compose.
 
 Google login: `/login` → Sign in with Google. В моке любое имя + JSON с `email`.

@@ -6,7 +6,7 @@ Start here. `docs/auth-stack.md` is a short run sheet.
 
 ## Role
 
-Auth is checkpoint 1. Other services must not call Auth over HTTP for business logic. They consume events later (Kafka for Auth↔Notification). After registration Auth publishes `user.registered` (email, name, user_id). Isolated Auth compose has no Kafka: publish is logged and registration still succeeds. Use the root compose for a real broker.
+Auth is checkpoint 1. Other services must not call Auth over HTTP for business logic. They consume events later (Kafka for Auth↔Notification). After registration Auth publishes `user.registered` (email, name, user_id) to `kafka:9092` on the external network `microservices-net`. Start Notification first so that broker exists. If Kafka is down, publish is logged and registration still succeeds.
 
 Owns:
 

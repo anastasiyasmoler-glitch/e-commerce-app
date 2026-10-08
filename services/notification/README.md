@@ -12,7 +12,7 @@ Host HTTPS is **8443** (Auth uses 443). Mailhog UI: http://localhost:8026.
 - REST list for Admin/Analyst — NOTIF-3
 - UI — NOTIF-4
 
-Auth publishes `user.registered` on register. There is **one** Kafka, in the **root** `docker-compose.yml`. Isolated `services/*/docker-compose.yml` files do not start a broker. Root compose runs `notification-consumer` with the artisan listener.
+Auth publishes `user.registered` on register. Kafka runs in this service's compose (`hostname: kafka`) and is attached to the external network `microservices-net`, so Auth can publish to `kafka:9092`. Create that network once: `docker network create microservices-net`.
 
 ## Stack
 
@@ -34,7 +34,7 @@ Auth publishes `user.registered` on register. There is **one** Kafka, in the **r
 
 Payload JSON must include `email` or `recipient`.
 
-On the **root** stack the listener is service `notification-consumer` (`docker compose up`). Isolated compose has no Kafka and does not start it.
+`docker compose up` in this directory starts `kafka` and `consumer` (`php artisan kafka:consume-notifications`).
 
 Retry: 3 attempts, backoff 200ms × 2^(n-1). See `config/kafka.php`.
 
@@ -49,7 +49,9 @@ Statuses: `pending`, `sent`, `failed`.
 |---|---|
 | `mongo` | History |
 | `mail` | Mailhog |
+| `kafka` | Broker, also on `microservices-net` |
 | `back` | php-fpm |
+| `consumer` | `kafka:consume-notifications` |
 | `front` | Stub SPA |
 | `nginx` | TLS + FastCGI |
 
@@ -58,14 +60,7 @@ cd services/notification
 docker compose up --build
 ```
 
-This file has Mongo/Mailhog/app only. Kafka and `notification-consumer` are in the **repo root** compose:
-
-```powershell
-cd ../..
-docker compose up --build
-```
-
-https://localhost:8443 (self-signed).
+https://localhost:8443 (self-signed). Mailhog UI: http://localhost:8026.
 
 ## Tests
 
