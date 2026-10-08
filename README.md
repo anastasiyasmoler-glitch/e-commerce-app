@@ -1,36 +1,33 @@
 # E-commerce monorepo (dev)
 
-JWT Auth: https://localhost  
+Nine apps: Auth, Notification, Catalog, Order, Recommendation, Search, Analytics, customer Frontend, and Admin. Catalog also has its own Filament admin inside the Catalog service (not the shared Admin SPA).
+
+Human requests go Frontend or Admin → service → Auth (`GET /api/me` and JWT). Service-to-service facts go through Kafka, not through Auth.
+
+Auth: https://localhost  
 Notification: https://localhost:8443  
-Mailhog (shared): http://localhost:8025  
+Auth Mailhog: http://localhost:8025  
+Notification Mailhog: http://localhost:8026  
 OIDC mock: http://localhost:8080  
 
-## Joint stack (one Kafka)
+There is no root compose file. Auth and Notification each have `docker-compose.yml`. They share one Docker network, `microservices-net`. Kafka runs inside the Notification compose. Auth reaches it as `kafka:9092`. Notification calls Auth at `https://auth-nginx/api/me`.
 
-From the repo root:
-
-```powershell
-docker compose up --build
-```
-
-Shared broker: service `kafka` on the `events` network. Auth and Notification PHP both use `KAFKA_BROKERS=kafka:9092`.
-
-`notification-consumer` runs `php artisan kafka:consume-notifications` on `docker compose up` (same image as `notification-back`, not a second Kafka).
-
-No API Gateway here. Auth binds host 443, Notification 8443.
-
-## One service only
+Create the network once:
 
 ```powershell
-cd services/auth
-docker compose up --build
+docker network create microservices-net
 ```
+
+Start Notification first (it owns Kafka), then Auth:
 
 ```powershell
 cd services/notification
 docker compose up --build
 ```
 
-Those files do **not** start Kafka (and Auth/Notification Mailhog still clash if both isolated stacks run). Do not run a service compose and the root compose at the same time (port clash). Kafka exists only in this root file.
+```powershell
+cd services/auth
+docker compose up --build
+```
 
-Auth publishes `user.registered` on API and web register. Isolated Auth compose has no Kafka; use this root stack so `notification-consumer` can send Mailhog mail.
+`consumer` in the Notification compose runs `php artisan kafka:consume-notifications`.

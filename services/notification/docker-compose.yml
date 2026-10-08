@@ -8,11 +8,39 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+    networks: [default]
 
   mail:
     image: mailhog/mailhog:v1.0.1
     ports:
       - "8026:8025"
+    networks: [default]
+
+  kafka:
+    image: apache/kafka:3.9.1
+    hostname: kafka
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+    ports:
+      - "9092:9092"
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 >/dev/null 2>&1"]
+      interval: 5s
+      timeout: 10s
+      retries: 20
+      start_period: 20s
+    networks: [default, microservices-net]
 
   back:
     build:
@@ -35,6 +63,9 @@ services:
       MAIL_PORT: "1025"
       MAIL_FROM_ADDRESS: notifications@example.com
       MAIL_FROM_NAME: Notification
+      KAFKA_BROKERS: kafka:9092
+      AUTH_BASE_URL: https://auth-nginx
+      AUTH_VERIFY_SSL: "false"
     volumes:
       - .:/var/www/html
     healthcheck:
@@ -48,11 +79,50 @@ services:
         condition: service_healthy
       mail:
         condition: service_started
+      kafka:
+        condition: service_healthy
+    networks: [default, microservices-net]
+
+  consumer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["php", "artisan", "kafka:consume-notifications"]
+    restart: unless-stopped
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "true"
+      APP_URL: https://localhost:8443
+      DB_CONNECTION: mongodb
+      MONGODB_DSN: mongodb://mongo:27017
+      MONGODB_HOST: mongo
+      MONGODB_PORT: "27017"
+      MONGODB_DATABASE: notification
+      SESSION_DRIVER: file
+      CACHE_STORE: file
+      QUEUE_CONNECTION: sync
+      MAIL_MAILER: smtp
+      MAIL_HOST: mail
+      MAIL_PORT: "1025"
+      MAIL_FROM_ADDRESS: notifications@example.com
+      MAIL_FROM_NAME: Notification
+      KAFKA_BROKERS: kafka:9092
+    volumes:
+      - .:/var/www/html
+    depends_on:
+      mongo:
+        condition: service_healthy
+      mail:
+        condition: service_started
+      kafka:
+        condition: service_healthy
+    networks: [default, microservices-net]
 
   front:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+    networks: [default]
 
   nginx:
     build:
@@ -69,6 +139,11 @@ services:
         condition: service_healthy
       front:
         condition: service_started
+    networks: [default]
+
+networks:
+  microservices-net:
+    external: true
 
 volumes:
   mongo_data:
