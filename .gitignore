@@ -17,6 +17,6 @@ Thumbs.db
 .phpunit.result.cache
 .phpunit.cache
 
-services/auth/docker/nginx/certs/*.pem
-services/auth/docker/nginx/certs/*.key
-!services/auth/docker/nginx/certs/.gitkeep
+auth/docker/nginx/certs/*.pem
+auth/docker/nginx/certs/*.key
+!auth/docker/nginx/certs/.gitkeep

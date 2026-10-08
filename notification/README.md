@@ -56,7 +56,7 @@ Statuses: `pending`, `sent`, `failed`.
 | `nginx` | TLS + FastCGI |
 
 ```powershell
-cd services/notification
+cd notification
 docker compose up --build
 ```
 
