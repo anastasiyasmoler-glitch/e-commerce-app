@@ -11,6 +11,14 @@ class JwtAuthTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->disableCookieEncryption();
+        $this->withCredentials();
+    }
+
     public function test_register_returns_access_and_sets_refresh_cookie(): void
     {
         $response = $this->postJson('/api/register', [

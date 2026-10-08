@@ -27,8 +27,8 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->singleton(ArrayRefreshTokenStore::class);
         $this->app->bind(UserRepository::class, EloquentUserRepository::class);
-        $this->app->bind(RefreshTokenStore::class, function ($app) {
-            if ($app->environment('testing')) {
+        $this->app->singleton(RefreshTokenStore::class, function ($app) {
+            if ($app->runningUnitTests()) {
                 return $app->make(ArrayRefreshTokenStore::class);
             }
 

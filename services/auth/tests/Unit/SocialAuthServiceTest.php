@@ -5,6 +5,8 @@ namespace Tests\Unit;
 use App\Models\User;
 use App\Repositories\Contracts\SocialUserRepositoryInterface;
 use App\Services\SocialAuthService;
+use Illuminate\Auth\Events\Registered;
+use Illuminate\Contracts\Events\Dispatcher;
 use InvalidArgumentException;
 use Mockery;
 use PHPUnit\Framework\TestCase;
@@ -29,7 +31,10 @@ class SocialAuthServiceTest extends TestCase
         $users->shouldNotReceive('createOAuthUser');
         $users->shouldNotReceive('assignRole');
 
-        $result = (new SocialAuthService($users))->findOrCreateFromOAuth(
+        $events = Mockery::mock(Dispatcher::class);
+        $events->shouldNotReceive('dispatch');
+
+        $result = (new SocialAuthService($users, $events))->findOrCreateFromOAuth(
             'Ada',
             'ada@example.com',
             'google',
@@ -50,7 +55,10 @@ class SocialAuthServiceTest extends TestCase
         $users->shouldNotReceive('createOAuthUser');
         $users->shouldNotReceive('assignRole');
 
-        $result = (new SocialAuthService($users))->findOrCreateFromOAuth(
+        $events = Mockery::mock(Dispatcher::class);
+        $events->shouldNotReceive('dispatch');
+
+        $result = (new SocialAuthService($users, $events))->findOrCreateFromOAuth(
             'Ada',
             '  ADA@example.com ',
             'google',
@@ -74,7 +82,12 @@ class SocialAuthServiceTest extends TestCase
             ->andReturn($created);
         $users->shouldReceive('assignRole')->once()->with(9, 'customer');
 
-        $result = (new SocialAuthService($users))->findOrCreateFromOAuth(
+        $events = Mockery::mock(Dispatcher::class);
+        $events->shouldReceive('dispatch')
+            ->once()
+            ->with(Mockery::on(fn (mixed $event): bool => $event instanceof Registered && $event->user === $created));
+
+        $result = (new SocialAuthService($users, $events))->findOrCreateFromOAuth(
             'Ada',
             'ada@example.com',
             'google',
@@ -89,8 +102,11 @@ class SocialAuthServiceTest extends TestCase
         $users = Mockery::mock(SocialUserRepositoryInterface::class);
         $users->shouldNotReceive('findByProvider');
 
+        $events = Mockery::mock(Dispatcher::class);
+        $events->shouldNotReceive('dispatch');
+
         $this->expectException(InvalidArgumentException::class);
 
-        (new SocialAuthService($users))->findOrCreateFromOAuth('Ada', '  ', 'google', 'sub-1');
+        (new SocialAuthService($users, $events))->findOrCreateFromOAuth('Ada', '  ', 'google', 'sub-1');
     }
 }
