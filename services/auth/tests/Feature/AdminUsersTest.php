@@ -4,39 +4,36 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 class AdminUsersTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_guest_is_redirected_from_admin(): void
+    public function test_guest_cannot_list_admin_users(): void
     {
-        $this->get('/admin')->assertRedirect('/login');
+        $this->getJson('/api/admin/users')->assertUnauthorized();
     }
 
-    public function test_customer_cannot_view_admin(): void
+    public function test_customer_cannot_view_admin_users(): void
     {
         $user = User::factory()->create();
         $user->assignRole('customer');
 
-        $this->actingAs($user)
-            ->get('/admin')
+        $this->withToken($this->accessToken($user))
+            ->getJson('/api/admin/users')
             ->assertForbidden();
     }
 
-    public function test_admin_can_view_users_page(): void
+    public function test_admin_can_list_users(): void
     {
         $admin = User::factory()->create();
         $admin->assignRole('admin');
 
-        $this->actingAs($admin)
-            ->get('/admin')
+        $this->withToken($this->accessToken($admin))
+            ->getJson('/api/admin/users')
             ->assertOk()
-            ->assertInertia(fn (Assert $page) => $page
-                ->component('Admin/Users')
-                ->has('users'));
+            ->assertJsonStructure(['data']);
     }
 
     public function test_admin_can_assign_and_remove_analyst(): void
@@ -47,19 +44,21 @@ class AdminUsersTest extends TestCase
         $user = User::factory()->create();
         $user->assignRole('customer');
 
-        $this->actingAs($admin)
-            ->patch(route('admin.users.analyst', $user), [
+        $token = $this->accessToken($admin);
+
+        $this->withToken($token)
+            ->patchJson('/api/admin/users/'.$user->id.'/analyst', [
                 'analyst' => true,
             ])
-            ->assertRedirect(route('admin.users'));
+            ->assertOk();
 
         $this->assertTrue($user->fresh()->hasRole('analyst'));
 
-        $this->actingAs($admin)
-            ->patch(route('admin.users.analyst', $user), [
+        $this->withToken($token)
+            ->patchJson('/api/admin/users/'.$user->id.'/analyst', [
                 'analyst' => false,
             ])
-            ->assertRedirect(route('admin.users'));
+            ->assertOk();
 
         $this->assertFalse($user->fresh()->hasRole('analyst'));
         $this->assertTrue($user->fresh()->hasRole('customer'));
@@ -73,8 +72,8 @@ class AdminUsersTest extends TestCase
         $otherAdmin = User::factory()->create();
         $otherAdmin->assignRole('admin');
 
-        $this->actingAs($admin)
-            ->patch(route('admin.users.analyst', $otherAdmin), [
+        $this->withToken($this->accessToken($admin))
+            ->patchJson('/api/admin/users/'.$otherAdmin->id.'/analyst', [
                 'analyst' => true,
             ])
             ->assertForbidden();
@@ -90,27 +89,39 @@ class AdminUsersTest extends TestCase
         $target = User::factory()->create();
         $target->assignRole('customer');
 
-        $this->actingAs($customer)
-            ->patch(route('admin.users.analyst', $target), [
+        $this->withToken($this->accessToken($customer))
+            ->patchJson('/api/admin/users/'.$target->id.'/analyst', [
                 'analyst' => true,
             ])
             ->assertForbidden();
     }
 
-    public function test_self_register_still_assigns_only_customer(): void
+    public function test_api_register_still_assigns_only_customer(): void
     {
-        $this->post('/register', [
+        $this->postJson('/api/register', [
             'name' => 'New User',
             'email' => 'new-user@example.com',
-            'phone' => '+15550001111',
+            'phone' => '375291111111',
             'password' => 'password',
             'password_confirmation' => 'password',
-        ])->assertRedirect(route('dashboard', absolute: false));
+        ])->assertCreated();
 
         $user = User::query()->where('email', 'new-user@example.com')->firstOrFail();
 
         $this->assertTrue($user->hasRole('customer'));
         $this->assertFalse($user->hasRole('admin'));
         $this->assertFalse($user->hasRole('analyst'));
+    }
+
+    private function accessToken(User $user): string
+    {
+        $login = $this->postJson('/api/login', [
+            'email' => $user->email,
+            'password' => 'password',
+        ]);
+
+        $login->assertOk();
+
+        return (string) $login->json('access_token');
     }
 }

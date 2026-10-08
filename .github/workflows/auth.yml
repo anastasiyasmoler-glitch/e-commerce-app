@@ -51,12 +51,6 @@ jobs:
           extensions: mbstring, xml, ctype, iconv, intl, pdo_sqlite, sqlite3, bcmath, tokenizer
           coverage: none
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: npm
-          cache-dependency-path: services/auth/package-lock.json
-
       - name: Install Composer dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
 
@@ -64,11 +58,6 @@ jobs:
         run: |
           cp .env.example .env
           php artisan key:generate
-
-      - name: Build Vite assets
-        run: |
-          npm ci
-          npm run build
 
       - name: PHPUnit
         run: php vendor/bin/phpunit

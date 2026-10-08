@@ -1,8 +1,8 @@
-# Auth — Laravel Breeze + Inertia (React)
+# Auth — JWT API
 
-Session auth (Breeze) for Inertia. JWT API for `/api/*` (access in JSON, refresh in HttpOnly cookie, Redis). Roles: Spatie (`admin`, `customer`, `analyst`). After register (web and JWT) Auth publishes Kafka `user.registered` when `KAFKA_BROKERS` is reachable.
+JWT for `/api/*` (access in JSON, refresh in HttpOnly cookie, Redis). Roles: Spatie (`admin`, `customer`, `analyst`). After register (JWT and Google) Auth publishes Kafka `user.registered` when `KAFKA_BROKERS` is reachable. There is no Breeze/Inertia UI.
 
-Корень сервиса — `services/auth` (здесь `docker-compose.yml`, Laravel, nginx, `frontend`, `.github`).
+Service root is `services/auth` (`docker-compose.yml`, Laravel, nginx, `.github`).
 
 ## Run
 
@@ -11,14 +11,14 @@ cd services/auth
 docker compose up --build
 ```
 
-Open https://localhost — `/register`, `/login`.
+API: https://localhost/api/login
 
 Self-signed certificate: continue in the browser.
 
-Seeded admin: `admin@example.com` / `password` (роль `admin`). Staff UI: `/admin` (Users, роль `analyst`). Self-register gets role `customer`.
+Seeded admin: `admin@example.com` / `password` (role `admin`). Self-register gets role `customer`.
 
-Compose: `front` (образ из `./frontend`), `back`, `sql`, `redis`, `nginx` (80→443), `mail` (http://localhost:8025), `oidc` (http://localhost:8080, мок Google). `back` joins external network `microservices-net` and publishes to `kafka:9092`.
+Compose: `back`, `sql`, `redis`, `nginx` (80→443), `mail` (http://localhost:8025), `oidc` (http://localhost:8080, mock Google). `back` and `nginx` join external network `microservices-net`. Auth publishes to `kafka:9092`.
 
 To see the welcome mail, create the network once (`docker network create microservices-net`), start `services/notification` (Kafka and `consumer`), then this compose.
 
-Google login: `/login` → Sign in with Google. В моке любое имя + JSON с `email`.
+Google login: `GET /auth/google`. The mock accepts any name plus JSON with `email`. The callback returns JWT JSON, not a session.

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Cookies\RefreshTokenCookie;
 use App\Http\Requests\Api\LoginRequest;
 use App\Http\Requests\Api\RegisterRequest;
+use App\Http\Responses\JwtTokenResponse;
 use App\Models\User;
 use App\Services\JwtAuthService;
 use Illuminate\Http\JsonResponse;
@@ -15,12 +16,13 @@ class AuthController extends Controller
 {
     public function __construct(
         private readonly JwtAuthService $auth,
+        private readonly JwtTokenResponse $tokens,
         private readonly RefreshTokenCookie $refreshCookie,
     ) {}
 
     public function register(RegisterRequest $request): JsonResponse
     {
-        return $this->tokenResponse(
+        return $this->tokens->make(
             $this->auth->register($request->safe()->only(['name', 'email', 'phone', 'password'])),
             201,
         );
@@ -28,7 +30,7 @@ class AuthController extends Controller
 
     public function login(LoginRequest $request): JsonResponse
     {
-        return $this->tokenResponse($this->auth->login(
+        return $this->tokens->make($this->auth->login(
             (string) $request->validated('email'),
             (string) $request->validated('password'),
         ));
@@ -38,7 +40,7 @@ class AuthController extends Controller
     {
         $refreshToken = (string) $request->cookie((string) config('jwt.refresh_cookie'), '');
 
-        return $this->tokenResponse($this->auth->refresh($refreshToken));
+        return $this->tokens->make($this->auth->refresh($refreshToken));
     }
 
     public function logout(Request $request): JsonResponse
@@ -61,17 +63,5 @@ class AuthController extends Controller
             'email' => $user->email,
             'roles' => $user->getRoleNames()->values()->all(),
         ]);
-    }
-
-    /**
-     * @param  array{access_token: string, refresh_token: string, token_type: string, expires_in: int}  $tokens
-     */
-    private function tokenResponse(array $tokens, int $status = 200): JsonResponse
-    {
-        $refresh = $tokens['refresh_token'];
-        unset($tokens['refresh_token']);
-
-        return response()->json($tokens, $status)
-            ->withCookie($this->refreshCookie->make($refresh));
     }
 }

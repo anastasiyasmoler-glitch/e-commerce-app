@@ -1,32 +1,33 @@
 # Auth Service
 
-Authentication for the e-commerce training monorepo.
+JWT authentication for the e-commerce training monorepo.
 
 Start here. `docs/auth-stack.md` is a short run sheet.
 
 ## Role
 
-Auth is checkpoint 1. Other services must not call Auth over HTTP for business logic. They consume events later (Kafka for Auth↔Notification). After registration Auth publishes `user.registered` (email, name, user_id) to `kafka:9092` on the external network `microservices-net`. Start Notification first so that broker exists. If Kafka is down, publish is logged and registration still succeeds.
+Auth is checkpoint 1. Other services ask Auth `GET /api/me` to validate an access token. After registration Auth publishes `user.registered` (email, name, user_id) to `kafka:9092` on `microservices-net`. Start Notification first so that broker exists. If Kafka is down, publish is logged and registration still succeeds.
 
 Owns:
 
-- registration and login
-- staff UI (Breeze + Inertia) on **session**
-- JWT API for the future SPA
+- JWT register, login, refresh, logout, profile
+- password reset API
+- Google OAuth callback that issues JWT
+- admin user list and analyst role
 - Spatie roles `admin`, `customer`, `analyst`
+
+There is no Breeze/Inertia UI in this service. Customer Frontend and Admin are separate apps. Catalog Filament is not here.
 
 Product email belongs to Notification.
 
-JWT API is on **`develop`**: access in JSON, refresh HttpOnly cookie, Redis for refresh hashes and access blacklist. Staff UI stays on session.
-
 ## Layout
 
-Service root: `services/auth/` (compose, nginx, Laravel, frontend stub, `.github`).
+Service root: `services/auth/` (compose, nginx, Laravel, `.github`).
 
 ## Stack
 
-- PHP 8.4, Laravel 13, Spatie, Breeze + Inertia, tymon/jwt-auth
-- PostgreSQL 16, Redis 7 (sessions, cache, refresh keys)
+- PHP 8.4, Laravel 13, Spatie, tymon/jwt-auth, Socialite
+- PostgreSQL 16, Redis 7 (cache, refresh keys, JWT blacklist)
 - Nginx 443, Mailhog :8025, mock OIDC :8080
 
 ## Docker
@@ -34,11 +35,10 @@ Service root: `services/auth/` (compose, nginx, Laravel, frontend stub, `.github
 | Service | Role |
 |---|---|
 | `sql` | PostgreSQL |
-| `redis` | Sessions, cache, JWT blacklist/refresh |
+| `redis` | Cache, JWT blacklist/refresh |
 | `mail` | Mailhog |
 | `oidc` | Mock Google |
 | `back` | php-fpm |
-| `front` | SPA stub |
 | `nginx` | 80 → 443 |
 
 ```powershell
@@ -46,13 +46,16 @@ cd services/auth
 docker compose up --build
 ```
 
-https://localhost — `/register`, `/login`, `/admin`. Seed: `admin@example.com` / `password`.
+https://localhost — JSON API. Seed: `admin@example.com` / `password`.
 
 ## JWT API
 
 - `POST /api/register`, `/api/login`, `/api/refresh`, `/api/logout`, `GET /api/me`
+- `POST /api/forgot-password`, `/api/reset-password`
 - `GET|PATCH /api/profile`, `PUT /api/profile/password`, `DELETE /api/profile`
-- Refresh cookie `refresh_token`. Access in JSON. `/api/*` uses `auth:api`, not `role:admin`.
+- `GET /api/admin/users`, `PATCH /api/admin/users/{id}/analyst`
+- `GET /auth/google`, `GET /auth/google/callback`
+- Refresh cookie `refresh_token`. Access in JSON. Closed routes use `auth:api`.
 
 ## Roles
 
@@ -60,7 +63,7 @@ https://localhost — `/register`, `/login`, `/admin`. Seed: `admin@example.com`
 |---|---|
 | `admin` | seeder |
 | `customer` | self-register and Google |
-| `analyst` | `/admin` |
+| `analyst` | `PATCH /api/admin/users/{id}/analyst` |
 
 ## Tests
 
@@ -71,4 +74,4 @@ php vendor/bin/phpunit
 ## Out of scope
 
 - OpenAPI
-- Replacing Inertia with the shop SPA
+- React Frontend / Admin apps

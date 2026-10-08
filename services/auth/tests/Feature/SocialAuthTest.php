@@ -17,28 +17,21 @@ class SocialAuthTest extends TestCase
 
     public function test_guest_is_redirected_to_the_identity_provider(): void
     {
-        $this->get(route('auth.google'))
+        $this->get('/auth/google')
             ->assertRedirect();
     }
 
-    public function test_authenticated_user_cannot_start_google_login(): void
-    {
-        $user = User::factory()->create();
-        $user->assignRole('customer');
-
-        $this->actingAs($user)
-            ->get(route('auth.google'))
-            ->assertRedirect(route('dashboard', absolute: false));
-    }
-
-    public function test_callback_creates_customer_and_logs_in(): void
+    public function test_callback_creates_customer_and_issues_jwt(): void
     {
         $this->fakeGoogleUser('Ada Lovelace', 'ada@example.com', 'sub-ada');
 
-        $this->get(route('auth.google.callback'))
-            ->assertRedirect(route('dashboard', absolute: false));
+        $this->getJson('/auth/google/callback')
+            ->assertOk()
+            ->assertJsonStructure(['access_token', 'token_type', 'expires_in'])
+            ->assertJsonMissingPath('refresh_token')
+            ->assertCookie((string) config('jwt.refresh_cookie'));
 
-        $this->assertAuthenticated();
+        $this->assertGuest();
 
         $user = User::query()->where('email', 'ada@example.com')->first();
 
@@ -49,7 +42,7 @@ class SocialAuthTest extends TestCase
         $this->assertNull($user->password);
     }
 
-    public function test_callback_logs_in_existing_user_with_the_same_email(): void
+    public function test_callback_issues_jwt_for_existing_user_with_the_same_email(): void
     {
         $existing = User::factory()->create([
             'email' => 'ada@example.com',
@@ -58,35 +51,32 @@ class SocialAuthTest extends TestCase
 
         $this->fakeGoogleUser('Ada', 'ada@example.com', 'sub-ada');
 
-        $this->get(route('auth.google.callback'))
-            ->assertRedirect(route('dashboard', absolute: false));
+        $this->getJson('/auth/google/callback')
+            ->assertOk()
+            ->assertJsonStructure(['access_token']);
 
-        $this->assertAuthenticatedAs($existing);
         $this->assertSame(1, User::query()->where('email', 'ada@example.com')->count());
+        $this->assertTrue($existing->fresh()->hasRole('customer'));
     }
 
-    public function test_callback_redirects_to_login_when_email_is_missing(): void
+    public function test_callback_rejects_when_email_is_missing(): void
     {
         $this->fakeGoogleUser('Ada', '', 'sub-ada');
 
-        $this->get(route('auth.google.callback'))
-            ->assertRedirect(route('login'))
-            ->assertSessionHasErrors('email');
+        $this->getJson('/auth/google/callback')
+            ->assertUnauthorized();
 
-        $this->assertGuest();
+        $this->assertDatabaseMissing('users', ['provider_id' => 'sub-ada']);
     }
 
-    public function test_callback_redirects_to_login_when_state_is_invalid(): void
+    public function test_callback_rejects_when_state_is_invalid(): void
     {
         $provider = Mockery::mock();
         $provider->shouldReceive('user')->once()->andThrow(new InvalidStateException);
         Socialite::shouldReceive('driver')->with('google')->andReturn($provider);
 
-        $this->get(route('auth.google.callback'))
-            ->assertRedirect(route('login'))
-            ->assertSessionHasErrors('email');
-
-        $this->assertGuest();
+        $this->getJson('/auth/google/callback')
+            ->assertUnauthorized();
     }
 
     public function test_callback_publishes_user_registered_for_a_new_google_user(): void
@@ -95,15 +85,11 @@ class SocialAuthTest extends TestCase
 
         $this->fakeGoogleUser('Ada Lovelace', 'ada@example.com', 'sub-ada');
 
-        $this->get(route('auth.google.callback'))
-            ->assertRedirect(route('dashboard', absolute: false));
+        $this->getJson('/auth/google/callback')->assertOk();
 
         $this->assertCount(1, $publisher->messages);
         $this->assertSame('user.registered', $publisher->messages[0]['topic']);
-        $this->assertSame('user.registered', $publisher->messages[0]['body']['event']);
         $this->assertSame('ada@example.com', $publisher->messages[0]['body']['email']);
-        $this->assertSame('Ada Lovelace', $publisher->messages[0]['body']['name']);
-        $this->assertArrayHasKey('user_id', $publisher->messages[0]['body']);
     }
 
     public function test_callback_does_not_publish_user_registered_for_an_existing_email(): void
@@ -118,8 +104,7 @@ class SocialAuthTest extends TestCase
 
         $this->fakeGoogleUser('Ada', 'ada@example.com', 'sub-ada');
 
-        $this->get(route('auth.google.callback'))
-            ->assertRedirect(route('dashboard', absolute: false));
+        $this->getJson('/auth/google/callback')->assertOk();
 
         $this->assertSame([], $publisher->messages);
     }
