@@ -12,7 +12,7 @@ class AdminUsersTest extends TestCase
 
     public function test_guest_cannot_list_admin_users(): void
     {
-        $this->getJson('/api/admin/users')->assertUnauthorized();
+        $this->getJson('/admin/users')->assertUnauthorized();
     }
 
     public function test_customer_cannot_view_admin_users(): void
@@ -21,7 +21,7 @@ class AdminUsersTest extends TestCase
         $user->assignRole('customer');
 
         $this->withToken($this->accessToken($user))
-            ->getJson('/api/admin/users')
+            ->getJson('/admin/users')
             ->assertForbidden();
     }
 
@@ -31,7 +31,7 @@ class AdminUsersTest extends TestCase
         $admin->assignRole('admin');
 
         $this->withToken($this->accessToken($admin))
-            ->getJson('/api/admin/users')
+            ->getJson('/admin/users')
             ->assertOk()
             ->assertJsonStructure(['data']);
     }
@@ -47,7 +47,7 @@ class AdminUsersTest extends TestCase
         $token = $this->accessToken($admin);
 
         $this->withToken($token)
-            ->patchJson('/api/admin/users/'.$user->id.'/analyst', [
+            ->patchJson('/admin/users/'.$user->id.'/analyst', [
                 'analyst' => true,
             ])
             ->assertOk();
@@ -55,7 +55,7 @@ class AdminUsersTest extends TestCase
         $this->assertTrue($user->fresh()->hasRole('analyst'));
 
         $this->withToken($token)
-            ->patchJson('/api/admin/users/'.$user->id.'/analyst', [
+            ->patchJson('/admin/users/'.$user->id.'/analyst', [
                 'analyst' => false,
             ])
             ->assertOk();
@@ -73,7 +73,7 @@ class AdminUsersTest extends TestCase
         $otherAdmin->assignRole('admin');
 
         $this->withToken($this->accessToken($admin))
-            ->patchJson('/api/admin/users/'.$otherAdmin->id.'/analyst', [
+            ->patchJson('/admin/users/'.$otherAdmin->id.'/analyst', [
                 'analyst' => true,
             ])
             ->assertForbidden();
@@ -90,7 +90,7 @@ class AdminUsersTest extends TestCase
         $target->assignRole('customer');
 
         $this->withToken($this->accessToken($customer))
-            ->patchJson('/api/admin/users/'.$target->id.'/analyst', [
+            ->patchJson('/admin/users/'.$target->id.'/analyst', [
                 'analyst' => true,
             ])
             ->assertForbidden();
@@ -98,7 +98,7 @@ class AdminUsersTest extends TestCase
 
     public function test_api_register_still_assigns_only_customer(): void
     {
-        $this->postJson('/api/register', [
+        $this->postJson('/register', [
             'name' => 'New User',
             'email' => 'new-user@example.com',
             'phone' => '375291111111',
@@ -115,7 +115,7 @@ class AdminUsersTest extends TestCase
 
     private function accessToken(User $user): string
     {
-        $login = $this->postJson('/api/login', [
+        $login = $this->postJson('/login', [
             'email' => $user->email,
             'password' => 'password',
         ]);

@@ -1,6 +1,6 @@
 # Auth — JWT API
 
-JWT for `/api/*` (access in JSON, refresh in HttpOnly cookie, Redis). Roles: Spatie (`admin`, `customer`, `analyst`). After register (JWT and Google) Auth publishes Kafka `user.registered` when `KAFKA_BROKERS` is reachable. There is no Breeze/Inertia UI.
+JWT for `/login`, `/me`, `/admin/users` (access in JSON, refresh in HttpOnly cookie, Redis). Roles: Spatie (`admin`, `customer`, `analyst`). After register (JWT and Google) Auth publishes Kafka `user.registered` when `KAFKA_BROKERS` is reachable. There is no Breeze/Inertia UI.
 
 Service root is `auth/` (`docker-compose.yml`, Laravel, nginx, `.github`).
 
@@ -11,7 +11,7 @@ cd auth
 docker compose up --build
 ```
 
-API: https://localhost/api/login
+API: https://localhost/login
 
 Self-signed certificate: continue in the browser.
 

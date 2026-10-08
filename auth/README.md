@@ -6,7 +6,7 @@ Start here. `docs/auth-stack.md` is a short run sheet.
 
 ## Role
 
-Auth is checkpoint 1. Other services ask Auth `GET /api/me` to validate an access token. After registration Auth publishes `user.registered` (email, name, user_id) to `kafka:9092` on `microservices-net`. Start Notification first so that broker exists. If Kafka is down, publish is logged and registration still succeeds.
+Auth is checkpoint 1. Other services ask Auth `GET /me` to validate an access token. After registration Auth publishes `user.registered` (email, name, user_id) to `kafka:9092` on `microservices-net`. Start Notification first so that broker exists. If Kafka is down, publish is logged and registration still succeeds.
 
 Owns:
 
@@ -50,10 +50,10 @@ https://localhost — JSON API. Seed: `admin@example.com` / `password`.
 
 ## JWT API
 
-- `POST /api/register`, `/api/login`, `/api/refresh`, `/api/logout`, `GET /api/me`
-- `POST /api/forgot-password`, `/api/reset-password`
-- `GET|PATCH /api/profile`, `PUT /api/profile/password`, `DELETE /api/profile`
-- `GET /api/admin/users`, `PATCH /api/admin/users/{id}/analyst`
+- `POST /register`, `/login`, `/refresh`, `/logout`, `GET /me`
+- `POST /forgot-password`, `/reset-password`
+- `GET|PATCH /profile`, `PUT /profile/password`, `DELETE /profile`
+- `GET /admin/users`, `PATCH /admin/users/{id}/analyst`
 - `GET /auth/google`, `GET /auth/google/callback`
 - Refresh cookie `refresh_token`. Access in JSON. Closed routes use `auth:api`.
 
@@ -63,7 +63,7 @@ https://localhost — JSON API. Seed: `admin@example.com` / `password`.
 |---|---|
 | `admin` | seeder |
 | `customer` | self-register and Google |
-| `analyst` | `PATCH /api/admin/users/{id}/analyst` |
+| `analyst` | `PATCH /admin/users/{id}/analyst` |
 
 ## Tests
 

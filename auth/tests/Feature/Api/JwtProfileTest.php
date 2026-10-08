@@ -12,8 +12,8 @@ class JwtProfileTest extends TestCase
 
     public function test_profile_requires_bearer_token(): void
     {
-        $this->getJson('/api/profile')->assertUnauthorized();
-        $this->patchJson('/api/profile', [
+        $this->getJson('/profile')->assertUnauthorized();
+        $this->patchJson('/profile', [
             'name' => 'Ada',
             'email' => 'ada@example.com',
             'phone' => '375291000000',
@@ -24,12 +24,12 @@ class JwtProfileTest extends TestCase
     {
         $headers = $this->bearerForEmail('profile@example.com');
 
-        $this->getJson('/api/profile', $headers)
+        $this->getJson('/profile', $headers)
             ->assertOk()
             ->assertJsonPath('email', 'profile@example.com')
             ->assertJsonPath('phone', '375293333333');
 
-        $this->patchJson('/api/profile', [
+        $this->patchJson('/profile', [
             'name' => 'Ada Lovelace',
             'email' => 'ada@example.com',
             'phone' => '375294444444',
@@ -49,18 +49,18 @@ class JwtProfileTest extends TestCase
     {
         $headers = $this->bearerForEmail('pwd@example.com');
 
-        $this->putJson('/api/profile/password', [
+        $this->putJson('/profile/password', [
             'current_password' => 'password',
             'password' => 'new-password',
             'password_confirmation' => 'new-password',
         ], $headers)->assertOk();
 
-        $this->postJson('/api/login', [
+        $this->postJson('/login', [
             'email' => 'pwd@example.com',
             'password' => 'password',
         ])->assertUnauthorized();
 
-        $this->postJson('/api/login', [
+        $this->postJson('/login', [
             'email' => 'pwd@example.com',
             'password' => 'new-password',
         ])->assertOk();
@@ -68,7 +68,7 @@ class JwtProfileTest extends TestCase
 
     public function test_delete_soft_deletes_account(): void
     {
-        $login = $this->postJson('/api/register', [
+        $login = $this->postJson('/register', [
             'name' => 'Gone',
             'email' => 'gone@example.com',
             'phone' => '375295555555',
@@ -81,7 +81,7 @@ class JwtProfileTest extends TestCase
         $this->assertNotNull($cookie);
 
         $this->withUnencryptedCookie($cookie->getName(), (string) $cookie->getValue())
-            ->deleteJson('/api/profile', [
+            ->deleteJson('/profile', [
                 'password' => 'password',
             ], [
                 'Authorization' => 'Bearer '.$access,
@@ -90,7 +90,7 @@ class JwtProfileTest extends TestCase
 
         $this->assertSoftDeleted('users', ['email' => 'gone@example.com']);
 
-        $this->getJson('/api/me', ['Authorization' => 'Bearer '.$access])
+        $this->getJson('/me', ['Authorization' => 'Bearer '.$access])
             ->assertUnauthorized();
     }
 
@@ -105,7 +105,7 @@ class JwtProfileTest extends TestCase
         ]);
         $user->assignRole('customer');
 
-        $login = $this->postJson('/api/login', [
+        $login = $this->postJson('/login', [
             'email' => $email,
             'password' => 'password',
         ]);

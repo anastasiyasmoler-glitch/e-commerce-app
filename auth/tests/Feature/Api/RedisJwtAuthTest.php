@@ -80,7 +80,7 @@ class RedisJwtAuthTest extends TestCase
         $jti = $this->jwtClaim($access, 'jti');
 
         $this->withUnencryptedCookie((string) config('jwt.refresh_cookie'), $refresh)
-            ->postJson('/api/logout', [], [
+            ->postJson('/logout', [], [
                 'Authorization' => 'Bearer '.$access,
             ])
             ->assertOk();
@@ -89,13 +89,13 @@ class RedisJwtAuthTest extends TestCase
         $this->assertNull(Redis::get('auth:refresh:lookup:'.$hash));
         $this->assertTrue(Cache::store('redis')->tags('tymon.jwt')->has($jti));
 
-        $this->getJson('/api/me', ['Authorization' => 'Bearer '.$access])
+        $this->getJson('/me', ['Authorization' => 'Bearer '.$access])
             ->assertUnauthorized();
     }
 
     private function registerUser()
     {
-        return $this->postJson('/api/register', [
+        return $this->postJson('/register', [
             'name' => 'Redis User',
             'email' => 'redis@example.com',
             'phone' => '375296666666',
