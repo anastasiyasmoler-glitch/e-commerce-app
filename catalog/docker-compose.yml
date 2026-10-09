@@ -1,0 +1,69 @@
+services:
+  sql:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: marketplace
+      POSTGRES_PASSWORD: marketplace
+      POSTGRES_DB: catalog
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U marketplace -d catalog"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  back:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "true"
+      APP_URL: https://localhost:8444
+      DB_CONNECTION: pgsql
+      DB_HOST: sql
+      DB_PORT: "5432"
+      DB_DATABASE: catalog
+      DB_USERNAME: marketplace
+      DB_PASSWORD: marketplace
+      SESSION_DRIVER: file
+      CACHE_STORE: file
+      QUEUE_CONNECTION: sync
+    volumes:
+      - .:/var/www/html
+    healthcheck:
+      test: ["CMD-SHELL", "php -r \"exit(@fsockopen('127.0.0.1', 9000) ? 0 : 1);\""]
+      interval: 5s
+      timeout: 3s
+      retries: 60
+      start_period: 30s
+    depends_on:
+      sql:
+        condition: service_healthy
+    networks: [default, microservices-net]
+
+  nginx:
+    build:
+      context: ./docker/nginx
+      dockerfile: Dockerfile
+    ports:
+      - "8082:80"
+      - "8444:443"
+    volumes:
+      - ./public:/var/www/html/public
+      - ./docker/nginx/certs:/etc/nginx/certs
+    depends_on:
+      back:
+        condition: service_healthy
+    networks:
+      default: {}
+      microservices-net:
+        aliases: [catalog-nginx]
+
+networks:
+  microservices-net:
+    external: true
+
+volumes:
+  postgres_data:
