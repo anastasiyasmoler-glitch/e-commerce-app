@@ -18,4 +18,6 @@ Postgres user/password/database: `marketplace` / `marketplace` / `catalog`.
 
 Tables: `stores`, `categories` (tree via `parent_id`), `products`, `stocks` (`quantity`, `reserved`). Isolation is `store_id` on rows.
 
-Redis, MinIO, Kafka, public REST, and Filament are later cards. Restart `docker compose` (or `php artisan migrate`) after pulling this schema.
+Redis cache and MinIO (`product-images`, console http://localhost:9005, login `catalog` / `catalogsecret`) are in this compose. Kafka, public REST, and Filament stay on this same CAT-1 branch.
+
+Restart: `docker compose up --build` in `catalog/`.
