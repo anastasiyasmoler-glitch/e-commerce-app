@@ -16,4 +16,6 @@ https://localhost:8444 (self-signed). HTTP 8082 redirects to HTTPS.
 
 Postgres user/password/database: `marketplace` / `marketplace` / `catalog`.
 
-CAT-1 is still in progress: Store/Category/Product/Stock models are not migrated yet. Redis, MinIO, Kafka inventory, public REST, and Filament are later cards.
+Tables: `stores`, `categories` (tree via `parent_id`), `products`, `stocks` (`quantity`, `reserved`). Isolation is `store_id` on rows.
+
+Redis, MinIO, Kafka, public REST, and Filament are later cards. Restart `docker compose` (or `php artisan migrate`) after pulling this schema.
