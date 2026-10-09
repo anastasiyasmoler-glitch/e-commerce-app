@@ -74,6 +74,7 @@ services:
       AWS_ENDPOINT: http://minio:9000
       AWS_USE_PATH_STYLE_ENDPOINT: "true"
       KAFKA_BROKERS: kafka:9092
+      KAFKA_CONSUMER_GROUP: catalog-service-group
     volumes:
       - .:/var/www/html
     healthcheck:
@@ -89,6 +90,46 @@ services:
         condition: service_healthy
       minio:
         condition: service_started
+    networks: [default, microservices-net]
+
+  consumer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["php", "artisan", "kafka:consume-catalog"]
+    restart: unless-stopped
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "true"
+      APP_URL: https://localhost:8444
+      DB_CONNECTION: pgsql
+      DB_HOST: sql
+      DB_PORT: "5432"
+      DB_DATABASE: catalog
+      DB_USERNAME: marketplace
+      DB_PASSWORD: marketplace
+      SESSION_DRIVER: file
+      CACHE_STORE: redis
+      REDIS_CLIENT: predis
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      QUEUE_CONNECTION: sync
+      FILESYSTEM_DISK: s3
+      AWS_ACCESS_KEY_ID: catalog
+      AWS_SECRET_ACCESS_KEY: catalogsecret
+      AWS_DEFAULT_REGION: us-east-1
+      AWS_BUCKET: product-images
+      AWS_ENDPOINT: http://minio:9000
+      AWS_USE_PATH_STYLE_ENDPOINT: "true"
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_CONSUMER_GROUP: catalog-service-group
+    volumes:
+      - .:/var/www/html
+    depends_on:
+      sql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     networks: [default, microservices-net]
 
   nginx:
