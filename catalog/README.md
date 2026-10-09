@@ -18,6 +18,6 @@ Postgres user/password/database: `marketplace` / `marketplace` / `catalog`.
 
 Tables: `stores`, `categories` (tree via `parent_id`), `products`, `stocks` (`quantity`, `reserved`). Isolation is `store_id` on rows.
 
-Redis cache and MinIO (`product-images`, console http://localhost:9005, login `catalog` / `catalogsecret`) are in this compose. Kafka, public REST, and Filament stay on this same CAT-1 branch.
+Public JSON (no JWT): `GET /categories?store_id=`, `GET /products?store_id=&category_id=&page=`, `GET /products/{id}?store_id=`. Redis/MinIO are in compose. Kafka inventory and Filament are still on this branch, not done yet.
 
 Restart: `docker compose up --build` in `catalog/`.
