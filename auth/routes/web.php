@@ -8,7 +8,7 @@ Route::get('/', function () {
 });
 
 Route::get('/docs', function () {
-    return response()->view('swagger');
+    return response()->file(public_path('docs/index.html'));
 });
 
 Route::get('/docs/openapi.yaml', function () {

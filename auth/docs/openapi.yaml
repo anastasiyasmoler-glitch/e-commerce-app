@@ -3,8 +3,9 @@ info:
   title: Auth Service API
   version: 1.0.0
   description: |
-    JWT authentication. Access token in JSON (`access_token`).
-    Refresh token in HttpOnly cookie `refresh_token` (`Path=/`, `SameSite=None`).
+    JWT authentication. Access JWT in JSON (`access_token`, claim `token_use=access`).
+    Refresh JWT in HttpOnly cookie `refresh_token` (`token_use=refresh`, `Path=/`, `SameSite=None`).
+    Refresh JWTs are also tracked in Redis for rotation and logout.
     Routes have no `/api` prefix. Closed routes send `Authorization: Bearer`.
 servers:
   - url: https://localhost

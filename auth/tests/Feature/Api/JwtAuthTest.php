@@ -37,6 +37,7 @@ class JwtAuthTest extends TestCase
         $user = User::query()->where('email', 'api@example.com')->first();
         $this->assertNotNull($user);
         $this->assertTrue($user->hasRole('customer'));
+        $this->assertRefreshCookieIsJwt($response);
     }
 
     public function test_login_and_me_return_user_with_roles(): void
@@ -112,6 +113,25 @@ class JwtAuthTest extends TestCase
         $this->postJson('/refresh')->assertUnauthorized();
     }
 
+    public function test_refresh_jwt_is_rejected_as_access_token(): void
+    {
+        $tokens = $this->registerUser();
+        $refresh = $this->refreshCookieValue($tokens);
+
+        $this->getJson('/me', ['Authorization' => 'Bearer '.$refresh])
+            ->assertUnauthorized();
+    }
+
+    public function test_access_jwt_cannot_be_used_to_refresh(): void
+    {
+        $tokens = $this->registerUser();
+        $access = (string) $tokens->json('access_token');
+
+        $this->withUnencryptedCookie((string) config('jwt.refresh_cookie'), $access)
+            ->postJson('/refresh')
+            ->assertUnauthorized();
+    }
+
     private function registerUser(): TestResponse
     {
         return $this->postJson('/register', [
@@ -129,5 +149,21 @@ class JwtAuthTest extends TestCase
         $this->assertNotNull($cookie);
 
         return (string) $cookie->getValue();
+    }
+
+    private function assertRefreshCookieIsJwt(TestResponse $response): void
+    {
+        $refresh = $this->refreshCookieValue($response);
+        $this->assertCount(3, explode('.', $refresh));
+        $this->assertSame('refresh', $this->jwtClaim($refresh, 'token_use'));
+        $this->assertSame('access', $this->jwtClaim((string) $response->json('access_token'), 'token_use'));
+    }
+
+    private function jwtClaim(string $jwt, string $claim): mixed
+    {
+        $parts = explode('.', $jwt);
+        $payload = json_decode(base64_decode(strtr($parts[1], '-_', '+/')), true);
+
+        return $payload[$claim] ?? null;
     }
 }

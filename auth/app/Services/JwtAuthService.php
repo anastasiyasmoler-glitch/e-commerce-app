@@ -8,9 +8,10 @@ use App\Exceptions\InvalidRefreshTokenException;
 use App\Models\User;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Auth\Events\Registered;
-use Illuminate\Support\Str;
+use Tymon\JWTAuth\Exceptions\JWTException;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use Tymon\JWTAuth\JWTGuard;
+use Tymon\JWTAuth\Payload;
 
 class JwtAuthService
 {
@@ -58,9 +59,10 @@ class JwtAuthService
      */
     public function refresh(string $refreshToken): array
     {
+        $payload = $this->assertRefreshJwt($refreshToken);
         $userId = $this->refreshTokens->userIdFor($refreshToken);
 
-        if ($userId === null) {
+        if ($userId === null || $userId !== (int) $payload->get('sub')) {
             throw new InvalidRefreshTokenException;
         }
 
@@ -106,11 +108,13 @@ class JwtAuthService
      */
     private function issuePair(User $user, ?string $accessToken = null): array
     {
-        $access = $accessToken ?? JWTAuth::fromUser($user);
-        $refresh = Str::random(64);
-        $refreshTtl = (int) config('jwt.refresh_ttl', 10080) * 60;
+        $accessTtl = (int) config('jwt.ttl', 15);
+        $refreshTtlMinutes = (int) config('jwt.refresh_ttl', 10080);
 
-        $this->refreshTokens->put((int) $user->getAuthIdentifier(), $refresh, $refreshTtl);
+        $access = $accessToken ?? $this->encodeJwt($user, 'access', $accessTtl);
+        $refresh = $this->encodeJwt($user, 'refresh', $refreshTtlMinutes);
+
+        $this->refreshTokens->put((int) $user->getAuthIdentifier(), $refresh, $refreshTtlMinutes * 60);
 
         /** @var JWTGuard $guard */
         $guard = auth('api');
@@ -121,5 +125,34 @@ class JwtAuthService
             'token_type' => 'bearer',
             'expires_in' => $guard->factory()->getTTL() * 60,
         ];
+    }
+
+    private function encodeJwt(User $user, string $tokenUse, int $ttlMinutes): string
+    {
+        $factory = JWTAuth::factory();
+        $previousTtl = $factory->getTTL();
+        $factory->setTTL($ttlMinutes);
+
+        try {
+            return JWTAuth::customClaims(['token_use' => $tokenUse])->fromUser($user);
+        } finally {
+            $factory->setTTL($previousTtl);
+            JWTAuth::customClaims([]);
+        }
+    }
+
+    private function assertRefreshJwt(string $token): Payload
+    {
+        try {
+            $payload = JWTAuth::setToken($token)->getPayload();
+        } catch (JWTException) {
+            throw new InvalidRefreshTokenException;
+        }
+
+        if ($payload->get('token_use') !== 'refresh') {
+            throw new InvalidRefreshTokenException;
+        }
+
+        return $payload;
     }
 }

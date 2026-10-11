@@ -56,7 +56,7 @@ OpenAPI file: `docs/openapi.yaml`.
 - `GET|PATCH /profile`, `PUT /profile/password`, `DELETE /profile`
 - `GET /admin/users`, `PATCH /admin/users/{id}/analyst`
 - `GET /auth/google`, `GET /auth/google/callback`
-- Refresh cookie `refresh_token`. Access in JSON. Closed routes use `auth:api`.
+- Access and refresh are both JWTs (`token_use` claim). Refresh is HttpOnly cookie `refresh_token` plus Redis. Closed routes use `auth:api`.
 
 ## Roles
 
