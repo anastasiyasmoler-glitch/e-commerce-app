@@ -40,8 +40,6 @@ return Application::configure(basePath: dirname(__DIR__))
                     'profile',
                     'profile/*',
                     'admin/*',
-                    'forgot-password',
-                    'reset-password',
                 ]);
         };
 

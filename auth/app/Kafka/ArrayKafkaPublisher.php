@@ -2,7 +2,7 @@
 
 namespace App\Kafka;
 
-use App\Contracts\KafkaPublisherInterface;
+use App\Contracts\Kafka\KafkaPublisherInterface;
 
 class ArrayKafkaPublisher implements KafkaPublisherInterface
 {

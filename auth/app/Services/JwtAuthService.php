@@ -2,8 +2,8 @@
 
 namespace App\Services;
 
-use App\Contracts\RefreshTokenStore;
-use App\Contracts\UserRepository;
+use App\Contracts\Auth\RefreshTokenStore;
+use App\Contracts\Repositories\UserRepository;
 use App\Exceptions\InvalidRefreshTokenException;
 use App\Models\User;
 use Illuminate\Auth\AuthenticationException;

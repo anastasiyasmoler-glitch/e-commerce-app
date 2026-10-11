@@ -2,7 +2,7 @@
 
 namespace App\Infrastructure;
 
-use App\Contracts\RefreshTokenStore;
+use App\Contracts\Auth\RefreshTokenStore;
 use Illuminate\Support\Facades\Redis;
 
 class RedisRefreshTokenStore implements RefreshTokenStore

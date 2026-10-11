@@ -3,7 +3,7 @@
 namespace Tests\Unit;
 
 use App\Exceptions\CannotModifyAdminRolesException;
-use App\Repositories\Contracts\AdminUserRepositoryInterface;
+use App\Contracts\Repositories\AdminUserRepositoryInterface;
 use App\Services\AdminService;
 use Mockery;
 use PHPUnit\Framework\TestCase;

@@ -11,7 +11,8 @@ cd auth
 docker compose up --build
 ```
 
-API: https://localhost/login
+API: https://localhost/login  
+Swagger: https://localhost/docs (`docs/openapi.yaml`)
 
 Self-signed certificate: continue in the browser.
 

@@ -2,7 +2,7 @@
 
 namespace App\Infrastructure;
 
-use App\Contracts\RefreshTokenStore;
+use App\Contracts\Auth\RefreshTokenStore;
 
 class ArrayRefreshTokenStore implements RefreshTokenStore
 {

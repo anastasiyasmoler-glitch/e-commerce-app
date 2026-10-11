@@ -11,7 +11,6 @@ Auth is checkpoint 1. Other services ask Auth `GET /me` to validate an access to
 Owns:
 
 - JWT register, login, refresh, logout, profile
-- password reset API
 - Google OAuth callback that issues JWT
 - admin user list and analyst role
 - Spatie roles `admin`, `customer`, `analyst`
@@ -26,7 +25,7 @@ Service root: `auth/` (compose, nginx, Laravel, `.github`).
 
 ## Stack
 
-- PHP 8.4, Laravel 13, Spatie, tymon/jwt-auth, Socialite
+- PHP 8.5, Laravel 13, Spatie, tymon/jwt-auth, Socialite
 - PostgreSQL 16, Redis 7 (cache, refresh keys, JWT blacklist)
 - Nginx 443, Mailhog :8025, mock OIDC :8080
 
@@ -48,10 +47,12 @@ docker compose up --build
 
 https://localhost — JSON API. Seed: `admin@example.com` / `password`.
 
+Swagger UI: https://localhost/docs  
+OpenAPI file: `docs/openapi.yaml`.
+
 ## JWT API
 
 - `POST /register`, `/login`, `/refresh`, `/logout`, `GET /me`
-- `POST /forgot-password`, `/reset-password`
 - `GET|PATCH /profile`, `PUT /profile/password`, `DELETE /profile`
 - `GET /admin/users`, `PATCH /admin/users/{id}/analyst`
 - `GET /auth/google`, `GET /auth/google/callback`
@@ -73,5 +74,4 @@ php vendor/bin/phpunit
 
 ## Out of scope
 
-- OpenAPI
 - React Frontend / Admin apps
