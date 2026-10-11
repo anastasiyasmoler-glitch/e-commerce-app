@@ -5,7 +5,9 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Container } from '@/components/ui/container'
 import { Input } from '@/components/ui/input'
+import { readDisplayName } from '@/auth/displayName'
 import { useMe } from '@/hooks/useMe'
+import { useSession } from '@/hooks/useSession'
 import { paths } from '@/paths'
 
 const categories = ['Sofas', 'Beds', 'Tables', 'Chairs', 'Storage', 'Lighting', 'Textiles', 'Decor']
@@ -16,7 +18,10 @@ type StoreHeaderProps = {
 }
 
 export function StoreHeader({ onSignIn, onRegister }: StoreHeaderProps) {
-  const name = useMe().data?.name
+  const session = useSession()
+  const me = useMe()
+  const signedOut = session.isFetched && session.data === false
+  const name = me.data?.name ?? (signedOut ? null : readDisplayName())
 
   function onSearch(event: FormEvent) {
     event.preventDefault()
@@ -43,14 +48,7 @@ export function StoreHeader({ onSignIn, onRegister }: StoreHeaderProps) {
               <Sparkles />
               <span className="hidden lg:inline">AI Assistant</span>
             </Button>
-            {name ? (
-              <Button variant="ghost" asChild>
-                <Link to={paths.profile}>
-                  <User />
-                  <span className="hidden lg:inline">{name}</span>
-                </Link>
-              </Button>
-            ) : (
+            {signedOut ? (
               <>
                 <Button type="button" variant="ghost" onClick={onSignIn}>
                   <User />
@@ -60,6 +58,13 @@ export function StoreHeader({ onSignIn, onRegister }: StoreHeaderProps) {
                   Create account
                 </Button>
               </>
+            ) : (
+              <Button variant="ghost" asChild>
+                <Link to={paths.profile}>
+                  <User />
+                  <span className="hidden lg:inline">{name}</span>
+                </Link>
+              </Button>
             )}
             <Button type="button" variant="ghost">
               <ShoppingCart />

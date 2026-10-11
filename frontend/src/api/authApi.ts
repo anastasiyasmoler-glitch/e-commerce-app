@@ -1,3 +1,4 @@
+import { clearDisplayName, writeDisplayName } from '@/auth/displayName'
 import { http, setAccessToken } from './http'
 import type { LoginValues, RegisterValues } from '@/lib/validators/auth'
 
@@ -21,9 +22,33 @@ export const authKeys = {
   me: ['auth', 'me'] as const,
 }
 
+let sessionRestored: boolean | null = null
+
 function rememberAccess(tokens: TokenResponse): TokenResponse {
   setAccessToken(tokens.access_token)
+  sessionRestored = true
   return tokens
+}
+
+export function resetSessionRestore(): void {
+  sessionRestored = null
+}
+
+export async function restoreSession(): Promise<boolean> {
+  if (sessionRestored !== null) {
+    return sessionRestored
+  }
+
+  try {
+    await refresh()
+    sessionRestored = true
+  } catch {
+    setAccessToken(null)
+    clearDisplayName()
+    sessionRestored = false
+  }
+
+  return sessionRestored
 }
 
 export function googleStartUrl(): string {
@@ -51,9 +76,12 @@ export async function refresh(): Promise<TokenResponse> {
 export async function logout(): Promise<void> {
   await http.post('/logout')
   setAccessToken(null)
+  clearDisplayName()
+  resetSessionRestore()
 }
 
 export async function me(): Promise<MeResponse> {
   const { data } = await http.get<MeResponse>('/me')
+  writeDisplayName(data.name)
   return data
 }

@@ -1,14 +1,17 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { authKeys, register } from '@/api/authApi'
+import { authKeys, me, register } from '@/api/authApi'
 
 export function useRegister() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: register,
-    onSuccess: async () => {
+    mutationFn: async (values: Parameters<typeof register>[0]) => {
+      await register(values)
+      return me()
+    },
+    onSuccess: (profile) => {
       queryClient.setQueryData(authKeys.session, true)
-      await queryClient.invalidateQueries({ queryKey: authKeys.me })
+      queryClient.setQueryData(authKeys.me, profile)
     },
   })
 }
