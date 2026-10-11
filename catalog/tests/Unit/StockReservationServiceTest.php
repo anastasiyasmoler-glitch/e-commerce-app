@@ -2,6 +2,7 @@
 
 namespace Tests\Unit;
 
+use App\Contracts\KafkaPublisherInterface;
 use App\Kafka\ArrayKafkaPublisher;
 use App\Models\Category;
 use App\Models\Product;
@@ -19,7 +20,7 @@ class StockReservationServiceTest extends TestCase
     {
         $kafka = new ArrayKafkaPublisher;
         $this->app->instance(ArrayKafkaPublisher::class, $kafka);
-        $this->app->instance(\App\Contracts\KafkaPublisherInterface::class, $kafka);
+        $this->app->instance(KafkaPublisherInterface::class, $kafka);
 
         $stock = $this->seedStock(5, 0);
         $service = $this->app->make(StockReservationService::class);
@@ -45,7 +46,7 @@ class StockReservationServiceTest extends TestCase
     public function test_reserve_fails_when_not_enough_stock(): void
     {
         $kafka = new ArrayKafkaPublisher;
-        $this->app->instance(\App\Contracts\KafkaPublisherInterface::class, $kafka);
+        $this->app->instance(KafkaPublisherInterface::class, $kafka);
 
         $stock = $this->seedStock(1, 0);
         $service = $this->app->make(StockReservationService::class);

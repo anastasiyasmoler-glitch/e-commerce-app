@@ -1,6 +1,7 @@
 <?php
 
 use App\Exceptions\InvalidRefreshTokenException;
+use App\Http\Middleware\RejectRefreshJwt;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -8,7 +9,6 @@ use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 use Spatie\Permission\Middleware\RoleMiddleware;
-use App\Http\Middleware\RejectRefreshJwt;
 use Spatie\Permission\Middleware\RoleOrPermissionMiddleware;
 use Tymon\JWTAuth\Exceptions\JWTException;
 

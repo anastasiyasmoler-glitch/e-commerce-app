@@ -1,0 +1,20 @@
+{
+  "name": "e-commerce-app",
+  "version": "1.0.0",
+  "scripts": {
+    "prepare": "husky",
+    "test": "echo \"No root tests\" && exit 0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://anastasiyasmoler-glitch@github.com/anastasiyasmoler-glitch/e-commerce-app.git"
+  },
+  "bugs": {
+    "url": "https://github.com/anastasiyasmoler-glitch/e-commerce-app/issues"
+  },
+  "homepage": "https://github.com/anastasiyasmoler-glitch/e-commerce-app#readme",
+  "devDependencies": {
+    "husky": "^9.1.7"
+  },
+  "private": true
+}
