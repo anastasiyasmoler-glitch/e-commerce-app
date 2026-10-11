@@ -1,0 +1,396 @@
+openapi: 3.0.3
+info:
+  title: Auth Service API
+  version: 1.0.0
+  description: |
+    JWT authentication. Access JWT in JSON (`access_token`, claim `token_use=access`).
+    Refresh JWT in HttpOnly cookie `refresh_token` (`token_use=refresh`, `Path=/`, `SameSite=None`).
+    Refresh JWTs are also tracked in Redis for rotation and logout.
+    Routes have no `/api` prefix. Closed routes send `Authorization: Bearer`.
+servers:
+  - url: https://localhost
+    description: Local Docker (self-signed TLS)
+tags:
+  - name: Auth
+  - name: Profile
+  - name: Admin
+  - name: Google
+
+paths:
+  /register:
+    post:
+      tags: [Auth]
+      summary: Register a customer
+      operationId: register
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: Registered
+          headers:
+            Set-Cookie:
+              schema: { type: string }
+              description: HttpOnly refresh_token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /login:
+    post:
+      tags: [Auth]
+      summary: Login
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Authenticated
+          headers:
+            Set-Cookie:
+              schema: { type: string }
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '401':
+          $ref: '#/components/responses/MessageError'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /refresh:
+    post:
+      tags: [Auth]
+      summary: Rotate access token using refresh cookie
+      operationId: refresh
+      security: []
+      responses:
+        '200':
+          description: New access token
+          headers:
+            Set-Cookie:
+              schema: { type: string }
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '401':
+          $ref: '#/components/responses/MessageError'
+
+  /logout:
+    post:
+      tags: [Auth]
+      summary: Invalidate access and refresh
+      operationId: logout
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+
+  /me:
+    get:
+      tags: [Auth]
+      summary: Current user (gateway identity)
+      operationId: me
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Identity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+
+  /profile:
+    get:
+      tags: [Profile]
+      summary: Profile
+      operationId: showProfile
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+    patch:
+      tags: [Profile]
+      summary: Update name, email, phone
+      operationId: updateProfile
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProfileRequest'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+    delete:
+      tags: [Profile]
+      summary: Soft-delete account
+      operationId: deleteProfile
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [password]
+              properties:
+                password: { type: string }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /profile/password:
+    put:
+      tags: [Profile]
+      summary: Change password while logged in
+      operationId: updatePassword
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePasswordRequest'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /admin/users:
+    get:
+      tags: [Admin]
+      summary: List users (admin or analyst)
+      operationId: listUsers
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AdminUser'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /admin/users/{user}/analyst:
+    patch:
+      tags: [Admin]
+      summary: Grant or revoke analyst role
+      operationId: setAnalyst
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: user
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [analyst]
+              properties:
+                analyst: { type: boolean }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /auth/google:
+    get:
+      tags: [Google]
+      summary: Redirect to Google (or mock OIDC)
+      operationId: googleRedirect
+      responses:
+        '302':
+          description: Redirect to the identity provider
+
+  /auth/google/callback:
+    get:
+      tags: [Google]
+      summary: OAuth callback; issues JWT JSON
+      operationId: googleCallback
+      responses:
+        '200':
+          description: Same token payload as login
+          headers:
+            Set-Cookie:
+              schema: { type: string }
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '401':
+          $ref: '#/components/responses/MessageError'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    TokenResponse:
+      type: object
+      required: [access_token, token_type, expires_in]
+      properties:
+        access_token: { type: string }
+        token_type: { type: string, example: bearer }
+        expires_in: { type: integer, description: Seconds }
+    User:
+      type: object
+      required: [id, name, email, roles]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        phone: { type: string, nullable: true }
+        email: { type: string, format: email }
+        roles:
+          type: array
+          items: { type: string, enum: [admin, customer, analyst] }
+    AdminUser:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        email: { type: string }
+        phone: { type: string, nullable: true }
+        role_names:
+          type: array
+          items: { type: string }
+    RegisterRequest:
+      type: object
+      required: [name, email, phone, password, password_confirmation]
+      properties:
+        name: { type: string, maxLength: 255 }
+        email: { type: string, format: email }
+        phone: { type: string, maxLength: 32 }
+        password: { type: string, format: password }
+        password_confirmation: { type: string, format: password }
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, format: password }
+    UpdateProfileRequest:
+      type: object
+      required: [name, email, phone]
+      properties:
+        name: { type: string }
+        email: { type: string, format: email }
+        phone: { type: string }
+    UpdatePasswordRequest:
+      type: object
+      required: [current_password, password, password_confirmation]
+      properties:
+        current_password: { type: string, format: password }
+        password: { type: string, format: password }
+        password_confirmation: { type: string, format: password }
+    Message:
+      type: object
+      required: [message]
+      properties:
+        message: { type: string }
+  responses:
+    Unauthenticated:
+      description: Missing or invalid JWT
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Message'
+    Forbidden:
+      description: Missing admin/analyst permission
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Message'
+    MessageError:
+      description: Error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Message'
+    ValidationError:
+      description: Validation failed
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message: { type: string }
+              errors:
+                type: object
+                additionalProperties:
+                  type: array
+                  items: { type: string }

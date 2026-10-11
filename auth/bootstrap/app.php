@@ -8,6 +8,7 @@ use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 use Spatie\Permission\Middleware\RoleMiddleware;
+use App\Http\Middleware\RejectRefreshJwt;
 use Spatie\Permission\Middleware\RoleOrPermissionMiddleware;
 use Tymon\JWTAuth\Exceptions\JWTException;
 
@@ -23,6 +24,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->trustProxies(at: '*');
 
         $middleware->alias([
+            'jwt.access' => RejectRefreshJwt::class,
             'role' => RoleMiddleware::class,
             'permission' => PermissionMiddleware::class,
             'role_or_permission' => RoleOrPermissionMiddleware::class,
@@ -40,8 +42,6 @@ return Application::configure(basePath: dirname(__DIR__))
                     'profile',
                     'profile/*',
                     'admin/*',
-                    'forgot-password',
-                    'reset-password',
                 ]);
         };
 

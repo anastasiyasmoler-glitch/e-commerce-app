@@ -2,8 +2,8 @@
 
 namespace App\Repositories;
 
+use App\Contracts\Repositories\AdminUserRepositoryInterface;
 use App\Models\User;
-use App\Repositories\Contracts\AdminUserRepositoryInterface;
 
 class EloquentAdminUserRepository implements AdminUserRepositoryInterface
 {

@@ -2,8 +2,8 @@
 
 namespace App\Services;
 
+use App\Contracts\Repositories\AdminUserRepositoryInterface;
 use App\Exceptions\CannotModifyAdminRolesException;
-use App\Repositories\Contracts\AdminUserRepositoryInterface;
 
 class AdminService
 {

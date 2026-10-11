@@ -2,17 +2,17 @@
 
 namespace App\Providers;
 
-use App\Contracts\KafkaPublisherInterface;
-use App\Contracts\RefreshTokenStore;
-use App\Contracts\UserRepository;
+use App\Contracts\Auth\RefreshTokenStore;
+use App\Contracts\Kafka\KafkaPublisherInterface;
+use App\Contracts\Repositories\AdminUserRepositoryInterface;
+use App\Contracts\Repositories\SocialUserRepositoryInterface;
+use App\Contracts\Repositories\UserRepository;
 use App\Infrastructure\ArrayRefreshTokenStore;
 use App\Infrastructure\RedisRefreshTokenStore;
 use App\Kafka\ArrayKafkaPublisher;
 use App\Kafka\LonglangKafkaPublisher;
 use App\Models\User;
 use App\Policies\UserPolicy;
-use App\Repositories\Contracts\AdminUserRepositoryInterface;
-use App\Repositories\Contracts\SocialUserRepositoryInterface;
 use App\Repositories\EloquentAdminUserRepository;
 use App\Repositories\EloquentSocialUserRepository;
 use App\Repositories\EloquentUserRepository;

@@ -2,7 +2,7 @@
 
 namespace Tests\Feature\Api;
 
-use App\Contracts\RefreshTokenStore;
+use App\Contracts\Auth\RefreshTokenStore;
 use App\Infrastructure\RedisRefreshTokenStore;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;

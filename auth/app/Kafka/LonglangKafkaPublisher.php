@@ -2,7 +2,7 @@
 
 namespace App\Kafka;
 
-use App\Contracts\KafkaPublisherInterface;
+use App\Contracts\Kafka\KafkaPublisherInterface;
 use JsonException;
 use longlang\phpkafka\Producer\Producer;
 use longlang\phpkafka\Producer\ProducerConfig;

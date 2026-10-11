@@ -3,7 +3,7 @@
 namespace Tests\Unit;
 
 use App\Models\User;
-use App\Repositories\Contracts\SocialUserRepositoryInterface;
+use App\Contracts\Repositories\SocialUserRepositoryInterface;
 use App\Services\SocialAuthService;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Contracts\Events\Dispatcher;

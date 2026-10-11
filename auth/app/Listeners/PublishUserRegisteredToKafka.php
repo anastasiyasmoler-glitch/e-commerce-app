@@ -2,7 +2,7 @@
 
 namespace App\Listeners;
 
-use App\Contracts\KafkaPublisherInterface;
+use App\Contracts\Kafka\KafkaPublisherInterface;
 use App\Models\User;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Support\Facades\Log;

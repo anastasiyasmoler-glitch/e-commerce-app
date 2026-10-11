@@ -2,8 +2,8 @@
 
 namespace App\Repositories;
 
+use App\Contracts\Repositories\SocialUserRepositoryInterface;
 use App\Models\User;
-use App\Repositories\Contracts\SocialUserRepositoryInterface;
 
 class EloquentSocialUserRepository implements SocialUserRepositoryInterface
 {

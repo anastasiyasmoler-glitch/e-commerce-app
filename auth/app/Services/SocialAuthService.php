@@ -3,7 +3,7 @@
 namespace App\Services;
 
 use App\Models\User;
-use App\Repositories\Contracts\SocialUserRepositoryInterface;
+use App\Contracts\Repositories\SocialUserRepositoryInterface;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Contracts\Events\Dispatcher;
 use InvalidArgumentException;
