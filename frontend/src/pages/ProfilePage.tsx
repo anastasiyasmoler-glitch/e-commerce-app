@@ -29,6 +29,7 @@ import { Container } from '@/components/ui/container'
 import { Field } from '@/components/ui/field'
 import { FormError } from '@/components/ui/form-error'
 import { PhoneField } from '@/components/ui/phone-field'
+import { FieldSkeleton, Skeleton } from '@/components/ui/skeleton'
 import { Separator } from '@/components/ui/separator'
 
 export function ProfilePage() {
@@ -93,6 +94,7 @@ export function ProfilePage() {
     }
   }
 
+  const detailsLoading = profile.isPending && !me
   const role = me?.roles[0] ?? 'Customer'
 
   return (
@@ -144,13 +146,28 @@ export function ProfilePage() {
             <CardHeader>
               <CardTitle>Personal details</CardTitle>
               <CardDescription className="flex items-center gap-2">
-                Role: <Badge variant="secondary">{role}</Badge>
+                Role:{' '}
+                {detailsLoading ? (
+                  <Skeleton className="inline-block h-5 w-20 rounded-4xl" />
+                ) : (
+                  <Badge variant="secondary">{role}</Badge>
+                )}
               </CardDescription>
             </CardHeader>
             <CardContent>
+              {detailsLoading ? (
+                <>
+                  <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                    <FieldSkeleton label="Full name" />
+                    <FieldSkeleton label="Phone" />
+                  </div>
+                  <FieldSkeleton label="Email" />
+                  <Skeleton className="h-11 w-36" />
+                </>
+              ) : (
               <form onSubmit={detailsForm.handleSubmit(onSaveDetails)}>
                 <FormError message={firstFormError(detailsForm.formState.errors)} />
-                <div className="grid gap-4 sm:grid-cols-2 mt-4">
+                <div className="mt-4 grid gap-4 sm:grid-cols-2">
                   <Field
                     id="profile-name"
                     label="Full name"
@@ -186,6 +203,7 @@ export function ProfilePage() {
                   {updateProfile.isPending ? 'Saving…' : 'Save changes'}
                 </Button>
               </form>
+              )}
             </CardContent>
           </Card>
           <Card>
