@@ -12,12 +12,12 @@ class RefreshTokenCookie
             (string) config('jwt.refresh_cookie'),
             $token,
             (int) config('jwt.refresh_ttl', 10080),
-            (string) config('jwt.refresh_cookie_path', '/api'),
+            (string) config('jwt.refresh_cookie_path', '/'),
             null,
             (bool) config('jwt.refresh_cookie_secure', true),
             true,
             false,
-            (string) config('jwt.refresh_cookie_same_site', 'lax'),
+            (string) config('jwt.refresh_cookie_same_site', 'none'),
         );
     }
 
@@ -25,7 +25,7 @@ class RefreshTokenCookie
     {
         return cookie()->forget(
             (string) config('jwt.refresh_cookie'),
-            (string) config('jwt.refresh_cookie_path', '/api'),
+            (string) config('jwt.refresh_cookie_path', '/'),
         );
     }
 }
