@@ -1,12 +1,14 @@
 import { Link } from 'react-router-dom'
+import { Container } from '@/components/ui/container'
+import { paths } from '@/paths'
 
 export function StoreFooter() {
   return (
     <footer className="mt-16 border-t border-line bg-subtle">
-      <div className="mx-auto max-w-[1240px] px-6 py-10">
+      <Container className="py-10">
         <div className="flex flex-wrap items-start justify-between gap-8">
           <div>
-            <Link to="/" className="font-display text-[22px] font-medium">
+            <Link to={paths.home} className="font-display text-[22px] font-medium">
               Domo<span className="text-brand">.</span>
             </Link>
             <p className="mt-2 max-w-xs text-[14px] text-muted">Furniture and home goods from independent stores.</p>
@@ -19,7 +21,7 @@ export function StoreFooter() {
           </nav>
         </div>
         <div className="mt-8 text-[13px] text-muted">© 2026 Domo</div>
-      </div>
+      </Container>
     </footer>
   )
 }

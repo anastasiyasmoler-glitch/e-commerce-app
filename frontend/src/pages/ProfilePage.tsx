@@ -1,99 +1,141 @@
-import { ChevronRight, LogOut, Package, Sparkles, Trash2, User } from 'lucide-react'
+import { LogOut, Package, Sparkles, Trash2, User } from 'lucide-react'
 import { type FormEvent } from 'react'
-import { Link } from 'react-router-dom'
-import { clearSession } from '../auth/session'
+import { Link, useNavigate } from 'react-router-dom'
+import { useLogout } from '@/hooks/useLogout'
+import { useMe } from '@/hooks/useMe'
+import { paths } from '@/paths'
+import { Badge } from '@/components/ui/badge'
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from '@/components/ui/breadcrumb'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Container } from '@/components/ui/container'
+import { Field } from '@/components/ui/field'
+import { Separator } from '@/components/ui/separator'
 
-const fieldClass =
-  'h-11 w-full rounded-sm border border-line-strong bg-surface px-4 text-[15px] outline-none focus:border-brand focus:shadow-[0_0_0_3px_var(--brand-glow)]'
+export function ProfilePage() {
+  const me = useMe().data
+  const logout = useLogout()
+  const navigate = useNavigate()
 
-type ProfilePageProps = {
-  onSignedOut: () => void
-}
-
-export function ProfilePage({ onSignedOut }: ProfilePageProps) {
   function onSave(event: FormEvent) {
     event.preventDefault()
   }
 
   function onSignOut() {
-    clearSession()
-    onSignedOut()
+    logout.mutate(undefined, {
+      onSettled: () => {
+        navigate(paths.home)
+      },
+    })
   }
 
+  const role = me?.roles[0] ?? 'Customer'
+
   return (
-    <div className="mx-auto max-w-[1240px] px-6 py-8">
-      <nav className="mb-4 flex items-center gap-1 text-[13px] text-muted" aria-label="Breadcrumb">
-        <Link to="/" className="hover:text-ink">
-          Home
-        </Link>
-        <ChevronRight size={14} />
-        <span className="text-ink">Profile</span>
-      </nav>
-      <h1 className="font-display mb-8 text-[36px] font-medium">Profile</h1>
+    <Container className="py-8">
+      <Breadcrumb className="mb-4">
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink asChild>
+              <Link to={paths.home}>Home</Link>
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>Profile</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
+      <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
+        <h1 className="font-display text-[36px] font-medium">Profile</h1>
+        <Button type="button" variant="outline" className="h-11 rounded-sm" onClick={onSignOut} disabled={logout.isPending}>
+          <LogOut />
+          {logout.isPending ? 'Signing out…' : 'Sign out'}
+        </Button>
+      </div>
       <div className="grid gap-10 lg:grid-cols-[240px_1fr]">
-        <nav className="flex flex-col gap-1 text-[14px] font-medium">
-          <span className="flex items-center gap-2 rounded-sm bg-brand-soft px-3 py-2.5 text-brand">
-            <User size={18} /> Profile
-          </span>
-          <span className="flex items-center gap-2 px-3 py-2.5 text-ink">
-            <Package size={18} /> My orders
-          </span>
-          <span className="flex items-center gap-2 px-3 py-2.5 text-ink">
-            <Sparkles size={18} /> AI Assistant
-          </span>
-          <Link to="/" onClick={onSignOut} className="flex items-center gap-2 px-3 py-2.5 text-ink">
-            <LogOut size={18} /> Sign out
-          </Link>
+        <nav className="flex flex-col gap-1">
+          <Button variant="secondary" className="justify-start" type="button">
+            <User /> Profile
+          </Button>
+          <Button variant="ghost" className="justify-start" type="button">
+            <Package /> My orders
+          </Button>
+          <Button variant="ghost" className="justify-start" type="button">
+            <Sparkles /> AI Assistant
+          </Button>
+          <Separator className="my-2" />
+          <Button
+            type="button"
+            variant="ghost"
+            className="justify-start"
+            onClick={onSignOut}
+            disabled={logout.isPending}
+          >
+            <LogOut /> Sign out
+          </Button>
         </nav>
         <div className="space-y-6">
-          <form className="rounded-lg border border-line bg-surface p-6" onSubmit={onSave}>
-            <h2 className="text-[18px] font-semibold">Personal details</h2>
-            <p className="mt-1 mb-5 text-[14px] text-muted">
-              Role:{' '}
-              <span className="rounded-full bg-brand-soft px-2 py-0.5 text-[12px] font-semibold text-brand">Customer</span>
-            </p>
-            <div className="mb-4 grid gap-4 sm:grid-cols-2">
-              <div>
-                <label className="mb-1.5 block text-[13px] font-semibold">Full name</label>
-                <input className={fieldClass} defaultValue="Anna Smith" />
-              </div>
-              <div>
-                <label className="mb-1.5 block text-[13px] font-semibold">Phone</label>
-                <input className={fieldClass} defaultValue="+1 555 123 4567" />
-              </div>
-            </div>
-            <div className="mb-5">
-              <label className="mb-1.5 block text-[13px] font-semibold">Email</label>
-              <input className={fieldClass} type="email" defaultValue="anna@example.com" />
-            </div>
-            <button type="submit" className="h-11 rounded-sm bg-brand px-6 text-[15px] font-semibold text-white hover:bg-brand-dark">
-              Save changes
-            </button>
-          </form>
-          <form className="rounded-lg border border-line bg-surface p-6" onSubmit={onSave}>
-            <h2 className="text-[18px] font-semibold">Password</h2>
-            <p className="mt-1 mb-5 text-[14px] text-muted">Use at least 8 characters.</p>
-            <div className="mb-4">
-              <label className="mb-1.5 block text-[13px] font-semibold">Current password</label>
-              <input className={fieldClass} type="password" placeholder="••••••••" />
-            </div>
-            <div className="mb-5">
-              <label className="mb-1.5 block text-[13px] font-semibold">New password</label>
-              <input className={fieldClass} type="password" placeholder="••••••••" />
-            </div>
-            <button type="submit" className="h-11 rounded-sm border border-ink px-6 text-[15px] font-semibold hover:bg-ink hover:text-white">
-              Change password
-            </button>
-          </form>
-          <section className="rounded-lg border border-danger-soft bg-danger-soft/40 p-6">
-            <h2 className="text-[18px] font-semibold">Delete account</h2>
-            <p className="mt-1 mb-5 text-[14px] text-muted">Your profile will be deactivated. You will be signed out immediately.</p>
-            <button type="button" className="inline-flex h-11 items-center gap-2 rounded-sm border border-danger-soft bg-danger-soft px-6 text-[15px] font-semibold text-danger hover:border-danger hover:bg-danger hover:text-white">
-              <Trash2 size={18} /> Delete account
-            </button>
-          </section>
+          <Card>
+            <CardHeader>
+              <CardTitle>Personal details</CardTitle>
+              <CardDescription className="flex items-center gap-2">
+                Role: <Badge variant="secondary">{role}</Badge>
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={onSave}>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field id="profile-name" label="Full name" defaultValue={me?.name ?? ''} key={me?.name} />
+                  <Field
+                    id="profile-phone"
+                    label="Phone"
+                    defaultValue={me?.phone ?? ''}
+                    key={me?.phone ?? 'phone'}
+                  />
+                </div>
+                <Field id="profile-email" label="Email" type="email" defaultValue={me?.email ?? ''} key={me?.email} />
+                <Button type="submit" className="h-11 rounded-sm">
+                  Save changes
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Password</CardTitle>
+              <CardDescription>Use at least 8 characters.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={onSave}>
+                <Field id="profile-current-password" label="Current password" type="password" placeholder="••••••••" />
+                <Field id="profile-new-password" label="New password" type="password" placeholder="••••••••" />
+                <Button type="submit" variant="outline" className="h-11 rounded-sm">
+                  Change password
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+          <Card className="ring-destructive/30">
+            <CardHeader>
+              <CardTitle>Delete account</CardTitle>
+              <CardDescription>Your profile will be deactivated. You will be signed out immediately.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button type="button" variant="destructive" className="h-11 rounded-sm">
+                <Trash2 /> Delete account
+              </Button>
+            </CardContent>
+          </Card>
         </div>
       </div>
-    </div>
+    </Container>
   )
 }

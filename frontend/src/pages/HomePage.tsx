@@ -1,5 +1,9 @@
 import { ArrowRight, Sparkles } from 'lucide-react'
 import { FurnitureArt } from '../components/catalog/FurnitureArt'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Container } from '@/components/ui/container'
 
 const categories = [
   { name: 'Sofas', count: '124 products', art: 'sofa' as const },
@@ -45,49 +49,47 @@ function ProductCard({
   art: 'sofa' | 'bed' | 'table' | 'lamp' | 'storage' | 'linen' | 'chair' | 'vase'
 }) {
   return (
-    <article className="overflow-hidden rounded-lg border border-line bg-surface">
+    <Card className="rounded-lg py-0">
       <div className="aspect-square bg-subtle">
         <FurnitureArt kind={art} label={name} />
       </div>
-      <div className="p-4">
+      <CardContent className="p-4">
         <div className="text-[12px] font-semibold tracking-wide text-muted uppercase">{store}</div>
         <div className="mt-1 text-[15px] font-semibold">{name}</div>
         <div className="mt-3 mb-3 flex items-center justify-between">
           <span className="text-[16px] font-semibold">{price}</span>
-          <span className={`text-[12px] font-semibold ${inStock ? 'text-success' : 'text-danger'}`}>
-            {inStock ? 'In stock' : 'Out of stock'}
-          </span>
+          <Badge variant={inStock ? 'secondary' : 'destructive'}>{inStock ? 'In stock' : 'Out of stock'}</Badge>
         </div>
         {inStock ? (
-          <button type="button" className="flex h-9 w-full items-center justify-center rounded-sm border border-ink text-[13px] font-semibold hover:bg-ink hover:text-white">
+          <Button type="button" variant="outline" className="w-full rounded-sm">
             Add to cart
-          </button>
+          </Button>
         ) : (
-          <button type="button" disabled className="flex h-9 w-full cursor-not-allowed items-center justify-center rounded-sm bg-subtle text-[13px] font-semibold text-muted">
+          <Button type="button" disabled className="w-full rounded-sm">
             Out of stock
-          </button>
+          </Button>
         )}
-      </div>
-    </article>
+      </CardContent>
+    </Card>
   )
 }
 
 export function HomePage() {
   return (
-    <div className="mx-auto max-w-[1240px] px-6">
+    <Container>
       <section className="grid items-center gap-10 py-12 md:grid-cols-2">
         <div>
           <span className="text-[12px] font-semibold tracking-[0.12em] text-muted uppercase">Furniture & home goods</span>
           <h1 className="font-display mt-3 text-[48px] leading-[1.15] font-medium tracking-tight">Everything for a considered home</h1>
           <p className="mt-4 max-w-md text-[16px] text-muted">Browse furniture and home goods from independent stores, all in one place.</p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <button type="button" className="inline-flex h-[52px] items-center rounded-sm bg-brand px-8 text-[16px] font-semibold text-white hover:bg-brand-dark">
+            <Button type="button" className="h-[52px] rounded-sm px-8 text-[16px]">
               Browse catalog
-            </button>
-            <button type="button" className="inline-flex h-[52px] items-center gap-2 rounded-sm border border-ink px-8 text-[16px] font-semibold hover:bg-ink hover:text-white">
-              <Sparkles size={18} aria-hidden />
+            </Button>
+            <Button type="button" variant="outline" className="h-[52px] rounded-sm px-8 text-[16px]">
+              <Sparkles />
               Ask the assistant
-            </button>
+            </Button>
           </div>
         </div>
         <div className="aspect-square rounded-lg bg-subtle">
@@ -104,7 +106,7 @@ export function HomePage() {
         </div>
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
           {categories.map((item) => (
-            <div key={item.name} className="overflow-hidden rounded-lg border border-line bg-surface">
+            <Card key={item.name} className="overflow-hidden rounded-lg py-0">
               <div className="aspect-square bg-subtle">
                 <FurnitureArt kind={item.art} label={item.name} />
               </div>
@@ -112,7 +114,7 @@ export function HomePage() {
                 <div className="font-semibold">{item.name}</div>
                 <div className="text-[13px] text-muted">{item.count}</div>
               </div>
-            </div>
+            </Card>
           ))}
         </div>
       </section>
@@ -136,9 +138,9 @@ export function HomePage() {
           <div>
             <h2 className="font-display text-[28px] font-medium">Describe it, we'll find it</h2>
             <p className="mt-2 text-[15px] text-white/80">Tell the assistant what you are looking for. It suggests products that exist in the catalog.</p>
-            <button type="button" className="mt-6 inline-flex h-[52px] items-center gap-2 rounded-sm bg-white px-8 text-[16px] font-semibold text-brand">
-              Open AI Assistant <ArrowRight size={18} />
-            </button>
+            <Button type="button" variant="light" className="mt-6 h-[52px] rounded-sm px-8 text-[16px]">
+              Open AI Assistant <ArrowRight />
+            </Button>
           </div>
           <div className="flex items-center gap-3 rounded-sm bg-white/10 px-5 py-4 text-[16px]">
             <Sparkles size={18} />
@@ -151,13 +153,13 @@ export function HomePage() {
         <h2 className="font-display mb-6 text-[28px] font-medium">Stores</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {stores.map((store) => (
-            <div key={store.name} className="flex items-center gap-4 rounded-lg border border-line bg-surface p-4">
+            <Card key={store.name} className="flex flex-row items-center gap-4 rounded-lg p-4">
               <div className="flex size-12 items-center justify-center rounded-full bg-brand-soft font-semibold text-brand">{store.initial}</div>
               <div>
                 <div className="font-semibold">{store.name}</div>
                 <div className="text-[13px] text-muted">{store.meta}</div>
               </div>
-            </div>
+            </Card>
           ))}
         </div>
       </section>
@@ -170,6 +172,6 @@ export function HomePage() {
           ))}
         </div>
       </section>
-    </div>
+    </Container>
   )
 }

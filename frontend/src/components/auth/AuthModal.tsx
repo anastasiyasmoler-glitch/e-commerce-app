@@ -1,176 +1,171 @@
-import { X } from 'lucide-react'
-import { useState, type FormEvent } from 'react'
-import { googleStartUrl, login, register } from '../../auth/session'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { googleStartUrl } from '@/api/authApi'
+import { apiErrorMessage } from '@/api/http'
+import { Button } from '@/components/ui/button'
+import { useLogin } from '@/hooks/useLogin'
+import { useRegister } from '@/hooks/useRegister'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Field } from '@/components/ui/field'
+import {
+  loginSchema,
+  registerSchema,
+  type LoginValues,
+  type RegisterValues,
+} from '@/lib/validators/auth'
 
 export type AuthMode = 'login' | 'register'
 
 type AuthModalProps = {
   initialMode?: AuthMode
   onClose: () => void
-  onSignedIn: () => void
 }
 
-const fieldClass =
-  'h-11 w-full rounded-sm border border-line-strong bg-surface px-4 text-[15px] outline-none placeholder:text-muted/70 focus:border-brand focus:shadow-[0_0_0_3px_var(--brand-glow)]'
-
-export function AuthModal({ initialMode = 'login', onClose, onSignedIn }: AuthModalProps) {
+export function AuthModal({ initialMode = 'login', onClose }: AuthModalProps) {
   const [mode, setMode] = useState<AuthMode>(initialMode)
-  const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
-  const [phone, setPhone] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState<string | null>(null)
-  const [pending, setPending] = useState(false)
+  const loginMutation = useLogin()
+  const registerMutation = useRegister()
 
-  async function onSubmit(event: FormEvent) {
-    event.preventDefault()
-    setError(null)
-    setPending(true)
+  const loginForm = useForm<LoginValues>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: { email: '', password: '' },
+  })
+  const registerForm = useForm<RegisterValues>({
+    resolver: zodResolver(registerSchema),
+    defaultValues: { name: '', phone: '', email: '', password: '' },
+  })
+
+  async function onLogin(values: LoginValues) {
     try {
-      if (mode === 'login') {
-        await login(email, password)
-      } else {
-        await register({
-          name,
-          email,
-          phone,
-          password,
-          password_confirmation: password,
-        })
-      }
-      onSignedIn()
+      await loginMutation.mutateAsync(values)
       onClose()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not continue.')
-    } finally {
-      setPending(false)
+    } catch {
+      /* message from mutation.error */
     }
   }
 
+  async function onRegister(values: RegisterValues) {
+    try {
+      await registerMutation.mutateAsync(values)
+      onClose()
+    } catch {
+      /* message from mutation.error */
+    }
+  }
+
+  const pending = mode === 'login' ? loginMutation.isPending : registerMutation.isPending
+  const requestError = mode === 'login' ? loginMutation.error : registerMutation.error
+  const errorText = requestError ? apiErrorMessage(requestError) : null
+
   return (
-    <div
-      className="fixed inset-0 z-[60] flex items-start justify-center bg-overlay px-4 pt-[10vh]"
-      onClick={onClose}
-      role="presentation"
-    >
-      <div
-        className="relative w-full max-w-[420px] rounded-lg bg-surface p-8 shadow-[0_14px_40px_rgba(28,31,29,0.12)]"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="auth-title"
-        onClick={(event) => event.stopPropagation()}
+    <Dialog open onOpenChange={(open) => { if (!open) onClose() }}>
+      <DialogContent
+        className="max-w-[420px] rounded-lg p-8 sm:max-w-[420px]"
+        aria-describedby={undefined}
       >
-        <button
-          type="button"
-          className="absolute top-4 right-4 text-muted hover:text-ink"
-          onClick={onClose}
-          aria-label="Close"
-        >
-          <X size={18} />
-        </button>
-        <h2 id="auth-title" className="font-display text-[28px] font-medium tracking-tight">
-          {mode === 'login' ? 'Sign in' : 'Create account'}
-        </h2>
-        <p className="mt-1 mb-6 text-[14px] text-muted">
-          {mode === 'login' ? 'Welcome back.' : 'Register to place orders and use the AI assistant.'}
-        </p>
-        {error ? <p className="mb-4 text-[13px] text-danger">{error}</p> : null}
-        <form onSubmit={onSubmit}>
-          {mode === 'register' ? (
-            <>
-              <div className="mb-4">
-                <label className="mb-1.5 block text-[13px] font-semibold" htmlFor="auth-name">
-                  Full name
-                </label>
-                <input
-                  id="auth-name"
-                  className={fieldClass}
-                  placeholder="Anna Smith"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                  autoComplete="name"
-                />
-              </div>
-              <div className="mb-4">
-                <label className="mb-1.5 block text-[13px] font-semibold" htmlFor="auth-phone">
-                  Phone number
-                </label>
-                <input
-                  id="auth-phone"
-                  className={fieldClass}
-                  type="tel"
-                  placeholder="+1 555 123 4567"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  required
-                  autoComplete="tel"
-                />
-              </div>
-            </>
-          ) : null}
-          <div className="mb-4">
-            <label className="mb-1.5 block text-[13px] font-semibold" htmlFor="auth-email">
-              Email
-            </label>
-            <input
+        <DialogHeader>
+          <DialogTitle className="font-display text-[28px] font-medium tracking-tight">
+            {mode === 'login' ? 'Sign in' : 'Create account'}
+          </DialogTitle>
+          <DialogDescription className="text-[14px] text-muted-foreground">
+            {mode === 'login' ? 'Welcome back.' : 'Register to place orders and use the AI assistant.'}
+          </DialogDescription>
+        </DialogHeader>
+        {errorText ? <p className="text-[13px] text-destructive">{errorText}</p> : null}
+        {mode === 'login' ? (
+          <form onSubmit={loginForm.handleSubmit(onLogin)}>
+            <Field
               id="auth-email"
-              className={fieldClass}
+              label="Email"
               type="email"
               placeholder="you@example.com"
               autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
+              error={loginForm.formState.errors.email?.message}
+              {...loginForm.register('email')}
             />
-          </div>
-          <div className="mb-6">
-            <label className="mb-1.5 block text-[13px] font-semibold" htmlFor="auth-password">
-              Password
-            </label>
-            <input
+            <Field
               id="auth-password"
-              className={fieldClass}
+              label="Password"
               type="password"
               placeholder="••••••••"
-              autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
+              autoComplete="current-password"
+              error={loginForm.formState.errors.password?.message}
+              {...loginForm.register('password')}
             />
-          </div>
-          <button
-            type="submit"
-            className="flex h-[52px] w-full items-center justify-center rounded-sm bg-brand text-[16px] font-semibold text-white hover:bg-brand-dark disabled:cursor-not-allowed disabled:bg-subtle disabled:text-muted"
-            disabled={pending}
-          >
-            {pending ? 'Please wait…' : mode === 'login' ? 'Sign in' : 'Create account'}
-          </button>
-        </form>
-        <a
-          className="mt-3 flex h-11 w-full items-center justify-center rounded-sm border border-line bg-surface text-[14px] font-semibold hover:border-ink"
-          href={googleStartUrl()}
-        >
-          Continue with Google
-        </a>
-        <p className="mt-5 text-center text-[13px] text-muted">
+            <Button type="submit" size="lg" className="h-[52px] w-full rounded-sm text-[16px]" disabled={pending}>
+              {pending ? 'Please wait…' : 'Sign in'}
+            </Button>
+          </form>
+        ) : (
+          <form onSubmit={registerForm.handleSubmit(onRegister)}>
+            <Field
+              id="auth-name"
+              label="Full name"
+              placeholder="Anna Smith"
+              autoComplete="name"
+              error={registerForm.formState.errors.name?.message}
+              {...registerForm.register('name')}
+            />
+            <Field
+              id="auth-phone"
+              label="Phone number"
+              type="tel"
+              placeholder="+1 555 123 4567"
+              autoComplete="tel"
+              error={registerForm.formState.errors.phone?.message}
+              {...registerForm.register('phone')}
+            />
+            <Field
+              id="auth-reg-email"
+              label="Email"
+              type="email"
+              placeholder="you@example.com"
+              autoComplete="email"
+              error={registerForm.formState.errors.email?.message}
+              {...registerForm.register('email')}
+            />
+            <Field
+              id="auth-reg-password"
+              label="Password"
+              type="password"
+              placeholder="••••••••"
+              autoComplete="new-password"
+              error={registerForm.formState.errors.password?.message}
+              {...registerForm.register('password')}
+            />
+            <Button type="submit" size="lg" className="h-[52px] w-full rounded-sm text-[16px]" disabled={pending}>
+              {pending ? 'Please wait…' : 'Create account'}
+            </Button>
+          </form>
+        )}
+        <Button variant="outline" size="lg" className="h-11 w-full rounded-sm" asChild>
+          <a href={googleStartUrl()}>Continue with Google</a>
+        </Button>
+        <p className="text-center text-[13px] text-muted-foreground">
           {mode === 'login' ? (
             <>
               New to Domo?{' '}
-              <button type="button" className="font-semibold text-brand" onClick={() => setMode('register')}>
+              <button type="button" className="font-semibold text-brand" onClick={() => { setMode('register'); loginMutation.reset() }}>
                 Create an account
               </button>
             </>
           ) : (
             <>
               Already have an account?{' '}
-              <button type="button" className="font-semibold text-brand" onClick={() => setMode('login')}>
+              <button type="button" className="font-semibold text-brand" onClick={() => { setMode('login'); registerMutation.reset() }}>
                 Sign in
               </button>
             </>
           )}
         </p>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   )
 }
