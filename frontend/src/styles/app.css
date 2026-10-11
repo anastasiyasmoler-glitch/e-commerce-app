@@ -120,4 +120,26 @@
   --sidebar-accent-foreground: var(--brand);
   --sidebar-border: var(--line);
   --sidebar-ring: var(--brand);
+  --PhoneInput-color--focus: var(--brand);
+  --PhoneInputCountryFlag-borderColor--focus: var(--brand);
+}
+
+@layer components {
+  .PhoneInput {
+    height: 44px;
+    padding-left: 10px;
+    border: 1px solid var(--line-strong);
+    border-radius: 6px;
+    background: var(--surface);
+  }
+
+  .PhoneInput:focus-within {
+    border-color: var(--brand);
+    box-shadow: 0 0 0 3px var(--brand-glow);
+  }
+
+  .PhoneInput--invalid {
+    border-color: var(--danger);
+    box-shadow: 0 0 0 3px var(--danger-soft);
+  }
 }

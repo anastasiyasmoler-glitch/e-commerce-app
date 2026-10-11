@@ -13,7 +13,6 @@ export function Field({ id, label, error, className, ...props }: FieldProps) {
     <div className="mb-4 grid gap-1.5">
       <Label htmlFor={id}>{label}</Label>
       <Input id={id} aria-invalid={Boolean(error)} className={cn(className)} {...props} />
-      {error ? <p className="text-[13px] text-destructive">{error}</p> : null}
     </div>
   )
 }
