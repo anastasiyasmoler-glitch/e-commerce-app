@@ -2,7 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { LogOut, Package, Sparkles, Trash2, User } from 'lucide-react'
 import { Controller, useForm } from 'react-hook-form'
 import { Link, useNavigate } from 'react-router-dom'
-import { formErrorMessage } from '@/lib/form'
+import { firstFormError } from '@/lib/form'
 import { useLogout } from '@/hooks/useLogout'
 import { useDeleteProfile, useProfile, useUpdatePassword, useUpdateProfile } from '@/hooks/useProfile'
 import { paths } from '@/paths'
@@ -149,8 +149,8 @@ export function ProfilePage() {
             </CardHeader>
             <CardContent>
               <form onSubmit={detailsForm.handleSubmit(onSaveDetails)}>
-                <FormError message={formErrorMessage(updateProfile.error, detailsForm.formState.errors)} />
-                <div className="grid gap-4 sm:grid-cols-2">
+                <FormError message={firstFormError(detailsForm.formState.errors)} />
+                <div className="grid gap-4 sm:grid-cols-2 mt-4">
                   <Field
                     id="profile-name"
                     label="Full name"
@@ -195,7 +195,7 @@ export function ProfilePage() {
             </CardHeader>
             <CardContent>
               <form onSubmit={passwordForm.handleSubmit(onChangePassword)}>
-                <FormError message={formErrorMessage(changePassword.error, passwordForm.formState.errors)} />
+                <FormError message={firstFormError(passwordForm.formState.errors)} />
                 <Field
                   id="profile-current-password"
                   label="Current password"
@@ -236,7 +236,7 @@ export function ProfilePage() {
             </CardHeader>
             <CardContent>
               <form onSubmit={deleteForm.handleSubmit(onDelete)}>
-                <FormError message={formErrorMessage(removeAccount.error, deleteForm.formState.errors)} />
+                <FormError message={firstFormError(deleteForm.formState.errors)} />
                 <Field
                   id="profile-delete-password"
                   label="Password"
