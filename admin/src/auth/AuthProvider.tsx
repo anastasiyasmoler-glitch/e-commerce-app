@@ -1,14 +1,8 @@
-import { createContext, useContext, useMemo, useState, type ReactNode } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { http } from '../lib/http'
 import { isAdmin, setAccessToken, type AuthUser } from './session'
-
-type AuthContextValue = {
-  user: AuthUser | null
-  login: (email: string, password: string) => Promise<void>
-  logout: () => Promise<void>
-}
-
-const AuthContext = createContext<AuthContextValue | null>(null)
+import { AuthContext } from './AuthContext'
+import type { AuthContextValue } from './useAuth'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null)
@@ -39,12 +33,4 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
-}
-
-export function useAuth(): AuthContextValue {
-  const ctx = useContext(AuthContext)
-  if (!ctx) {
-    throw new Error('useAuth must be used inside AuthProvider')
-  }
-  return ctx
 }

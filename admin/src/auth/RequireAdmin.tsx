@@ -1,6 +1,6 @@
 import { Navigate, Outlet } from 'react-router-dom'
 import { isAdmin } from './session'
-import { useAuth } from './AuthProvider'
+import { useAuth } from './useAuth'
 
 export function RequireAdmin() {
   const { user } = useAuth()

@@ -1,6 +1,6 @@
 import { FormEvent, useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
-import { useAuth } from '../auth/AuthProvider'
+import { useAuth } from '../auth/useAuth'
 import { isAdmin } from '../auth/session'
 
 export function LoginPage() {

@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { AuthModal, type AuthMode } from '../auth/AuthModal'
 import { StoreFooter } from './StoreFooter'
@@ -13,29 +12,26 @@ export function StoreLayout() {
   const location = useLocation()
   const navigate = useNavigate()
   const state = location.state as LocationState | null
-  const [authMode, setAuthMode] = useState<AuthMode | null>(null)
+  const authMode = state?.auth ?? null
 
-  useEffect(() => {
-    if (!state?.auth) {
-      return
-    }
+  const openAuth = (mode: AuthMode, from?: string) => {
+    navigate(location.pathname, { replace: true, state: { auth: mode, from } })
+  }
 
-    setAuthMode(state.auth)
-    navigate(location.pathname, { replace: true, state: { from: state.from } })
-  }, [location.pathname, navigate, state?.auth, state?.from])
+  const closeAuth = () => {
+    navigate(location.pathname, { replace: true, state: undefined })
+  }
 
   return (
     <>
       <div className="flex min-h-screen flex-col bg-bg">
-        <StoreHeader onSignIn={() => setAuthMode('login')} onRegister={() => setAuthMode('register')} />
+        <StoreHeader onSignIn={() => openAuth('login')} onRegister={() => openAuth('register')} />
         <main className="flex-1">
           <Outlet />
         </main>
         <StoreFooter />
       </div>
-      {authMode ? (
-        <AuthModal key={authMode} initialMode={authMode} onClose={() => setAuthMode(null)} />
-      ) : null}
+      {authMode ? <AuthModal key={authMode} initialMode={authMode} onClose={closeAuth} /> : null}
     </>
   )
 }

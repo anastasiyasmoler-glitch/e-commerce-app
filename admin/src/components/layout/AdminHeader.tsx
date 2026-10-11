@@ -1,6 +1,6 @@
 import { Bell, LogOut, Shield, User } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { useAuth } from '../../auth/AuthProvider'
+import { useAuth } from '../../auth/useAuth'
 
 export function AdminHeader() {
   const { user, logout } = useAuth()
