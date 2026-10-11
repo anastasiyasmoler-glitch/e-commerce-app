@@ -1,4 +1,5 @@
 import { createBrowserRouter } from 'react-router-dom'
+import { RequireAuth } from './components/auth/RequireAuth'
 import { StoreLayout } from './components/layout/StoreLayout'
 import { HomePage } from './pages/HomePage'
 import { paths } from './paths'
@@ -10,7 +11,10 @@ export const router = createBrowserRouter([
     element: <StoreLayout />,
     children: [
       { index: true, element: <HomePage /> },
-      { path: 'profile', element: <ProfilePage /> },
+      {
+        element: <RequireAuth />,
+        children: [{ path: 'profile', element: <ProfilePage /> }],
+      },
     ],
   },
 ])

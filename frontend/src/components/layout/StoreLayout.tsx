@@ -1,11 +1,28 @@
-import { useState } from 'react'
-import { Outlet } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { AuthModal, type AuthMode } from '../auth/AuthModal'
 import { StoreFooter } from './StoreFooter'
 import { StoreHeader } from './StoreHeader'
 
+type LocationState = {
+  auth?: AuthMode
+  from?: string
+}
+
 export function StoreLayout() {
+  const location = useLocation()
+  const navigate = useNavigate()
+  const state = location.state as LocationState | null
   const [authMode, setAuthMode] = useState<AuthMode | null>(null)
+
+  useEffect(() => {
+    if (!state?.auth) {
+      return
+    }
+
+    setAuthMode(state.auth)
+    navigate(location.pathname, { replace: true, state: { from: state.from } })
+  }, [location.pathname, navigate, state?.auth, state?.from])
 
   return (
     <>

@@ -1,8 +1,9 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { Controller, useForm } from 'react-hook-form'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { googleStartUrl } from '@/api/authApi'
-import { apiErrorMessage } from '@/api/http'
+import { formErrorMessage } from '@/lib/form'
 import { Button } from '@/components/ui/button'
 import { useLogin } from '@/hooks/useLogin'
 import { useRegister } from '@/hooks/useRegister'
@@ -14,6 +15,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Field } from '@/components/ui/field'
+import { FormError } from '@/components/ui/form-error'
+import { PhoneField } from '@/components/ui/phone-field'
 import {
   loginSchema,
   registerSchema,
@@ -26,12 +29,16 @@ export type AuthMode = 'login' | 'register'
 type AuthModalProps = {
   initialMode?: AuthMode
   onClose: () => void
+  onSuccess?: () => void
 }
 
-export function AuthModal({ initialMode = 'login', onClose }: AuthModalProps) {
+export function AuthModal({ initialMode = 'login', onClose, onSuccess }: AuthModalProps) {
   const [mode, setMode] = useState<AuthMode>(initialMode)
   const loginMutation = useLogin()
   const registerMutation = useRegister()
+  const location = useLocation()
+  const navigate = useNavigate()
+  const from = (location.state as { from?: string } | null)?.from
 
   const loginForm = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
@@ -45,7 +52,14 @@ export function AuthModal({ initialMode = 'login', onClose }: AuthModalProps) {
   async function onLogin(values: LoginValues) {
     try {
       await loginMutation.mutateAsync(values)
-      onClose()
+      if (onSuccess) {
+        onSuccess()
+      } else {
+        onClose()
+      }
+      if (from) {
+        navigate(from, { replace: true })
+      }
     } catch {
       /* message from mutation.error */
     }
@@ -54,7 +68,14 @@ export function AuthModal({ initialMode = 'login', onClose }: AuthModalProps) {
   async function onRegister(values: RegisterValues) {
     try {
       await registerMutation.mutateAsync(values)
-      onClose()
+      if (onSuccess) {
+        onSuccess()
+      } else {
+        onClose()
+      }
+      if (from) {
+        navigate(from, { replace: true })
+      }
     } catch {
       /* message from mutation.error */
     }
@@ -62,7 +83,8 @@ export function AuthModal({ initialMode = 'login', onClose }: AuthModalProps) {
 
   const pending = mode === 'login' ? loginMutation.isPending : registerMutation.isPending
   const requestError = mode === 'login' ? loginMutation.error : registerMutation.error
-  const errorText = requestError ? apiErrorMessage(requestError) : null
+  const fieldErrors = mode === 'login' ? loginForm.formState.errors : registerForm.formState.errors
+  const errorText = formErrorMessage(requestError, fieldErrors)
 
   return (
     <Dialog open onOpenChange={(open) => { if (!open) onClose() }}>
@@ -78,7 +100,7 @@ export function AuthModal({ initialMode = 'login', onClose }: AuthModalProps) {
             {mode === 'login' ? 'Welcome back.' : 'Register to place orders and use the AI assistant.'}
           </DialogDescription>
         </DialogHeader>
-        {errorText ? <p className="text-[13px] text-destructive">{errorText}</p> : null}
+        <FormError message={errorText} />
         {mode === 'login' ? (
           <form onSubmit={loginForm.handleSubmit(onLogin)}>
             <Field
@@ -113,14 +135,20 @@ export function AuthModal({ initialMode = 'login', onClose }: AuthModalProps) {
               error={registerForm.formState.errors.name?.message}
               {...registerForm.register('name')}
             />
-            <Field
-              id="auth-phone"
-              label="Phone number"
-              type="tel"
-              placeholder="+1 555 123 4567"
-              autoComplete="tel"
-              error={registerForm.formState.errors.phone?.message}
-              {...registerForm.register('phone')}
+            <Controller
+              control={registerForm.control}
+              name="phone"
+              render={({ field, fieldState }) => (
+                <PhoneField
+                  id="auth-phone"
+                  label="Phone number"
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  name={field.name}
+                  error={fieldState.error?.message}
+                />
+              )}
             />
             <Field
               id="auth-reg-email"
