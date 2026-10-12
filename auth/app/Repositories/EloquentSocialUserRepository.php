@@ -22,10 +22,16 @@ class EloquentSocialUserRepository implements SocialUserRepositoryInterface
 
     public function createOAuthUser(
         string $name,
-        string $email,
+        ?string $email,
         string $provider,
         string $providerId,
     ): User {
+        // Only verified emails may claim an existing address; unverified or
+        // missing emails get a unique synthetic address for this provider account.
+        if ($email === null || User::query()->where('email', $email)->exists()) {
+            $email = strtolower($provider).'-'.strtolower($providerId).'@oauth.local';
+        }
+
         $user = User::query()->create([
             'name' => $name,
             'email' => $email,
@@ -44,6 +50,19 @@ class EloquentSocialUserRepository implements SocialUserRepositoryInterface
     public function assignRole(int $userId, string $role): void
     {
         $this->findUser($userId)->assignRole($role);
+    }
+
+    public function linkProvider(User $user, string $provider, string $providerId): User
+    {
+        if ($user->provider_id !== null && $user->provider_id !== $providerId) {
+            return $user;
+        }
+
+        $user->provider = $provider;
+        $user->provider_id = $providerId;
+        $user->save();
+
+        return $user;
     }
 
     private function findUser(int $userId): User

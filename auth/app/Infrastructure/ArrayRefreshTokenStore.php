@@ -19,9 +19,33 @@ class ArrayRefreshTokenStore implements RefreshTokenStore
         return $this->tokens[$this->hash($plainToken)] ?? null;
     }
 
+    public function claim(string $plainToken): ?int
+    {
+        $hash = $this->hash($plainToken);
+
+        $userId = $this->tokens[$hash] ?? null;
+
+        if ($userId === null) {
+            return null;
+        }
+
+        unset($this->tokens[$hash]);
+
+        return $userId;
+    }
+
     public function forget(int $userId, string $plainToken): void
     {
         unset($this->tokens[$this->hash($plainToken)]);
+    }
+
+    public function forgetAll(int $userId): void
+    {
+        foreach ($this->tokens as $hash => $ownerId) {
+            if ($ownerId === $userId) {
+                unset($this->tokens[$hash]);
+            }
+        }
     }
 
     private function hash(string $plainToken): string

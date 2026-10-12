@@ -17,14 +17,19 @@ class SocialAuthService
 
     public function findOrCreateFromOAuth(
         string $name,
-        string $email,
+        ?string $email,
         string $provider,
         string $providerId,
+        bool $emailVerified = false,
     ): User {
-        $email = strtolower(trim($email));
+        if ($providerId === '') {
+            throw new InvalidArgumentException('OAuth profile must include a provider id.');
+        }
 
-        if ($email === '' || $providerId === '') {
-            throw new InvalidArgumentException('OAuth profile must include email and provider id.');
+        $normalizedEmail = $email === null ? null : strtolower(trim($email));
+
+        if ($normalizedEmail === '') {
+            $normalizedEmail = null;
         }
 
         $user = $this->users->findByProvider($provider, $providerId);
@@ -33,13 +38,15 @@ class SocialAuthService
             return $user;
         }
 
-        $user = $this->users->findByEmail($email);
+        if ($emailVerified && $normalizedEmail !== null) {
+            $user = $this->users->findByEmail($normalizedEmail);
 
-        if ($user !== null) {
-            return $user;
+            if ($user !== null) {
+                return $this->users->linkProvider($user, $provider, $providerId);
+            }
         }
 
-        $user = $this->users->createOAuthUser($name, $email, $provider, $providerId);
+        $user = $this->users->createOAuthUser($name, $normalizedEmail, $provider, $providerId);
         $this->users->assignRole($user->id, 'customer');
 
         $this->events->dispatch(new Registered($user));

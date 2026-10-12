@@ -12,10 +12,12 @@ interface SocialUserRepositoryInterface
 
     public function createOAuthUser(
         string $name,
-        string $email,
+        ?string $email,
         string $provider,
         string $providerId,
     ): User;
 
     public function assignRole(int $userId, string $role): void;
+
+    public function linkProvider(User $user, string $provider, string $providerId): User;
 }

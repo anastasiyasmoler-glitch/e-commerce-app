@@ -22,7 +22,7 @@ class UpdateProfileRequest extends FormRequest
 
         return [
             'name' => ['required', 'string', 'max:255'],
-            'phone' => ['required', 'string', 'max:32', Rule::unique(User::class)->ignore($userId)],
+            'phone' => ['required', 'string', 'max:32', 'regex:/^\+?[1-9]\d{7,14}$/', Rule::unique(User::class)->ignore($userId)],
             'email' => [
                 'required',
                 'string',

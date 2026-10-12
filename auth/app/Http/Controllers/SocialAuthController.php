@@ -6,7 +6,6 @@ use App\Http\Responses\JwtTokenResponse;
 use App\Services\JwtAuthService;
 use App\Services\SocialAuthService;
 use Illuminate\Http\JsonResponse;
-use InvalidArgumentException;
 use Laravel\Socialite\Facades\Socialite;
 use Laravel\Socialite\Two\InvalidStateException;
 use Symfony\Component\HttpFoundation\RedirectResponse as SymfonyRedirectResponse;
@@ -29,19 +28,16 @@ class SocialAuthController extends Controller
         try {
             $oauthUser = Socialite::driver('google')->user();
         } catch (InvalidStateException) {
-            return response()->json(['message' => 'Sign-in was cancelled or expired. Try again.'], 401);
+            return response()->json(['message' => 'Sign-in was cancelled or expired. Try again.'], 400);
         }
 
-        try {
-            $user = $this->social->findOrCreateFromOAuth(
-                $oauthUser->getName() ?: (string) $oauthUser->getEmail(),
-                (string) $oauthUser->getEmail(),
-                'google',
-                (string) $oauthUser->getId(),
-            );
-        } catch (InvalidArgumentException) {
-            return response()->json(['message' => 'The identity provider did not return an email address.'], 401);
-        }
+        $user = $this->social->findOrCreateFromOAuth(
+            $oauthUser->getName() ?: (string) $oauthUser->getEmail(),
+            $oauthUser->getEmail(),
+            'google',
+            (string) $oauthUser->getId(),
+            (bool) ($oauthUser->user['email_verified'] ?? false),
+        );
 
         return $this->tokens->make($this->auth->issueForUser($user));
     }

@@ -39,12 +39,13 @@ class SocialAuthServiceTest extends TestCase
             'ada@example.com',
             'google',
             'sub-1',
+            true,
         );
 
         $this->assertSame($existing, $result);
     }
 
-    public function test_returns_user_found_by_email_without_creating(): void
+    public function test_returns_user_found_by_email_when_provider_email_is_verified(): void
     {
         $existing = new User;
         $existing->id = 4;
@@ -52,6 +53,7 @@ class SocialAuthServiceTest extends TestCase
         $users = Mockery::mock(SocialUserRepositoryInterface::class);
         $users->shouldReceive('findByProvider')->once()->andReturn(null);
         $users->shouldReceive('findByEmail')->once()->with('ada@example.com')->andReturn($existing);
+        $users->shouldReceive('linkProvider')->once()->with($existing, 'google', 'sub-1')->andReturn($existing);
         $users->shouldNotReceive('createOAuthUser');
         $users->shouldNotReceive('assignRole');
 
@@ -63,9 +65,38 @@ class SocialAuthServiceTest extends TestCase
             '  ADA@example.com ',
             'google',
             'sub-1',
+            true,
         );
 
         $this->assertSame($existing, $result);
+    }
+
+    public function test_does_not_link_by_email_when_provider_email_is_unverified(): void
+    {
+        $created = new User;
+        $created->id = 8;
+
+        $users = Mockery::mock(SocialUserRepositoryInterface::class);
+        $users->shouldReceive('findByProvider')->once()->andReturn(null);
+        $users->shouldNotReceive('findByEmail');
+        $users->shouldReceive('createOAuthUser')
+            ->once()
+            ->with('Ada', 'ada@example.com', 'google', 'sub-1')
+            ->andReturn($created);
+        $users->shouldReceive('assignRole')->once()->with(8, 'customer');
+
+        $events = Mockery::mock(Dispatcher::class);
+        $events->shouldReceive('dispatch')->once();
+
+        $result = (new SocialAuthService($users, $events))->findOrCreateFromOAuth(
+            'Ada',
+            'ada@example.com',
+            'google',
+            'sub-1',
+            false,
+        );
+
+        $this->assertSame($created, $result);
     }
 
     public function test_creates_customer_when_user_does_not_exist(): void
@@ -92,12 +123,41 @@ class SocialAuthServiceTest extends TestCase
             'ada@example.com',
             'google',
             'sub-1',
+            true,
         );
 
         $this->assertSame($created, $result);
     }
 
-    public function test_throws_when_email_is_missing(): void
+    public function test_creates_customer_when_email_is_missing(): void
+    {
+        $created = new User;
+        $created->id = 10;
+
+        $users = Mockery::mock(SocialUserRepositoryInterface::class);
+        $users->shouldReceive('findByProvider')->once()->andReturn(null);
+        $users->shouldNotReceive('findByEmail');
+        $users->shouldReceive('createOAuthUser')
+            ->once()
+            ->with('Ada', null, 'google', 'sub-1')
+            ->andReturn($created);
+        $users->shouldReceive('assignRole')->once()->with(10, 'customer');
+
+        $events = Mockery::mock(Dispatcher::class);
+        $events->shouldReceive('dispatch')->once();
+
+        $result = (new SocialAuthService($users, $events))->findOrCreateFromOAuth(
+            'Ada',
+            '  ',
+            'google',
+            'sub-1',
+            true,
+        );
+
+        $this->assertSame($created, $result);
+    }
+
+    public function test_throws_when_provider_id_is_missing(): void
     {
         $users = Mockery::mock(SocialUserRepositoryInterface::class);
         $users->shouldNotReceive('findByProvider');
@@ -107,6 +167,6 @@ class SocialAuthServiceTest extends TestCase
 
         $this->expectException(InvalidArgumentException::class);
 
-        (new SocialAuthService($users, $events))->findOrCreateFromOAuth('Ada', '  ', 'google', 'sub-1');
+        (new SocialAuthService($users, $events))->findOrCreateFromOAuth('Ada', 'ada@example.com', 'google', '');
     }
 }

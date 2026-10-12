@@ -7,6 +7,7 @@ use App\Http\Cookies\RefreshTokenCookie;
 use App\Http\Requests\Api\DeleteProfileRequest;
 use App\Http\Requests\Api\UpdatePasswordRequest;
 use App\Http\Requests\Api\UpdateProfileRequest;
+use App\Http\Requests\Api\VerifyEmailRequest;
 use App\Models\User;
 use App\Services\JwtAuthService;
 use App\Services\ProfileService;
@@ -56,12 +57,32 @@ class ProfileController extends Controller
         return response()->json(['message' => 'Password updated.']);
     }
 
+    public function sendEmailVerification(Request $request): JsonResponse
+    {
+        /** @var User $user */
+        $user = $request->user('api');
+
+        $this->profiles->createEmailVerificationToken($user);
+
+        return response()->json(['message' => 'Verification code sent.']);
+    }
+
+    public function verifyEmail(VerifyEmailRequest $request): JsonResponse
+    {
+        /** @var User $user */
+        $user = $request->user('api');
+
+        $this->profiles->verifyEmail($user, (string) $request->validated('token'));
+
+        return response()->json(['message' => 'Email verified.']);
+    }
+
     public function destroy(DeleteProfileRequest $request): JsonResponse
     {
         /** @var User $user */
         $user = $request->user('api');
 
-        $this->profiles->delete($user, (string) $request->validated('password'));
+        $this->profiles->delete($user, $request->validated('password'));
         $this->auth->logout($request->cookie((string) config('jwt.refresh_cookie')));
 
         return response()->json(['message' => 'Account deleted.'])

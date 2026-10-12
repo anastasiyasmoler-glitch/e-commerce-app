@@ -26,7 +26,7 @@ class AdminUserController extends Controller
 
     public function updateAnalyst(UpdateUserAnalystRequest $request, User $user): JsonResponse
     {
-        Gate::forUser($request->user('api'))->authorize('viewAny', User::class);
+        Gate::forUser($request->user('api'))->authorize('updateAnalyst', User::class);
 
         try {
             $this->admin->setAnalyst($user->id, $request->boolean('analyst'));

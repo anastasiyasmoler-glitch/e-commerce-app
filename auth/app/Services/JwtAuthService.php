@@ -60,7 +60,7 @@ class JwtAuthService
     public function refresh(string $refreshToken): array
     {
         $payload = $this->assertRefreshJwt($refreshToken);
-        $userId = $this->refreshTokens->userIdFor($refreshToken);
+        $userId = $this->refreshTokens->claim($refreshToken);
 
         if ($userId === null || $userId !== (int) $payload->get('sub')) {
             throw new InvalidRefreshTokenException;
@@ -69,11 +69,8 @@ class JwtAuthService
         $user = $this->users->findById($userId);
 
         if ($user === null) {
-            $this->refreshTokens->forget($userId, $refreshToken);
             throw new InvalidRefreshTokenException;
         }
-
-        $this->refreshTokens->forget($userId, $refreshToken);
 
         return $this->issuePair($user);
     }
@@ -116,14 +113,11 @@ class JwtAuthService
 
         $this->refreshTokens->put((int) $user->getAuthIdentifier(), $refresh, $refreshTtlMinutes * 60);
 
-        /** @var JWTGuard $guard */
-        $guard = auth('api');
-
         return [
             'access_token' => $access,
             'refresh_token' => $refresh,
             'token_type' => 'bearer',
-            'expires_in' => $guard->factory()->getTTL() * 60,
+            'expires_in' => $accessTtl * 60,
         ];
     }
 
@@ -134,9 +128,14 @@ class JwtAuthService
         $factory->setTTL($ttlMinutes);
 
         try {
+            // The payload factory accumulates claims across make() calls, so a
+            // previously encoded token_use=refresh would leak into later decodes.
+            $factory->emptyClaims();
+
             return JWTAuth::customClaims(['token_use' => $tokenUse])->fromUser($user);
         } finally {
             $factory->setTTL($previousTtl);
+            $factory->emptyClaims();
             JWTAuth::customClaims([]);
         }
     }

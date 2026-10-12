@@ -63,4 +63,16 @@ class UserPolicyTest extends TestCase
         $this->assertTrue($admin->can('viewAny', User::class));
         $this->assertFalse($customer->can('viewAny', User::class));
     }
+
+    public function test_only_admin_can_update_analyst(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
+
+        $customer = User::factory()->create();
+        $customer->assignRole('customer');
+
+        $this->assertTrue($admin->can('updateAnalyst', User::class));
+        $this->assertFalse($customer->can('updateAnalyst', User::class));
+    }
 }

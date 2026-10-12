@@ -23,7 +23,7 @@ class SocialAuthTest extends TestCase
 
     public function test_callback_creates_customer_and_issues_jwt(): void
     {
-        $this->fakeGoogleUser('Ada Lovelace', 'ada@example.com', 'sub-ada');
+        $this->fakeGoogleUser('Ada Lovelace', 'ada@example.com', 'sub-ada', true);
 
         $this->getJson('/auth/google/callback')
             ->assertOk()
@@ -42,31 +42,55 @@ class SocialAuthTest extends TestCase
         $this->assertNull($user->password);
     }
 
-    public function test_callback_issues_jwt_for_existing_user_with_the_same_email(): void
+    public function test_callback_issues_jwt_for_existing_user_with_the_same_verified_email(): void
     {
         $existing = User::factory()->create([
             'email' => 'ada@example.com',
         ]);
         $existing->assignRole('customer');
 
-        $this->fakeGoogleUser('Ada', 'ada@example.com', 'sub-ada');
+        $this->fakeGoogleUser('Ada', 'ada@example.com', 'sub-ada', true);
 
         $this->getJson('/auth/google/callback')
             ->assertOk()
             ->assertJsonStructure(['access_token']);
 
         $this->assertSame(1, User::query()->where('email', 'ada@example.com')->count());
-        $this->assertTrue($existing->fresh()->hasRole('customer'));
+        $linked = $existing->fresh();
+        $this->assertTrue($linked->hasRole('customer'));
+        $this->assertSame('google', $linked->provider);
+        $this->assertSame('sub-ada', $linked->provider_id);
     }
 
-    public function test_callback_rejects_when_email_is_missing(): void
+    public function test_callback_creates_separate_user_when_email_is_not_verified(): void
     {
-        $this->fakeGoogleUser('Ada', '', 'sub-ada');
+        $existing = User::factory()->create([
+            'email' => 'ada@example.com',
+        ]);
 
-        $this->getJson('/auth/google/callback')
-            ->assertUnauthorized();
+        $this->fakeGoogleUser('Ada', 'ada@example.com', 'sub-ada', false);
 
-        $this->assertDatabaseMissing('users', ['provider_id' => 'sub-ada']);
+        $this->getJson('/auth/google/callback')->assertOk();
+
+        $this->assertTrue($existing->fresh()->provider === null);
+
+        $this->assertDatabaseHas('users', [
+            'email' => 'google-sub-ada@oauth.local',
+            'provider' => 'google',
+            'provider_id' => 'sub-ada',
+        ]);
+    }
+
+    public function test_callback_creates_user_with_synthetic_email_when_email_is_missing(): void
+    {
+        $this->fakeGoogleUser('Ada', '', 'sub-ada', true);
+
+        $this->getJson('/auth/google/callback')->assertOk();
+
+        $this->assertDatabaseHas('users', [
+            'email' => 'google-sub-ada@oauth.local',
+            'provider_id' => 'sub-ada',
+        ]);
     }
 
     public function test_callback_rejects_when_state_is_invalid(): void
@@ -76,14 +100,14 @@ class SocialAuthTest extends TestCase
         Socialite::shouldReceive('driver')->with('google')->andReturn($provider);
 
         $this->getJson('/auth/google/callback')
-            ->assertUnauthorized();
+            ->assertStatus(400);
     }
 
     public function test_callback_publishes_user_registered_for_a_new_google_user(): void
     {
         $publisher = $this->app->make(ArrayKafkaPublisher::class);
 
-        $this->fakeGoogleUser('Ada Lovelace', 'ada@example.com', 'sub-ada');
+        $this->fakeGoogleUser('Ada Lovelace', 'ada@example.com', 'sub-ada', true);
 
         $this->getJson('/auth/google/callback')->assertOk();
 
@@ -102,19 +126,21 @@ class SocialAuthTest extends TestCase
         $publisher = $this->app->make(ArrayKafkaPublisher::class);
         $publisher->messages = [];
 
-        $this->fakeGoogleUser('Ada', 'ada@example.com', 'sub-ada');
+        $this->fakeGoogleUser('Ada', 'ada@example.com', 'sub-ada', true);
 
         $this->getJson('/auth/google/callback')->assertOk();
 
         $this->assertSame([], $publisher->messages);
     }
 
-    private function fakeGoogleUser(string $name, string $email, string $id): void
+    private function fakeGoogleUser(string $name, string $email, string $id, bool $emailVerified): void
     {
-        $oauthUser = Mockery::mock(SocialiteUser::class);
-        $oauthUser->shouldReceive('getName')->andReturn($name);
-        $oauthUser->shouldReceive('getEmail')->andReturn($email);
-        $oauthUser->shouldReceive('getId')->andReturn($id);
+        $oauthUser = SocialiteUser::fake([
+            'id' => $id,
+            'name' => $name,
+            'email' => $email,
+            'email_verified' => $emailVerified,
+        ]);
 
         $provider = Mockery::mock();
         $provider->shouldReceive('user')->andReturn($oauthUser);

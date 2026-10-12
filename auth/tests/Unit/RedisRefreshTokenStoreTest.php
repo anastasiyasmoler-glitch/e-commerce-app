@@ -4,6 +4,7 @@ namespace Tests\Unit;
 
 use App\Infrastructure\RedisRefreshTokenStore;
 use Illuminate\Support\Facades\Redis;
+use Mockery;
 use Tests\TestCase;
 
 class RedisRefreshTokenStoreTest extends TestCase
@@ -53,5 +54,47 @@ class RedisRefreshTokenStoreTest extends TestCase
             ->andReturn(2);
 
         (new RedisRefreshTokenStore)->forget(7, $token);
+    }
+
+    public function test_claim_atomically_validates_and_consumes_a_token(): void
+    {
+        $token = 'plain-refresh-token';
+        $hash = hash('sha256', $token);
+
+        Redis::shouldReceive('eval')
+            ->once()
+            ->with(
+                Mockery::type('string'),
+                2,
+                'auth:refresh:lookup:'.$hash,
+                'auth:refresh:',
+                $hash,
+            )
+            ->andReturn('7');
+
+        $this->assertSame(7, (new RedisRefreshTokenStore)->claim($token));
+    }
+
+    public function test_claim_returns_null_for_unknown_token(): void
+    {
+        Redis::shouldReceive('eval')->once()->andReturn(false);
+
+        $this->assertNull((new RedisRefreshTokenStore)->claim('unknown-token'));
+    }
+
+    public function test_forget_all_deletes_every_token_of_a_user(): void
+    {
+        Redis::shouldReceive('eval')
+            ->once()
+            ->with(
+                Mockery::type('string'),
+                3,
+                'auth:refresh:7:*',
+                'auth:refresh:7:',
+                'auth:refresh:lookup:',
+            )
+            ->andReturnNull();
+
+        (new RedisRefreshTokenStore)->forgetAll(7);
     }
 }

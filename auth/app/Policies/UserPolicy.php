@@ -11,6 +11,11 @@ class UserPolicy
         return $user->hasRole('admin');
     }
 
+    public function updateAnalyst(User $user): bool
+    {
+        return $user->hasRole('admin');
+    }
+
     public function update(User $user, User $target): bool
     {
         return $user->id === $target->id;

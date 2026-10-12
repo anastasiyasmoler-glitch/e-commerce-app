@@ -42,6 +42,8 @@ class RedisJwtAuthTest extends TestCase
             $this->app->forgetInstance($abstract);
         }
 
+        $this->disableCookieEncryption();
+        $this->withCredentials();
         $this->app->bind(RefreshTokenStore::class, RedisRefreshTokenStore::class);
 
         try {

@@ -4,7 +4,9 @@ namespace Tests\Feature\Api;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
+use Tymon\JWTAuth\Facades\JWTAuth;
 
 class JwtProfileTest extends TestCase
 {
@@ -92,6 +94,91 @@ class JwtProfileTest extends TestCase
 
         $this->getJson('/me', ['Authorization' => 'Bearer '.$access])
             ->assertUnauthorized();
+    }
+
+    public function test_password_change_revokes_refresh_tokens(): void
+    {
+        $login = $this->postJson('/register', [
+            'name' => 'Revoked',
+            'email' => 'revoked@example.com',
+            'phone' => '375297777777',
+            'password' => 'password',
+            'password_confirmation' => 'password',
+        ]);
+
+        $access = (string) $login->json('access_token');
+        $refresh = (string) $login->getCookie((string) config('jwt.refresh_cookie'), false)?->getValue();
+
+        $this->putJson('/profile/password', [
+            'current_password' => 'password',
+            'password' => 'new-password',
+            'password_confirmation' => 'new-password',
+        ], ['Authorization' => 'Bearer '.$access])->assertOk();
+
+        $this->withUnencryptedCookie((string) config('jwt.refresh_cookie'), $refresh)
+            ->postJson('/refresh')
+            ->assertUnauthorized();
+    }
+
+    public function test_oauth_user_can_delete_account_without_password(): void
+    {
+        $user = User::factory()->create([
+            'email' => 'oauth@example.com',
+            'password' => null,
+            'provider' => 'google',
+            'provider_id' => 'sub-oauth',
+        ]);
+        $user->assignRole('customer');
+
+        $token = JWTAuth::fromUser($user);
+
+        $this->withToken($token)
+            ->deleteJson('/profile')
+            ->assertOk();
+
+        $this->assertSoftDeleted('users', ['email' => 'oauth@example.com']);
+    }
+
+    public function test_phone_must_match_expected_format(): void
+    {
+        $this->postJson('/register', [
+            'name' => 'Bad Phone',
+            'email' => 'bad-phone@example.com',
+            'phone' => 'abc123',
+            'password' => 'password',
+            'password_confirmation' => 'password',
+        ])->assertUnprocessable()->assertJsonValidationErrors(['phone']);
+    }
+
+    public function test_email_verification_flow(): void
+    {
+        $headers = $this->bearerForEmail('verify@example.com');
+
+        $this->patchJson('/profile', [
+            'name' => 'Verify Me',
+            'email' => 'verify-new@example.com',
+            'phone' => '375293333333',
+        ], $headers)->assertOk();
+
+        $this->assertNull(User::query()->where('email', 'verify-new@example.com')->firstOrFail()->email_verified_at);
+
+        $this->postJson('/profile/email-verification', [], $headers)
+            ->assertOk()
+            ->assertJsonMissingPath('token');
+
+        $user = User::query()->where('email', 'verify-new@example.com')->firstOrFail();
+        $token = Cache::get('email_verify:'.$user->id);
+        $this->assertIsString($token);
+
+        $this->postJson('/profile/verify-email', [
+            'token' => '000000',
+        ], $headers)->assertUnprocessable();
+
+        $this->postJson('/profile/verify-email', [
+            'token' => $token,
+        ], $headers)->assertOk();
+
+        $this->assertNotNull(User::query()->where('email', 'verify-new@example.com')->firstOrFail()->email_verified_at);
     }
 
     /**
