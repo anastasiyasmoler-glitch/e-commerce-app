@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client'
 import { Toaster } from 'react-hot-toast'
 import { queryClient } from './api/queryClient.ts'
 import { sessionQueryOptions } from './hooks/useSession.ts'
+import { SelectedStoreProvider } from './catalog/SelectedStoreContext.tsx'
 import App from './App.tsx'
 import './styles/app.css'
 
@@ -12,7 +13,9 @@ void queryClient.query(sessionQueryOptions)
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <App />
+      <SelectedStoreProvider>
+        <App />
+      </SelectedStoreProvider>
       <Toaster
         position="top-center"
         toastOptions={{

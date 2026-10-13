@@ -1,63 +1,55 @@
+import { useQuery } from '@tanstack/react-query'
 import { ArrowRight, Sparkles } from 'lucide-react'
 import { FurnitureArt } from '../components/catalog/FurnitureArt'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Container } from '@/components/ui/container'
+import { Skeleton } from '@/components/ui/skeleton'
+import { catalogKeys, fetchCategories, fetchProducts, type CatalogProduct } from '@/api/catalogApi'
+import { useSelectedStore } from '@/catalog/SelectedStoreContext'
 
-const categories = [
-  { name: 'Sofas', count: '124 products', art: 'sofa' as const },
-  { name: 'Beds', count: '86 products', art: 'bed' as const },
-  { name: 'Tables', count: '74 products', art: 'table' as const },
-  { name: 'Chairs', count: '142 products', art: 'chair' as const },
-  { name: 'Storage', count: '98 products', art: 'storage' as const },
-  { name: 'Lighting', count: '211 products', art: 'lamp' as const },
-]
+type ArtKind = 'sofa' | 'bed' | 'table' | 'chair' | 'storage' | 'lamp' | 'linen' | 'vase' | 'hero'
 
-const latest = [
-  { store: 'Nordic Home', name: 'Oslo 3-Seater Sofa', price: '$549', inStock: true, art: 'sofa' as const },
-  { store: 'Cozy Corner', name: 'Queen Bed with Lift Storage', price: '$385', inStock: true, art: 'bed' as const },
-  { store: 'Loft Studio', name: 'Extendable Dining Table, Oak', price: '$279', inStock: true, art: 'table' as const },
-  { store: 'Nordic Home', name: 'Arc Floor Lamp', price: '$64', inStock: true, art: 'lamp' as const },
-]
+const categoryArtBySlug: Record<string, ArtKind> = {
+  sofas: 'sofa',
+  'straight-sofas': 'sofa',
+  'corner-sofas': 'sofa',
+  beds: 'bed',
+  tables: 'table',
+  chairs: 'chair',
+  chandeliers: 'lamp',
+  'floor-lamps': 'lamp',
+  'table-lamps': 'lamp',
+  'wall-lights': 'lamp',
+  bedding: 'linen',
+  'blankets-throws': 'linen',
+  curtains: 'linen',
+  towels: 'linen',
+  wardrobes: 'storage',
+  shelving: 'storage',
+  decor: 'vase',
+}
 
-const more = [
-  { store: 'Cozy Corner', name: '4-Drawer Dresser', price: '$152', inStock: false, art: 'storage' as const },
-  { store: 'Nordic Home', name: 'Satin Bedding Set, Queen', price: '$48', inStock: true, art: 'linen' as const },
-  { store: 'Loft Studio', name: 'Bergen Armchair, Bouclé', price: '$199', inStock: true, art: 'chair' as const },
-  { store: 'Atelier Wood', name: 'Ceramic Vase, 30 cm', price: '$18', inStock: true, art: 'vase' as const },
-]
+function artForCategory(slug: string): ArtKind {
+  return categoryArtBySlug[slug] ?? 'vase'
+}
 
-const stores = [
-  { name: 'Nordic Home', meta: '64 products', initial: 'N' },
-  { name: 'Loft Studio', meta: '38 products', initial: 'L' },
-  { name: 'Cozy Corner', meta: '52 products', initial: 'C' },
-  { name: 'Atelier Wood', meta: '22 products', initial: 'A' },
-]
+function ProductCard({ product, art }: { product: CatalogProduct; art: ArtKind }) {
+  const inStock = product.stock.quantity > 0
 
-function ProductCard({
-  store,
-  name,
-  price,
-  inStock,
-  art,
-}: {
-  store: string
-  name: string
-  price: string
-  inStock: boolean
-  art: 'sofa' | 'bed' | 'table' | 'lamp' | 'storage' | 'linen' | 'chair' | 'vase'
-}) {
   return (
     <Card className="rounded-lg py-0">
       <div className="aspect-square bg-subtle">
-        <FurnitureArt kind={art} label={name} />
+        <FurnitureArt kind={art} label={product.name} />
       </div>
       <CardContent className="p-4">
-        <div className="text-[12px] font-semibold tracking-wide text-muted uppercase">{store}</div>
-        <div className="mt-1 text-[15px] font-semibold">{name}</div>
+        <div className="text-[12px] font-semibold tracking-wide text-muted uppercase">{product.sku}</div>
+        <div className="mt-1 text-[15px] font-semibold">{product.name}</div>
         <div className="mt-3 mb-3 flex items-center justify-between">
-          <span className="text-[16px] font-semibold">{price}</span>
+          <span className="text-[14px] text-muted">
+            {inStock ? `${product.stock.quantity} in stock` : 'Out of stock'}
+          </span>
           <Badge variant={inStock ? 'secondary' : 'destructive'}>{inStock ? 'In stock' : 'Out of stock'}</Badge>
         </div>
         {inStock ? (
@@ -74,7 +66,57 @@ function ProductCard({
   )
 }
 
+function ProductCardSkeleton() {
+  return (
+    <Card className="rounded-lg py-0">
+      <Skeleton className="aspect-square w-full rounded-none" />
+      <CardContent className="grid gap-2 p-4">
+        <Skeleton className="h-3 w-16" />
+        <Skeleton className="h-4 w-full" />
+        <Skeleton className="h-4 w-24" />
+        <Skeleton className="h-9 w-full" />
+      </CardContent>
+    </Card>
+  )
+}
+
+function artForProduct(product: CatalogProduct): ArtKind {
+  const slug = product.slug
+  if (slug.includes('sofa')) return 'sofa'
+  if (slug.includes('bed')) return 'bed'
+  if (slug.includes('table')) return 'table'
+  if (slug.includes('chair')) return 'chair'
+  if (slug.includes('lamp') || slug.includes('light')) return 'lamp'
+  if (slug.includes('linen') || slug.includes('bedding') || slug.includes('blanket') || slug.includes('curtain') || slug.includes('towel')) return 'linen'
+  if (slug.includes('wardrobe') || slug.includes('shelf') || slug.includes('storage') || slug.includes('dresser')) return 'storage'
+  return 'vase'
+}
+
 export function HomePage() {
+  const { stores, selectedStore, selectStore, isLoading: storesLoading } = useSelectedStore()
+
+  const categoriesQuery = useQuery({
+    queryKey: catalogKeys.categories(selectedStore?.id),
+    queryFn: () => fetchCategories(selectedStore!.id, null),
+    enabled: selectedStore !== null,
+  })
+  const categories = (categoriesQuery.data ?? []).filter((category) => category.parent_id === null)
+
+  const latestQuery = useQuery({
+    queryKey: catalogKeys.products(selectedStore?.id, { section: 'latest' }),
+    queryFn: () => fetchProducts(selectedStore!.id, { per_page: 4 }),
+    enabled: selectedStore !== null,
+  })
+
+  const moreQuery = useQuery({
+    queryKey: catalogKeys.products(selectedStore?.id, { section: 'more', page: 2 }),
+    queryFn: () => fetchProducts(selectedStore!.id, { per_page: 4, page: 2 }),
+    enabled: selectedStore !== null,
+  })
+
+  const latest = latestQuery.data ?? []
+  const more = moreQuery.data ?? []
+
   return (
     <Container>
       <section className="grid items-center gap-10 py-12 md:grid-cols-2">
@@ -104,19 +146,30 @@ export function HomePage() {
             All categories <ArrowRight size={16} />
           </span>
         </div>
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
-          {categories.map((item) => (
-            <Card key={item.name} className="overflow-hidden rounded-lg py-0">
-              <div className="aspect-square bg-subtle">
-                <FurnitureArt kind={item.art} label={item.name} />
-              </div>
-              <div className="p-3">
-                <div className="font-semibold">{item.name}</div>
-                <div className="text-[13px] text-muted">{item.count}</div>
-              </div>
-            </Card>
-          ))}
-        </div>
+        {categoriesQuery.isLoading ? (
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+            {Array.from({ length: 6 }, (_, index) => (
+              <Skeleton key={index} className="aspect-[3/4] w-full" />
+            ))}
+          </div>
+        ) : categoriesQuery.isError ? (
+          <p className="text-[15px] text-muted">Categories could not be loaded. Please try again later.</p>
+        ) : categories.length === 0 ? (
+          <p className="text-[15px] text-muted">No categories yet.</p>
+        ) : (
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+            {categories.map((category) => (
+              <Card key={category.id} className="overflow-hidden rounded-lg py-0">
+                <div className="aspect-square bg-subtle">
+                  <FurnitureArt kind={artForCategory(category.slug)} label={category.name} />
+                </div>
+                <div className="p-3">
+                  <div className="font-semibold">{category.name}</div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        )}
       </section>
 
       <section className="py-10">
@@ -126,11 +179,21 @@ export function HomePage() {
             View all <ArrowRight size={16} />
           </span>
         </div>
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {latest.map((p) => (
-            <ProductCard key={p.name} {...p} />
-          ))}
-        </div>
+        {latestQuery.isLoading ? (
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {Array.from({ length: 4 }, (_, index) => (
+              <ProductCardSkeleton key={index} />
+            ))}
+          </div>
+        ) : latestQuery.isError ? (
+          <p className="text-[15px] text-muted">Products could not be loaded. Please try again later.</p>
+        ) : (
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {latest.map((product) => (
+              <ProductCard key={product.id} product={product} art={artForProduct(product)} />
+            ))}
+          </div>
+        )}
       </section>
 
       <section className="py-10">
@@ -151,26 +214,58 @@ export function HomePage() {
 
       <section className="py-10">
         <h2 className="font-display mb-6 text-[28px] font-medium">Stores</h2>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {stores.map((store) => (
-            <Card key={store.name} className="flex flex-row items-center gap-4 rounded-lg p-4">
-              <div className="flex size-12 items-center justify-center rounded-full bg-brand-soft font-semibold text-brand">{store.initial}</div>
-              <div>
-                <div className="font-semibold">{store.name}</div>
-                <div className="text-[13px] text-muted">{store.meta}</div>
-              </div>
-            </Card>
-          ))}
-        </div>
+        {storesLoading ? (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {Array.from({ length: 4 }, (_, index) => (
+              <Skeleton key={index} className="h-[72px] w-full" />
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {stores.map((store) => {
+              const active = store.id === selectedStore?.id
+              return (
+                <Card
+                  key={store.id}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => selectStore(store)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') selectStore(store)
+                  }}
+                  className={`flex cursor-pointer flex-row items-center gap-4 rounded-lg p-4 ${active ? 'ring-2 ring-brand' : ''}`}
+                >
+                  <div className="flex size-12 items-center justify-center rounded-full bg-brand-soft font-semibold text-brand">
+                    {store.name.charAt(0)}
+                  </div>
+                  <div>
+                    <div className="font-semibold">{store.name}</div>
+                    <div className="text-[13px] text-muted">{active ? 'Currently viewing' : 'View store'}</div>
+                  </div>
+                </Card>
+              )
+            })}
+          </div>
+        )}
       </section>
 
       <section className="py-10">
         <h2 className="font-display mb-6 text-[28px] font-medium">More to explore</h2>
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {more.map((p) => (
-            <ProductCard key={p.name} {...p} />
-          ))}
-        </div>
+        {moreQuery.isLoading ? (
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {Array.from({ length: 4 }, (_, index) => (
+              <ProductCardSkeleton key={index} />
+            ))}
+          </div>
+        ) : moreQuery.isError ? (
+          <p className="text-[15px] text-muted">Products could not be loaded. Please try again later.</p>
+        ) : (
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {more.map((product) => (
+              <ProductCard key={product.id} product={product} art={artForProduct(product)} />
+            ))}
+          </div>
+        )}
       </section>
     </Container>
   )

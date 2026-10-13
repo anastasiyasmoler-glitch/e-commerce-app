@@ -4,13 +4,15 @@ import { Link } from 'react-router-dom'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Container } from '@/components/ui/container'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Input } from '@/components/ui/input'
 import { readDisplayName } from '@/auth/displayName'
+import { catalogKeys, fetchCategories } from '@/api/catalogApi'
+import { useSelectedStore } from '@/catalog/SelectedStoreContext'
+import { useQuery } from '@tanstack/react-query'
 import { useMe } from '@/hooks/useMe'
 import { useSession } from '@/hooks/useSession'
 import { paths } from '@/paths'
-
-const categories = ['Sofas', 'Beds', 'Tables', 'Chairs', 'Storage', 'Lighting', 'Textiles', 'Decor']
 
 type StoreHeaderProps = {
   onSignIn: () => void
@@ -20,6 +22,13 @@ type StoreHeaderProps = {
 export function StoreHeader({ onSignIn, onRegister }: StoreHeaderProps) {
   const session = useSession()
   const me = useMe()
+  const { selectedStore } = useSelectedStore()
+  const categoriesQuery = useQuery({
+    queryKey: catalogKeys.categories(selectedStore?.id),
+    queryFn: () => fetchCategories(selectedStore!.id, null),
+    enabled: selectedStore !== null,
+  })
+  const categories = (categoriesQuery.data ?? []).filter((category) => category.parent_id === null)
   const signedOut = session.isFetched && session.data === false
   const name = me.data?.name ?? (signedOut ? null : readDisplayName())
 
@@ -76,11 +85,15 @@ export function StoreHeader({ onSignIn, onRegister }: StoreHeaderProps) {
       </header>
       <nav className="border-b border-line bg-surface" aria-label="Categories">
         <Container className="flex gap-6 overflow-x-auto py-3 text-[14px]">
-          {categories.map((label) => (
-            <span key={label} className="shrink-0 text-ink/80">
-              {label}
-            </span>
-          ))}
+          {categoriesQuery.isLoading
+            ? Array.from({ length: 6 }, (_, index) => (
+                <Skeleton key={index} className="h-[20px] w-20" />
+              ))
+            : categories.map((category) => (
+                <span key={category.id} className="shrink-0 text-ink/80">
+                  {category.name}
+                </span>
+              ))}
         </Container>
       </nav>
     </>
