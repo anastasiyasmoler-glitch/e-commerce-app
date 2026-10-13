@@ -10,5 +10,14 @@ export default defineConfig({
       '@': path.resolve(import.meta.dirname, './src'),
     },
   },
-  server: { port: 5174 },
+  server: {
+    port: 5174,
+    proxy: {
+      '/api/notifications': {
+        target: 'https://localhost:8443',
+        changeOrigin: true,
+        secure: false,
+      },
+    },
+  },
 })

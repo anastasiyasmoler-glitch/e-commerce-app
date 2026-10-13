@@ -1,7 +1,6 @@
 import {
   BarChart3,
   Bell,
-  Lock,
   Package,
   ShoppingCart,
   Store,
@@ -32,10 +31,7 @@ const insights: NavItem[] = [
   { to: paths.notifications, label: 'Notifications', icon: Bell, tag: 'Analyst' },
 ]
 
-const access: NavItem[] = [
-  { to: paths.users, label: 'Users', icon: Users },
-  { to: paths.access, label: 'Access control', icon: Lock },
-]
+const access: NavItem[] = [{ to: paths.users, label: 'Users', icon: Users }]
 
 function NavLinks({ items }: { items: NavItem[] }) {
   return items.map(({ to, label, icon: Icon, tag }) => (

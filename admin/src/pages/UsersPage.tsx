@@ -2,9 +2,11 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { PenLine, Search } from 'lucide-react'
 import { useState } from 'react'
 import { adminKeys, fetchUsers, setUserRole } from '@/api/adminApi'
+import { apiErrorMessage } from '@/api/http'
 import { Notice } from '@/components/ui/notice'
 import { PageHeader } from '@/components/ui/page-header'
 import { RoleBadge } from '@/components/ui/role-badge'
+import { Skeleton } from '@/components/ui/skeleton'
 import { StatusBadge } from '@/components/ui/status-badge'
 
 export function UsersPage() {
@@ -35,6 +37,7 @@ export function UsersPage() {
         You can assign the <b>Analyst</b> role. <b>Admin</b> accounts are created separately and
         cannot be assigned here.
       </Notice>
+      {users.isError ? <Notice tone="danger">{apiErrorMessage(users.error)}</Notice> : null}
       <div className="table-container">
         <div className="table-toolbar">
           <div className="input-icon grow">
@@ -70,6 +73,22 @@ export function UsersPage() {
             </tr>
           </thead>
           <tbody>
+            {users.isPending
+              ? Array.from({ length: 6 }, (_, index) => (
+                  <tr key={index}>
+                    <td colSpan={5}>
+                      <Skeleton className="h-8 w-full" />
+                    </td>
+                  </tr>
+                ))
+              : null}
+            {!users.isPending && !users.isError && rows.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="muted">
+                  No users found.
+                </td>
+              </tr>
+            ) : null}
             {rows.map((user) => (
               <tr key={user.id}>
                 <td>

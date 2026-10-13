@@ -2,7 +2,6 @@ import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { RequireAdmin } from '@/components/auth/RequireAdmin'
 import { RequireRole } from '@/components/auth/RequireRole'
 import { AdminLayout } from '@/components/layout/AdminLayout'
-import { AccessControlPage } from '@/pages/AccessControlPage'
 import { AnalyticsPage } from '@/pages/AnalyticsPage'
 import { LoginPage } from '@/pages/LoginPage'
 import { NotificationsPage } from '@/pages/NotificationsPage'
@@ -32,7 +31,6 @@ export const router = createBrowserRouter([
                 element: <RequireRole role="admin" />,
                 children: [
                   { path: segment(paths.users), element: <UsersPage /> },
-                  { path: segment(paths.access), element: <AccessControlPage /> },
                 ],
               },
               {

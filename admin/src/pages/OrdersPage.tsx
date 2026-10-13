@@ -2,7 +2,9 @@ import { useQuery } from '@tanstack/react-query'
 import { ChevronLeft, ChevronRight, Eye } from 'lucide-react'
 import { useState } from 'react'
 import { adminKeys, fetchOrders } from '@/api/adminApi'
+import { apiErrorMessage } from '@/api/http'
 import { PageHeader } from '@/components/ui/page-header'
+import { Skeleton } from '@/components/ui/skeleton'
 import { StatusBadge } from '@/components/ui/status-badge'
 
 const statuses = [
@@ -43,6 +45,11 @@ export function OrdersPage() {
           </select>
         }
       />
+      {orders.isError ? (
+        <p className="muted" style={{ padding: 'var(--space-6) 0' }}>
+          {apiErrorMessage(orders.error)}
+        </p>
+      ) : null}
       <div className="table-container">
         <table className="data-table">
           <thead>
@@ -56,6 +63,22 @@ export function OrdersPage() {
             </tr>
           </thead>
           <tbody>
+            {orders.isPending
+              ? Array.from({ length: 8 }, (_, index) => (
+                  <tr key={index}>
+                    <td colSpan={6}>
+                      <Skeleton className="h-6 w-full" />
+                    </td>
+                  </tr>
+                ))
+              : null}
+            {!orders.isPending && !orders.isError && rows.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="muted">
+                  No orders found.
+                </td>
+              </tr>
+            ) : null}
             {rows.map((order) => (
               <tr key={order.id}>
                 <td>

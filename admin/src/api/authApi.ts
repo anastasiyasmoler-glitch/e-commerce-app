@@ -1,4 +1,6 @@
-import { http, setAccessToken } from './http'
+import { isAxiosError } from 'axios'
+import { getAccessToken, http, setAccessToken } from './http'
+import { queryClient } from './queryClient'
 
 export type TokenResponse = {
   access_token: string
@@ -42,7 +44,7 @@ export async function restoreSession(): Promise<boolean> {
   }
 
   try {
-    await refresh()
+    await refreshOnce()
     sessionRestored = true
   } catch {
     setAccessToken(null)
@@ -61,6 +63,56 @@ export async function refresh(): Promise<TokenResponse> {
   const { data } = await http.post<TokenResponse>('/refresh')
   return rememberAccess(data)
 }
+
+let refreshPromise: Promise<TokenResponse> | null = null
+
+export function refreshOnce(): Promise<TokenResponse> {
+  refreshPromise ??= refresh().finally(() => {
+    refreshPromise = null
+  })
+  return refreshPromise
+}
+
+http.interceptors.response.use(
+  (response) => response,
+  async (error: unknown) => {
+    if (!isAxiosError(error) || !error.config) {
+      return Promise.reject(error)
+    }
+
+    const original = error.config as typeof error.config & { _retried?: boolean }
+    const url: string = original.url ?? ''
+
+    if (
+      error.response?.status !== 401 ||
+      original._retried ||
+      url === '/refresh' ||
+      url === '/login' ||
+      url === '/logout'
+    ) {
+      return Promise.reject(error)
+    }
+
+    original._retried = true
+
+    try {
+      await refreshOnce()
+    } catch {
+      setAccessToken(null)
+      resetSessionRestore()
+      queryClient.setQueryData(authKeys.session, false)
+      queryClient.removeQueries({ queryKey: authKeys.me })
+      return Promise.reject(error)
+    }
+
+    const token = getAccessToken()
+    if (token) {
+      original.headers.Authorization = `Bearer ${token}`
+    }
+
+    return http(original)
+  },
+)
 
 export async function logout(): Promise<void> {
   await http.post('/logout')
