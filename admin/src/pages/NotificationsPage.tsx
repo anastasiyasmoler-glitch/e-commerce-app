@@ -1,23 +1,86 @@
-import { useQuery } from '@tanstack/react-query'
-import { Eye, Search } from 'lucide-react'
-import { useState } from 'react'
-import { adminKeys, fetchNotifications, type AdminNotification } from '@/api/adminApi'
+import { Eye } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { apiErrorMessage } from '@/api/http'
+import type { NotificationLog, NotificationStatus } from '@/api/notificationApi'
+import { useNotification, useNotifications } from '@/hooks/useNotifications'
 import { PageHeader } from '@/components/ui/page-header'
+import { Skeleton } from '@/components/ui/skeleton'
 import { StatusBadge } from '@/components/ui/status-badge'
 
-const failedDetail = `{ "order_id": "DOM-1042", "recipient": "bad@mailbox.test", "channel": "email", "status": "failed", "attempts": 5,
-  "created_at": "2026-10-08T09:14:02Z", "sent_at": null }`
+const STATUS_LABEL: Record<NotificationStatus, string> = {
+  pending: 'Pending',
+  sent: 'Sent',
+  failed: 'Failed',
+}
+
+function formatWhen(value: string | null): string {
+  if (!value) {
+    return '—'
+  }
+
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) {
+    return value
+  }
+
+  return date.toLocaleString()
+}
+
+function matchesFilters(
+  item: NotificationLog,
+  recipient: string,
+  status: string,
+  channel: string,
+  from: string,
+  to: string,
+): boolean {
+  if (recipient && !item.recipient.toLowerCase().includes(recipient.toLowerCase())) {
+    return false
+  }
+
+  if (status !== 'all' && item.status !== status) {
+    return false
+  }
+
+  if (channel !== 'all' && item.channel !== channel) {
+    return false
+  }
+
+  if (from || to) {
+    const created = item.created_at ? new Date(item.created_at).getTime() : NaN
+    if (Number.isNaN(created)) {
+      return false
+    }
+    if (from && created < new Date(`${from}T00:00:00`).getTime()) {
+      return false
+    }
+    if (to && created > new Date(`${to}T23:59:59`).getTime()) {
+      return false
+    }
+  }
+
+  return true
+}
 
 export function NotificationsPage() {
   const [recipient, setRecipient] = useState('')
-  const [status, setStatus] = useState('All statuses')
-  const notifications = useQuery({ queryKey: adminKeys.notifications, queryFn: fetchNotifications })
+  const [status, setStatus] = useState('all')
+  const [channel, setChannel] = useState('all')
+  const [from, setFrom] = useState('')
+  const [to, setTo] = useState('')
+  const [selectedId, setSelectedId] = useState<string | null>(null)
 
-  const rows = (notifications.data ?? []).filter((item: AdminNotification) => {
-    const matchesRecipient = item.recipient.toLowerCase().includes(recipient.toLowerCase())
-    const matchesStatus = status === 'All statuses' || item.status === status
-    return matchesRecipient && matchesStatus
-  })
+  const list = useNotifications()
+  const detail = useNotification(selectedId)
+
+  const rows = useMemo(
+    () =>
+      (list.data ?? []).filter((item) => matchesFilters(item, recipient, status, channel, from, to)),
+    [list.data, recipient, status, channel, from, to],
+  )
+
+  const selected = detail.data
+  const statusLabel = selected ? STATUS_LABEL[selected.status] : null
 
   return (
     <>
@@ -25,7 +88,10 @@ export function NotificationsPage() {
       <div className="table-container">
         <div className="table-toolbar">
           <div className="input-icon grow">
-            <Search size={18} aria-hidden />
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <circle cx="11" cy="11" r="8" />
+              <path d="m21 21-4.35-4.35" />
+            </svg>
             <input
               className="input"
               placeholder="Recipient"
@@ -34,24 +100,24 @@ export function NotificationsPage() {
               onChange={(event) => setRecipient(event.target.value)}
             />
           </div>
-          <select
-            className="select"
-            aria-label="Status"
-            value={status}
-            onChange={(event) => setStatus(event.target.value)}
-          >
-            <option>All statuses</option>
-            <option>Pending</option>
-            <option>Sent</option>
-            <option>Failed</option>
+          <select className="select" aria-label="Status" value={status} onChange={(event) => setStatus(event.target.value)}>
+            <option value="all">All statuses</option>
+            <option value="pending">Pending</option>
+            <option value="sent">Sent</option>
+            <option value="failed">Failed</option>
           </select>
-          <select className="select" aria-label="Channel">
-            <option>All channels</option>
-            <option>Email</option>
+          <select className="select" aria-label="Channel" value={channel} onChange={(event) => setChannel(event.target.value)}>
+            <option value="all">All channels</option>
+            <option value="email">Email</option>
           </select>
-          <input className="input" type="date" aria-label="From" />
-          <input className="input" type="date" aria-label="To" />
+          <input className="input" type="date" aria-label="From" value={from} onChange={(event) => setFrom(event.target.value)} />
+          <input className="input" type="date" aria-label="To" value={to} onChange={(event) => setTo(event.target.value)} />
         </div>
+        {list.isError ? (
+          <p className="muted" style={{ padding: 'var(--space-6)' }}>
+            {apiErrorMessage(list.error)}
+          </p>
+        ) : null}
         <table className="data-table">
           <thead>
             <tr>
@@ -65,18 +131,34 @@ export function NotificationsPage() {
             </tr>
           </thead>
           <tbody>
+            {list.isPending
+              ? Array.from({ length: 5 }, (_, index) => (
+                  <tr key={index}>
+                    <td colSpan={7}>
+                      <Skeleton className="h-6 w-full" />
+                    </td>
+                  </tr>
+                ))
+              : null}
+            {!list.isPending && rows.length === 0 ? (
+              <tr>
+                <td colSpan={7} className="muted">
+                  No notifications found.
+                </td>
+              </tr>
+            ) : null}
             {rows.map((item) => (
               <tr key={item.id}>
                 <td className="mono">{item.event}</td>
                 <td>{item.channel}</td>
                 <td>{item.recipient}</td>
                 <td>
-                  <StatusBadge label={item.status} />
+                  <StatusBadge label={STATUS_LABEL[item.status]} />
                 </td>
                 <td>{item.attempts}</td>
-                <td className="muted">{item.created}</td>
+                <td className="muted">{formatWhen(item.created_at)}</td>
                 <td>
-                  <button type="button" className="table-action">
+                  <button type="button" className="table-action" onClick={() => setSelectedId(item.id)}>
                     <Eye size={14} aria-hidden />
                     Details
                   </button>
@@ -86,29 +168,57 @@ export function NotificationsPage() {
           </tbody>
         </table>
       </div>
-      <div className="panel">
-        <div className="spread" style={{ marginBottom: 'var(--space-4)' }}>
-          <h2 className="panel-title" style={{ margin: 0 }}>
-            Notification details
-          </h2>
-          <span className="status status-cancelled">Failed · moved to DLQ</span>
+      {selectedId ? (
+        <div className="panel">
+          {detail.isPending ? <Skeleton className="h-24 w-full" /> : null}
+          {detail.isError ? <p className="muted">{apiErrorMessage(detail.error)}</p> : null}
+          {selected ? (
+            <>
+              <div className="spread" style={{ marginBottom: 'var(--space-4)' }}>
+                <h2 className="panel-title" style={{ margin: 0 }}>
+                  Notification details
+                </h2>
+                <div className="spread" style={{ gap: 8, width: 'auto' }}>
+                  <StatusBadge label={statusLabel ?? selected.status} />
+                  {selected.is_dlq ? <span className="muted">Moved to DLQ</span> : null}
+                </div>
+              </div>
+              <div className="grid-2" style={{ marginBottom: 'var(--space-4)' }}>
+                <div>
+                  <div className="muted" style={{ fontSize: 'var(--text-sm)' }}>
+                    Event
+                  </div>
+                  <b className="mono">{selected.event}</b>
+                </div>
+                <div>
+                  <div className="muted" style={{ fontSize: 'var(--text-sm)' }}>
+                    Attempts
+                  </div>
+                  <b>{selected.attempts}</b>
+                </div>
+              </div>
+              <pre className="code mono">
+                {JSON.stringify(
+                  {
+                    id: selected.id,
+                    recipient: selected.recipient,
+                    channel: selected.channel,
+                    status: selected.status,
+                    attempts: selected.attempts,
+                    is_dlq: selected.is_dlq,
+                    error_message: selected.error_message,
+                    created_at: selected.created_at,
+                    sent_at: selected.sent_at,
+                    payload: selected.payload,
+                  },
+                  null,
+                  2,
+                )}
+              </pre>
+            </>
+          ) : null}
         </div>
-        <div className="grid-2" style={{ marginBottom: 'var(--space-4)' }}>
-          <div>
-            <div className="muted" style={{ fontSize: 'var(--text-sm)' }}>
-              Event
-            </div>
-            <b className="mono">order.paid</b>
-          </div>
-          <div>
-            <div className="muted" style={{ fontSize: 'var(--text-sm)' }}>
-              Attempts
-            </div>
-            <b>5</b>
-          </div>
-        </div>
-        <pre className="code mono">{failedDetail}</pre>
-      </div>
+      ) : null}
     </>
   )
 }

@@ -1,5 +1,5 @@
 import { ExternalLink, LogOut } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useLogout } from '@/hooks/useLogout'
 import { paths } from '@/paths'
 
@@ -13,9 +13,9 @@ export function AdminBar() {
   return (
     <div className="admin-bar">
       <div className="container">
-        <a href={paths.analytics} className="logo">
+        <Link to={paths.analytics} className="logo">
           Domo<i>.</i>
-        </a>
+        </Link>
         <span className="tag">Admin</span>
         <nav>
           <a href={storeUrl()}>

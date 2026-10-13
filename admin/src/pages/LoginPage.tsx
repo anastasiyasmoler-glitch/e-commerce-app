@@ -9,6 +9,7 @@ import { useLogout } from '@/hooks/useLogout'
 import { useMe } from '@/hooks/useMe'
 import { useSession } from '@/hooks/useSession'
 import { loginSchema, type LoginValues } from '@/lib/validators/auth'
+import { Notice } from '@/components/ui/notice'
 import { paths } from '@/paths'
 
 export function LoginPage() {
@@ -55,11 +56,7 @@ export function LoginPage() {
         <form className="auth-form" onSubmit={handleSubmit(onSubmit)}>
           <h1>Admin sign in</h1>
           <p className="sub">Use your staff account to continue.</p>
-          {error ? (
-            <div className="notice notice-danger" style={{ marginBottom: 'var(--space-4)' }}>
-              {error}
-            </div>
-          ) : null}
+          {error ? <Notice tone="danger">{error}</Notice> : null}
           <div className="field">
             <label htmlFor="email">Email</label>
             <input

@@ -15,20 +15,9 @@ export type AdminOrder = {
   status: 'Paid' | 'Confirmed' | 'Payment pending' | 'Payment failed' | 'Shipped' | 'Cancelled' | 'Completed'
 }
 
-export type AdminNotification = {
-  id: number
-  event: string
-  channel: string
-  recipient: string
-  status: 'Sent' | 'Pending' | 'Failed'
-  attempts: number
-  created: string
-}
-
 export const adminKeys = {
   users: ['admin', 'users'] as const,
   orders: ['admin', 'orders'] as const,
-  notifications: ['admin', 'notifications'] as const,
   analytics: ['admin', 'analytics'] as const,
 }
 
@@ -50,14 +39,6 @@ const orders: AdminOrder[] = [
   { id: '#DOM-1038', customer: 'Sarah Johnson', date: 'Oct 6, 2026', total: '$385.00', status: 'Shipped' },
   { id: '#DOM-1037', customer: 'Tom Brown', date: 'Oct 5, 2026', total: '$152.00', status: 'Cancelled' },
   { id: '#DOM-1036', customer: 'Eva Green', date: 'Oct 4, 2026', total: '$1,240.00', status: 'Completed' },
-]
-
-const notifications: AdminNotification[] = [
-  { id: 1, event: 'user.registered', channel: 'email', recipient: 'maria@example.com', status: 'Sent', attempts: 1, created: '2 min ago' },
-  { id: 2, event: 'order.paid', channel: 'email', recipient: 'anna@example.com', status: 'Sent', attempts: 1, created: '15 min ago' },
-  { id: 3, event: 'order.confirmed', channel: 'email', recipient: 'anna@example.com', status: 'Pending', attempts: 0, created: '16 min ago' },
-  { id: 4, event: 'order.cancelled', channel: 'email', recipient: 'tom@example.com', status: 'Sent', attempts: 1, created: '1 hour ago' },
-  { id: 5, event: 'order.paid', channel: 'email', recipient: 'bad@mailbox.test', status: 'Failed', attempts: 5, created: '3 hours ago' },
 ]
 
 export type AnalyticsSummary = {
@@ -126,11 +107,6 @@ export async function setUserRole(id: number, role: 'analyst' | 'customer'): Pro
 export async function fetchOrders(): Promise<AdminOrder[]> {
   await delay(150)
   return orders
-}
-
-export async function fetchNotifications(): Promise<AdminNotification[]> {
-  await delay(150)
-  return notifications
 }
 
 export async function fetchAnalytics(): Promise<AnalyticsSummary> {
