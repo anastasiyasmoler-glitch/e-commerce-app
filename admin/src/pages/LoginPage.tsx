@@ -1,74 +1,92 @@
-import { FormEvent, useState } from 'react'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { useState } from 'react'
+import { useForm } from 'react-hook-form'
 import { Navigate, useNavigate } from 'react-router-dom'
-import { useAuth } from '../auth/useAuth'
-import { isAdmin } from '../auth/session'
+import { isStaff } from '@/api/authApi'
+import { apiErrorMessage } from '@/api/http'
+import { useLogin } from '@/hooks/useLogin'
+import { useLogout } from '@/hooks/useLogout'
+import { useMe } from '@/hooks/useMe'
+import { useSession } from '@/hooks/useSession'
+import { loginSchema, type LoginValues } from '@/lib/validators/auth'
+import { paths } from '@/paths'
 
 export function LoginPage() {
-  const { user, login } = useAuth()
+  const session = useSession()
+  const me = useMe()
+  const login = useLogin()
+  const logout = useLogout()
   const navigate = useNavigate()
-  const [email, setEmail] = useState('admin@example.com')
-  const [password, setPassword] = useState('password')
   const [error, setError] = useState<string | null>(null)
-  const [pending, setPending] = useState(false)
+  const {
+    register,
+    handleSubmit,
+    formState: { isSubmitting },
+  } = useForm<LoginValues>({ resolver: zodResolver(loginSchema) })
 
-  if (isAdmin(user)) {
-    return <Navigate to="/" replace />
+  if (session.data && me.data && isStaff(me.data)) {
+    return <Navigate to={paths.analytics} replace />
   }
 
-  async function onSubmit(event: FormEvent) {
-    event.preventDefault()
+  async function onSubmit(values: LoginValues) {
     setError(null)
-    setPending(true)
     try {
-      await login(email, password)
-      navigate('/')
+      const profile = await login.mutateAsync(values)
+      if (!isStaff(profile)) {
+        await logout.mutateAsync()
+        setError('Admin or Analyst role required.')
+        return
+      }
+      navigate(paths.analytics, { replace: true })
     } catch (err) {
-      setAccessMessage(err)
-    } finally {
-      setPending(false)
+      setError(apiErrorMessage(err))
     }
-  }
-
-  function setAccessMessage(err: unknown) {
-    if (typeof err === 'object' && err !== null && 'response' in err) {
-      const axiosErr = err as { response?: { data?: { message?: string } } }
-      setError(axiosErr.response?.data?.message ?? 'Could not sign in.')
-      return
-    }
-    setError(err instanceof Error ? err.message : 'Could not sign in.')
   }
 
   return (
-    <div className="login-screen">
-      <form className="auth-card" onSubmit={onSubmit}>
-        <h1>Admin sign in</h1>
-        {error ? <p className="auth-error">{error}</p> : null}
-        <div className="field">
-          <label htmlFor="email">Email</label>
-          <input
-            id="email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            autoComplete="username"
-          />
-        </div>
-        <div className="field">
-          <label htmlFor="password">Password</label>
-          <input
-            id="password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            autoComplete="current-password"
-          />
-        </div>
-        <button type="submit" className="btn btn-primary" disabled={pending}>
-          {pending ? 'Signing in…' : 'Sign in'}
-        </button>
-      </form>
+    <div className="auth">
+      <div className="auth-side">
+        <a href={paths.analytics} className="logo">
+          Domo<i>.</i>
+        </a>
+        <blockquote>Admin panel for the Domo marketplace.</blockquote>
+      </div>
+      <div className="auth-main">
+        <form className="auth-form" onSubmit={handleSubmit(onSubmit)}>
+          <h1>Admin sign in</h1>
+          <p className="sub">Use your staff account to continue.</p>
+          {error ? (
+            <div className="notice notice-danger" style={{ marginBottom: 'var(--space-4)' }}>
+              {error}
+            </div>
+          ) : null}
+          <div className="field">
+            <label htmlFor="email">Email</label>
+            <input
+              id="email"
+              className="input"
+              type="email"
+              placeholder="you@example.com"
+              autoComplete="username"
+              {...register('email')}
+            />
+          </div>
+          <div className="field">
+            <label htmlFor="password">Password</label>
+            <input
+              id="password"
+              className="input"
+              type="password"
+              placeholder="••••••••"
+              autoComplete="current-password"
+              {...register('password')}
+            />
+          </div>
+          <button type="submit" className="btn btn-primary btn-block" disabled={isSubmitting}>
+            {isSubmitting ? 'Signing in…' : 'Sign in'}
+          </button>
+        </form>
+      </div>
     </div>
   )
 }

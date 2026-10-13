@@ -1,72 +1,126 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { http } from '../lib/http'
-
-type AdminUserRow = {
-  id: number
-  name: string
-  email: string
-  phone: string | null
-  roles: string[]
-  is_analyst: boolean
-}
+import { PenLine, Search } from 'lucide-react'
+import { useState } from 'react'
+import { adminKeys, fetchUsers, setUserRole } from '@/api/adminApi'
+import { Notice } from '@/components/ui/notice'
+import { PageHeader } from '@/components/ui/page-header'
+import { RoleBadge } from '@/components/ui/role-badge'
+import { StatusBadge } from '@/components/ui/status-badge'
 
 export function UsersPage() {
   const queryClient = useQueryClient()
-  const users = useQuery({
-    queryKey: ['admin-users'],
-    queryFn: async () => {
-      const res = await http.get<{ data: AdminUserRow[] }>('/admin/users')
-      return res.data.data
-    },
-  })
+  const [search, setSearch] = useState('')
+  const [role, setRole] = useState('All roles')
+
+  const users = useQuery({ queryKey: adminKeys.users, queryFn: fetchUsers })
 
   const analyst = useMutation({
-    mutationFn: async ({ id, next }: { id: number; next: boolean }) => {
-      await http.patch(`/admin/users/${id}/analyst`, { analyst: next })
-    },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-users'] }),
+    mutationFn: ({ id, next }: { id: number; next: boolean }) =>
+      setUserRole(id, next ? 'analyst' : 'customer'),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: adminKeys.users }),
+  })
+
+  const rows = (users.data ?? []).filter((user) => {
+    const matchesSearch =
+      user.name.toLowerCase().includes(search.toLowerCase()) ||
+      user.email.toLowerCase().includes(search.toLowerCase())
+    const matchesRole = role === 'All roles' || user.role === role.toLowerCase()
+    return matchesSearch && matchesRole
   })
 
   return (
     <>
-      <div className="admin-header">
-        <h1 className="admin-title">Users</h1>
-      </div>
-      {users.isError ? <p className="auth-error">Could not load users.</p> : null}
+      <PageHeader title="Users" />
+      <Notice>
+        You can assign the <b>Analyst</b> role. <b>Admin</b> accounts are created separately and
+        cannot be assigned here.
+      </Notice>
       <div className="table-container">
+        <div className="table-toolbar">
+          <div className="input-icon grow">
+            <Search size={18} aria-hidden />
+            <input
+              className="input"
+              placeholder="Search users"
+              aria-label="Search"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+            />
+          </div>
+          <select
+            className="select"
+            aria-label="Role"
+            value={role}
+            onChange={(event) => setRole(event.target.value)}
+          >
+            <option>All roles</option>
+            <option>Customer</option>
+            <option>Analyst</option>
+            <option>Admin</option>
+          </select>
+        </div>
         <table className="data-table">
           <thead>
             <tr>
-              <th>Name</th>
-              <th>Email</th>
-              <th>Roles</th>
-              <th>Analyst</th>
+              <th>User</th>
+              <th>Role</th>
+              <th>Joined</th>
+              <th>Status</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
-            {(users.data ?? []).map((row) => {
-              const locked = row.roles.includes('admin')
-              return (
-                <tr key={row.id}>
-                  <td>{row.name}</td>
-                  <td>{row.email}</td>
-                  <td>{row.roles.join(', ')}</td>
-                  <td>
-                    <label className="role-toggle">
-                      <input
-                        type="checkbox"
-                        checked={row.is_analyst}
-                        disabled={locked || analyst.isPending}
-                        onChange={(e) =>
-                          analyst.mutate({ id: row.id, next: e.target.checked })
-                        }
-                      />
-                      {locked ? 'Locked' : 'Assign analyst'}
-                    </label>
-                  </td>
-                </tr>
-              )
-            })}
+            {rows.map((user) => (
+              <tr key={user.id}>
+                <td>
+                  <div className="cell-product">
+                    <div
+                      className="store-avatar"
+                      style={{
+                        width: 36,
+                        height: 36,
+                        fontSize: 'var(--text-base)',
+                        borderRadius: '50%',
+                        background: 'var(--bg-subtle)',
+                        color: 'var(--ink)',
+                      }}
+                    >
+                      {user.name.charAt(0)}
+                    </div>
+                    <div>
+                      <div>{user.name}</div>
+                      <div className="cell-sub">{user.email}</div>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <RoleBadge role={user.role} />
+                </td>
+                <td>{user.joined}</td>
+                <td>
+                  <StatusBadge label={user.active ? 'Active' : 'Deleted'} />
+                </td>
+                <td>
+                  {user.role === 'admin' ? (
+                    <span className="muted" style={{ fontSize: 'var(--text-sm)' }}>
+                      Seeded account
+                    </span>
+                  ) : user.active ? (
+                    <button
+                      type="button"
+                      className="table-action"
+                      disabled={analyst.isPending}
+                      onClick={() =>
+                        analyst.mutate({ id: user.id, next: user.role !== 'analyst' })
+                      }
+                    >
+                      <PenLine size={14} aria-hidden />
+                      {user.role === 'analyst' ? 'Remove Analyst role' : 'Make Analyst'}
+                    </button>
+                  ) : null}
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>

@@ -1,59 +1,74 @@
 import {
   BarChart3,
   Bell,
-  LayoutDashboard,
   Lock,
   Package,
   ShoppingCart,
+  Store,
   Users,
+  Folder,
 } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
+import { useMe } from '@/hooks/useMe'
+import { paths } from '@/paths'
 
-const management = [
-  { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
-  { to: '/products', label: 'Products', icon: Package, end: false },
-  { to: '/orders', label: 'Orders', icon: ShoppingCart, end: false },
-  { to: '/users', label: 'Users', icon: Users, end: false },
-  { to: '/acl', label: 'Access Control', icon: Lock, end: false },
+type NavItem = {
+  to: string
+  label: string
+  icon: typeof Package
+  tag?: string
+}
+
+const catalog: NavItem[] = [
+  { to: paths.products, label: 'Products', icon: Package },
+  { to: paths.categories, label: 'Categories', icon: Folder },
+  { to: paths.stores, label: 'Stores', icon: Store },
 ]
 
-const insights = [
-  { to: '/analytics', label: 'Analytics', icon: BarChart3 },
-  { to: '/notifications', label: 'Notifications', icon: Bell },
+const sales: NavItem[] = [{ to: paths.orders, label: 'Orders', icon: ShoppingCart, tag: 'Analyst' }]
+
+const insights: NavItem[] = [
+  { to: paths.analytics, label: 'Analytics', icon: BarChart3, tag: 'Analyst' },
+  { to: paths.notifications, label: 'Notifications', icon: Bell, tag: 'Analyst' },
 ]
+
+const access: NavItem[] = [
+  { to: paths.users, label: 'Users', icon: Users },
+  { to: paths.access, label: 'Access control', icon: Lock },
+]
+
+function NavLinks({ items }: { items: NavItem[] }) {
+  return items.map(({ to, label, icon: Icon, tag }) => (
+    <NavLink
+      key={to}
+      to={to}
+      className={({ isActive }) => (isActive ? 'admin-nav-link active' : 'admin-nav-link')}
+    >
+      <Icon size={18} aria-hidden />
+      {label}
+      {tag ? <span className="tag">{tag}</span> : null}
+    </NavLink>
+  ))
+}
 
 export function AdminSidebar() {
+  const me = useMe()
+  const isAdmin = Boolean(me.data?.roles.includes('admin'))
+
   return (
-    <nav className="admin-sidebar" aria-label="Admin">
-      <div className="admin-nav-title">Management</div>
-      {management.map(({ to, label, icon: Icon, end }) => (
-        <NavLink
-          key={to}
-          to={to}
-          end={end}
-          className={({ isActive }) =>
-            isActive ? 'admin-nav-link active' : 'admin-nav-link'
-          }
-        >
-          <Icon size={18} aria-hidden />
-          {label}
-        </NavLink>
-      ))}
-      <div className="admin-nav-title" style={{ marginTop: 12 }}>
-        Insights
-      </div>
-      {insights.map(({ to, label, icon: Icon }) => (
-        <NavLink
-          key={to}
-          to={to}
-          className={({ isActive }) =>
-            isActive ? 'admin-nav-link active' : 'admin-nav-link'
-          }
-        >
-          <Icon size={18} aria-hidden />
-          {label}
-        </NavLink>
-      ))}
+    <nav className="admin-sidebar" aria-label="Admin navigation">
+      <div className="admin-nav-title">Catalog</div>
+      <NavLinks items={catalog} />
+      <div className="admin-nav-title">Sales</div>
+      <NavLinks items={sales} />
+      <div className="admin-nav-title">Insights</div>
+      <NavLinks items={insights} />
+      {isAdmin ? (
+        <>
+          <div className="admin-nav-title">Access</div>
+          <NavLinks items={access} />
+        </>
+      ) : null}
     </nav>
   )
 }

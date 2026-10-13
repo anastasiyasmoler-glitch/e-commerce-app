@@ -1,3 +1,5 @@
+import { PageHeader } from '@/components/ui/page-header'
+
 type PlaceholderPageProps = {
   title: string
   hint: string
@@ -6,10 +8,8 @@ type PlaceholderPageProps = {
 export function PlaceholderPage({ title, hint }: PlaceholderPageProps) {
   return (
     <>
-      <div className="admin-header">
-        <h1 className="admin-title">{title}</h1>
-      </div>
-      <p className="placeholder">{hint}</p>
+      <PageHeader title={title} />
+      <p className="muted">{hint}</p>
     </>
   )
 }
