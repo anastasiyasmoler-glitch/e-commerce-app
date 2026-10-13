@@ -11,42 +11,49 @@ import { PlaceholderPage } from '@/pages/PlaceholderPage'
 import { UsersPage } from '@/pages/UsersPage'
 import { paths } from './paths'
 
+const segment = (path: string) => path.replace(/^\//, '')
+
 export const router = createBrowserRouter([
-  { path: paths.login, element: <LoginPage /> },
   {
-    element: <RequireAdmin />,
+    path: '/',
     children: [
+      { path: segment(paths.login), element: <LoginPage /> },
       {
-        element: <AdminLayout />,
+        element: <RequireAdmin />,
         children: [
-          { index: true, element: <Navigate to={paths.analytics} replace /> },
-          { path: paths.orders, element: <OrdersPage /> },
-          { path: paths.analytics, element: <AnalyticsPage /> },
-          { path: paths.notifications, element: <NotificationsPage /> },
           {
-            element: <RequireRole role="admin" />,
+            element: <AdminLayout />,
             children: [
-              { path: paths.users, element: <UsersPage /> },
-              { path: paths.access, element: <AccessControlPage /> },
+              { index: true, element: <Navigate to={paths.analytics} replace /> },
+              { path: segment(paths.orders), element: <OrdersPage /> },
+              { path: segment(paths.analytics), element: <AnalyticsPage /> },
+              { path: segment(paths.notifications), element: <NotificationsPage /> },
+              {
+                element: <RequireRole role="admin" />,
+                children: [
+                  { path: segment(paths.users), element: <UsersPage /> },
+                  { path: segment(paths.access), element: <AccessControlPage /> },
+                ],
+              },
+              {
+                path: segment(paths.products),
+                element: (
+                  <PlaceholderPage title="Products" hint="Filament in Catalog owns this." />
+                ),
+              },
+              {
+                path: segment(paths.categories),
+                element: (
+                  <PlaceholderPage title="Categories" hint="Filament in Catalog owns this." />
+                ),
+              },
+              {
+                path: segment(paths.stores),
+                element: <PlaceholderPage title="Stores" hint="Filament in Catalog owns this." />,
+              },
+              { path: '*', element: <Navigate to={paths.analytics} replace /> },
             ],
           },
-          {
-            path: paths.products,
-            element: (
-              <PlaceholderPage title="Products" hint="Filament in Catalog owns this." />
-            ),
-          },
-          {
-            path: paths.categories,
-            element: (
-              <PlaceholderPage title="Categories" hint="Filament in Catalog owns this." />
-            ),
-          },
-          {
-            path: paths.stores,
-            element: <PlaceholderPage title="Stores" hint="Filament in Catalog owns this." />,
-          },
-          { path: '*', element: <Navigate to={paths.analytics} replace /> },
         ],
       },
     ],
