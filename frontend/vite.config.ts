@@ -12,13 +12,5 @@ export default defineConfig({
   },
   server: {
     port: 5173,
-    proxy: {
-      '/api/catalog': {
-        target: 'https://localhost:8444',
-        changeOrigin: true,
-        secure: false,
-        rewrite: (p) => p.replace(/^\/api\/catalog/, ''),
-      },
-    },
   },
 })

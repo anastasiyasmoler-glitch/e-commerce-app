@@ -21,4 +21,7 @@ Route::middleware(['auth:api', 'jwt.access'])->group(function (): void {
 
     Route::get('/admin/users', [AdminUserController::class, 'index']);
     Route::patch('/admin/users/{user}/analyst', [AdminUserController::class, 'updateAnalyst']);
+    Route::get('/_gateway/staff', fn () => response()->noContent())->middleware('role:admin|analyst');
 });
+
+Route::get('/_gateway/admin', [AuthController::class, 'gatewayAdmin']);

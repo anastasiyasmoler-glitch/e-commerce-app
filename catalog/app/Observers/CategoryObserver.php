@@ -4,25 +4,30 @@ namespace App\Observers;
 
 use App\Contracts\KafkaPublisherInterface;
 use App\Models\Category;
+use App\Services\CatalogReadService;
 
 class CategoryObserver
 {
     public function __construct(
         private readonly KafkaPublisherInterface $kafka,
+        private readonly CatalogReadService $cache,
     ) {}
 
     public function created(Category $category): void
     {
+        $this->cache->invalidateStore($category->store_id);
         $this->kafka->publish('category.created', $this->body($category));
     }
 
     public function updated(Category $category): void
     {
+        $this->cache->invalidateStore($category->store_id);
         $this->kafka->publish('category.updated', $this->body($category));
     }
 
     public function deleted(Category $category): void
     {
+        $this->cache->invalidateStore($category->store_id);
         $this->kafka->publish('category.deleted', [
             'id' => $category->id,
             'store_id' => $category->store_id,

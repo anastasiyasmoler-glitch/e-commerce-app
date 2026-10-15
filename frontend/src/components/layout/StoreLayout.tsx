@@ -24,7 +24,7 @@ export function StoreLayout() {
 
   return (
     <>
-      <div className="flex min-h-screen flex-col bg-bg">
+      <div className="flex min-h-screen flex-col bg-bg has-[[data-slot=page-loading]]:[&_footer]:hidden">
         <StoreHeader onSignIn={() => openAuth('login')} onRegister={() => openAuth('register')} />
         <main className="flex-1">
           <Outlet />

@@ -7,8 +7,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         ca-certificates \
         libpq-dev \
         libzip-dev \
+        libicu-dev \
         $PHPIZE_DEPS \
-    && docker-php-ext-install pdo_pgsql zip bcmath \
+    && docker-php-ext-install pdo_pgsql zip bcmath intl \
     && apt-get purge -y --auto-remove $PHPIZE_DEPS \
     && rm -rf /var/lib/apt/lists/*
 

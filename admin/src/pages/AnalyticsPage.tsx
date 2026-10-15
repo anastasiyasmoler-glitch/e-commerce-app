@@ -1,8 +1,7 @@
-import { useQuery } from '@tanstack/react-query'
 import { TrendingDown, TrendingUp } from 'lucide-react'
 import { useState } from 'react'
-import { adminKeys, fetchAnalytics } from '@/api/adminApi'
 import { apiErrorMessage } from '@/api/http'
+import { useAnalytics } from '@/hooks/useAnalytics'
 import { Notice } from '@/components/ui/notice'
 import { PageHeader } from '@/components/ui/page-header'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -11,7 +10,7 @@ const periods = ['Last 7 days', 'Last 30 days', 'Last 90 days']
 
 export function AnalyticsPage() {
   const [period, setPeriod] = useState(periods[0])
-  const analytics = useQuery({ queryKey: adminKeys.analytics, queryFn: fetchAnalytics })
+  const analytics = useAnalytics()
 
   const data = analytics.data
 

@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\NotificationLog;
-use App\Services\AuthIdentityClient;
 use App\Services\NotificationHistoryService;
 use Illuminate\Http\JsonResponse;
 
@@ -11,13 +10,10 @@ class NotificationHistoryController extends Controller
 {
     public function __construct(
         private readonly NotificationHistoryService $history,
-        private readonly AuthIdentityClient $auth,
     ) {}
 
     public function index(): JsonResponse
     {
-        $this->authorizeStaff();
-
         $data = $this->history->listLatest()
             ->map(fn (NotificationLog $log) => $this->present($log))
             ->values();
@@ -27,8 +23,6 @@ class NotificationHistoryController extends Controller
 
     public function show(string $id): JsonResponse
     {
-        $this->authorizeStaff();
-
         $log = $this->history->find($id);
 
         if ($log === null) {
@@ -36,19 +30,6 @@ class NotificationHistoryController extends Controller
         }
 
         return response()->json(['data' => $this->present($log)]);
-    }
-
-    private function authorizeStaff(): void
-    {
-        $roles = $this->auth->roles(request()->bearerToken());
-
-        if ($roles === null) {
-            abort(401);
-        }
-
-        if (array_intersect($roles, ['admin', 'analyst']) === []) {
-            abort(403);
-        }
     }
 
     /**

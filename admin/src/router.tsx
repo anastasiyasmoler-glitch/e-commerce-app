@@ -36,18 +36,32 @@ export const router = createBrowserRouter([
               {
                 path: segment(paths.products),
                 element: (
-                  <PlaceholderPage title="Products" hint="Filament in Catalog owns this." />
+                  <PlaceholderPage
+                    title="Products"
+                    hint="Catalog service owns products and stock via its Filament panel."
+                    filamentPath="/catalog-admin/products"
+                  />
                 ),
               },
               {
                 path: segment(paths.categories),
                 element: (
-                  <PlaceholderPage title="Categories" hint="Filament in Catalog owns this." />
+                  <PlaceholderPage
+                    title="Categories"
+                    hint="Catalog service owns categories via its Filament panel."
+                    filamentPath="/catalog-admin/categories"
+                  />
                 ),
               },
               {
                 path: segment(paths.stores),
-                element: <PlaceholderPage title="Stores" hint="Filament in Catalog owns this." />,
+                element: (
+                  <PlaceholderPage
+                    title="Stores"
+                    hint="Catalog service owns stores via its Filament panel."
+                    filamentPath="/catalog-admin/stores"
+                  />
+                ),
               },
               { path: '*', element: <Navigate to={paths.analytics} replace /> },
             ],

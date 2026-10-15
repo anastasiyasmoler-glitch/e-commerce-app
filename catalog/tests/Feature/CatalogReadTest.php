@@ -60,4 +60,37 @@ class CatalogReadTest extends TestCase
         $this->getJson('/products/'.$product->id.'?store_id='.$other->id)
             ->assertNotFound();
     }
+
+    public function test_stock_change_invalidates_cached_product_and_listing(): void
+    {
+        $store = Store::query()->create(['name' => 'Nordic Home', 'slug' => 'nordic-home']);
+        $sofas = Category::query()->create([
+            'store_id' => $store->id,
+            'name' => 'Sofas',
+            'slug' => 'sofas',
+        ]);
+        $product = Product::query()->create([
+            'store_id' => $store->id,
+            'category_id' => $sofas->id,
+            'name' => 'Linen Sofa',
+            'slug' => 'linen-sofa',
+            'sku' => 'SOFA-1',
+        ]);
+        $stock = Stock::query()->create([
+            'product_id' => $product->id,
+            'store_id' => $store->id,
+            'quantity' => 4,
+            'reserved' => 0,
+        ]);
+
+        $this->getJson('/products/'.$product->id.'?store_id='.$store->id)
+            ->assertOk()
+            ->assertJsonPath('data.stock.quantity', 4);
+
+        $stock->update(['quantity' => 9]);
+
+        $this->getJson('/products/'.$product->id.'?store_id='.$store->id)
+            ->assertOk()
+            ->assertJsonPath('data.stock.quantity', 9);
+    }
 }

@@ -64,4 +64,39 @@ class AuthController extends Controller
             'roles' => $user->getRoleNames()->values()->all(),
         ]);
     }
+
+    public function gatewayAdmin(Request $request): \Illuminate\Http\Response
+    {
+        $bearer = $request->bearerToken();
+
+        if ($bearer === null || $bearer === '') {
+            return response()->noContent();
+        }
+
+        try {
+            $payload = \Tymon\JWTAuth\Facades\JWTAuth::setToken($bearer)->getPayload();
+
+            if ($payload->get('token_use') === 'refresh') {
+                abort(401, 'Refresh token cannot be used as an access token.');
+            }
+
+            /** @var User|null $user */
+            $user = auth('api')->setToken($bearer)->user();
+        } catch (\Throwable) {
+            abort(401);
+        }
+
+        if ($user === null) {
+            abort(401);
+        }
+
+        if (! $user->hasRole('admin')) {
+            abort(403);
+        }
+
+        return response()->noContent()
+            ->header('X-Auth-User-Id', (string) $user->id)
+            ->header('X-Auth-User-Email', (string) $user->email)
+            ->header('X-Auth-User-Name', (string) $user->name);
+    }
 }

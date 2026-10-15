@@ -98,9 +98,7 @@
   --primary-foreground: var(--ink-inverse);
   --secondary: var(--bg-subtle);
   --secondary-foreground: var(--ink);
-  --muted: var(--bg-subtle);
   --muted-foreground: var(--ink-muted);
-  --accent: var(--brand-soft);
   --accent-foreground: var(--brand);
   --destructive: var(--danger);
   --border: var(--line);

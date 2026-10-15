@@ -1,18 +1,19 @@
 import { createContext, useContext, useState, type ReactNode } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { catalogKeys, fetchStores, type CatalogStore } from '@/api/catalogApi'
+import type { CatalogStore } from '@/api/catalogApi'
+import { useStores } from '@/hooks/useStores'
 
 type SelectedStoreContextValue = {
   stores: CatalogStore[]
   selectedStore: CatalogStore | null
   selectStore: (store: CatalogStore) => void
-  isLoading: boolean
+  isPending: boolean
+  isError: boolean
 }
 
 const SelectedStoreContext = createContext<SelectedStoreContextValue | null>(null)
 
 export function SelectedStoreProvider({ children }: { children: ReactNode }) {
-  const storesQuery = useQuery({ queryKey: catalogKeys.stores, queryFn: fetchStores })
+  const storesQuery = useStores()
   const stores = storesQuery.data ?? []
   const [selectedId, setSelectedId] = useState<number | null>(null)
 
@@ -22,7 +23,8 @@ export function SelectedStoreProvider({ children }: { children: ReactNode }) {
     stores,
     selectedStore,
     selectStore: (store) => setSelectedId(store.id),
-    isLoading: storesQuery.isLoading,
+    isPending: storesQuery.isPending,
+    isError: storesQuery.isError,
   }
 
   return <SelectedStoreContext.Provider value={value}>{children}</SelectedStoreContext.Provider>

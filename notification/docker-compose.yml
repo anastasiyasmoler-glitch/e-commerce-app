@@ -140,7 +140,10 @@ services:
         condition: service_healthy
       front:
         condition: service_started
-    networks: [default]
+    networks:
+      default: {}
+      microservices-net:
+        aliases: [notification-nginx]
 
 networks:
   microservices-net:

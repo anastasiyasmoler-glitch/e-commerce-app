@@ -54,7 +54,7 @@ services:
     environment:
       APP_ENV: local
       APP_DEBUG: "true"
-      APP_URL: https://localhost:8444
+      APP_URL: https://localhost
       DB_CONNECTION: pgsql
       DB_HOST: sql
       DB_PORT: "5432"
@@ -102,7 +102,7 @@ services:
     environment:
       APP_ENV: local
       APP_DEBUG: "true"
-      APP_URL: https://localhost:8444
+      APP_URL: https://localhost
       DB_CONNECTION: pgsql
       DB_HOST: sql
       DB_PORT: "5432"

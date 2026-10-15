@@ -48,7 +48,8 @@ class ConsumeCatalogCommand extends Command
             return;
         }
 
-        if (! is_array($payload)) {
+        if (! is_array(
+            $payload)) {
             $this->error('Skip non-object Kafka payload.');
 
             return;

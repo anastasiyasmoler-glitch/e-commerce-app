@@ -1,8 +1,7 @@
-import { useQuery } from '@tanstack/react-query'
 import { ChevronLeft, ChevronRight, Eye } from 'lucide-react'
 import { useState } from 'react'
-import { adminKeys, fetchOrders } from '@/api/adminApi'
 import { apiErrorMessage } from '@/api/http'
+import { useOrders } from '@/hooks/useOrders'
 import { PageHeader } from '@/components/ui/page-header'
 import { Skeleton } from '@/components/ui/skeleton'
 import { StatusBadge } from '@/components/ui/status-badge'
@@ -22,7 +21,7 @@ const statuses = [
 
 export function OrdersPage() {
   const [status, setStatus] = useState('All statuses')
-  const orders = useQuery({ queryKey: adminKeys.orders, queryFn: fetchOrders })
+  const orders = useOrders()
 
   const rows = (orders.data ?? []).filter(
     (order) => status === 'All statuses' || order.status === status,

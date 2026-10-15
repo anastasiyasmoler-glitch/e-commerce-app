@@ -1,8 +1,7 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { PenLine, Search } from 'lucide-react'
 import { useState } from 'react'
-import { adminKeys, fetchUsers, setUserRole } from '@/api/adminApi'
 import { apiErrorMessage } from '@/api/http'
+import { useSetUserRole, useUsers } from '@/hooks/useUsers'
 import { Notice } from '@/components/ui/notice'
 import { PageHeader } from '@/components/ui/page-header'
 import { RoleBadge } from '@/components/ui/role-badge'
@@ -10,17 +9,10 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { StatusBadge } from '@/components/ui/status-badge'
 
 export function UsersPage() {
-  const queryClient = useQueryClient()
   const [search, setSearch] = useState('')
   const [role, setRole] = useState('All roles')
-
-  const users = useQuery({ queryKey: adminKeys.users, queryFn: fetchUsers })
-
-  const analyst = useMutation({
-    mutationFn: ({ id, next }: { id: number; next: boolean }) =>
-      setUserRole(id, next ? 'analyst' : 'customer'),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: adminKeys.users }),
-  })
+  const users = useUsers()
+  const analyst = useSetUserRole()
 
   const rows = (users.data ?? []).filter((user) => {
     const matchesSearch =

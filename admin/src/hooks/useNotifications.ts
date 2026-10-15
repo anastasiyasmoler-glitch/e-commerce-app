@@ -9,6 +9,7 @@ export function useNotifications() {
     queryKey: notificationKeys.list,
     queryFn: listNotifications,
     enabled: session.data === true,
+    placeholderData: (previous) => previous,
   })
 }
 

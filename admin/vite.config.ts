@@ -12,12 +12,5 @@ export default defineConfig({
   },
   server: {
     port: 5174,
-    proxy: {
-      '/api/notifications': {
-        target: 'https://localhost:8443',
-        changeOrigin: true,
-        secure: false,
-      },
-    },
   },
 })
