@@ -11,6 +11,9 @@ use App\Models\User;
 use App\Services\JwtAuthService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+use Throwable;
+use Tymon\JWTAuth\Facades\JWTAuth;
 
 class AuthController extends Controller
 {
@@ -65,7 +68,7 @@ class AuthController extends Controller
         ]);
     }
 
-    public function gatewayAdmin(Request $request): \Illuminate\Http\Response
+    public function gatewayAdmin(Request $request): Response
     {
         $bearer = $request->bearerToken();
 
@@ -74,7 +77,7 @@ class AuthController extends Controller
         }
 
         try {
-            $payload = \Tymon\JWTAuth\Facades\JWTAuth::setToken($bearer)->getPayload();
+            $payload = JWTAuth::setToken($bearer)->getPayload();
 
             if ($payload->get('token_use') === 'refresh') {
                 abort(401, 'Refresh token cannot be used as an access token.');
@@ -82,7 +85,7 @@ class AuthController extends Controller
 
             /** @var User|null $user */
             $user = auth('api')->setToken($bearer)->user();
-        } catch (\Throwable) {
+        } catch (Throwable) {
             abort(401);
         }
 
