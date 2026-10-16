@@ -1,0 +1,160 @@
+services:
+  sql:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: marketplace
+      POSTGRES_PASSWORD: marketplace
+      POSTGRES_DB: orders
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U marketplace -d orders"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  back:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "true"
+      APP_URL: https://localhost:8445
+      DB_CONNECTION: pgsql
+      DB_HOST: sql
+      DB_PORT: "5432"
+      DB_DATABASE: orders
+      DB_USERNAME: marketplace
+      DB_PASSWORD: marketplace
+      SESSION_DRIVER: file
+      CACHE_STORE: redis
+      REDIS_CLIENT: predis
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      QUEUE_CONNECTION: sync
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_CONSUMER_GROUP: order-service-group
+      STRIPE_SECRET: ${STRIPE_SECRET:-sk_test_placeholder}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-whsec_placeholder}
+    volumes:
+      - .:/var/www/html
+    healthcheck:
+      test: ["CMD-SHELL", "php -r \"exit(@fsockopen('127.0.0.1', 9000) ? 0 : 1);\""]
+      interval: 5s
+      timeout: 3s
+      retries: 60
+      start_period: 30s
+    depends_on:
+      sql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks: [default, microservices-net]
+
+  outbox-relay:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["php", "artisan", "order:outbox-relay"]
+    restart: unless-stopped
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "true"
+      APP_URL: https://localhost:8445
+      DB_CONNECTION: pgsql
+      DB_HOST: sql
+      DB_PORT: "5432"
+      DB_DATABASE: orders
+      DB_USERNAME: marketplace
+      DB_PASSWORD: marketplace
+      SESSION_DRIVER: file
+      CACHE_STORE: redis
+      REDIS_CLIENT: predis
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      QUEUE_CONNECTION: sync
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_CONSUMER_GROUP: order-service-group
+    volumes:
+      - .:/var/www/html
+    depends_on:
+      sql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks: [default, microservices-net]
+
+  consumer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["php", "artisan", "kafka:consume-orders"]
+    restart: unless-stopped
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "true"
+      APP_URL: https://localhost:8445
+      DB_CONNECTION: pgsql
+      DB_HOST: sql
+      DB_PORT: "5432"
+      DB_DATABASE: orders
+      DB_USERNAME: marketplace
+      DB_PASSWORD: marketplace
+      SESSION_DRIVER: file
+      CACHE_STORE: redis
+      REDIS_CLIENT: predis
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      QUEUE_CONNECTION: sync
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_CONSUMER_GROUP: order-service-group
+    volumes:
+      - .:/var/www/html
+    depends_on:
+      sql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks: [default, microservices-net]
+
+  nginx:
+    build:
+      context: ./docker/nginx
+      dockerfile: Dockerfile
+    ports:
+      - "8085:80"
+      - "8445:443"
+    volumes:
+      - ./public:/var/www/html/public
+      - ./docker/nginx/certs:/etc/nginx/certs
+    depends_on:
+      back:
+        condition: service_healthy
+    networks:
+      default: {}
+      microservices-net:
+        aliases: [order-nginx]
+
+  stripe-cli:
+    image: stripe/stripe-cli:latest
+    command: ["listen", "--forward-to", "https://order-nginx/webhooks/stripe", "--skip-verify"]
+    environment:
+      STRIPE_API_KEY: ${STRIPE_SECRET:-sk_test_placeholder}
+    networks: [default, microservices-net]
+    profiles: ["stripe"]
+
+networks:
+  microservices-net:
+    external: true
+
+volumes:
+  postgres_data:
