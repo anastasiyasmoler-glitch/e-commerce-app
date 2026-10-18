@@ -1,17 +1,17 @@
-name: Catalog
+name: Order
 
 on:
   push:
     paths:
-      - 'catalog/**'
-      - '.github/workflows/catalog.yml'
+      - 'order/**'
+      - '.github/workflows/order.yml'
   pull_request:
     paths:
-      - 'catalog/**'
-      - '.github/workflows/catalog.yml'
+      - 'order/**'
+      - '.github/workflows/order.yml'
 
 concurrency:
-  group: catalog-${{ github.workflow }}-${{ github.ref }}
+  group: order-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: catalog
+        working-directory: order
     steps:
       - uses: actions/checkout@v4
 
@@ -35,13 +35,34 @@ jobs:
       - name: Laravel Pint
         run: php vendor/bin/pint --test
 
-  test:
-    name: Unit and integration tests
+  static-analysis:
+    name: PHPStan
     needs: lint
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: catalog
+        working-directory: order
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          coverage: none
+
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: PHPStan
+        run: php vendor/bin/phpstan analyse --memory-limit=512M
+
+  test:
+    name: Unit and integration tests
+    needs: static-analysis
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: order
     steps:
       - uses: actions/checkout@v4
 
@@ -86,15 +107,15 @@ jobs:
       - uses: docker/metadata-action@v5
         id: meta
         with:
-          images: ghcr.io/${{ github.repository }}/catalog
+          images: ghcr.io/${{ github.repository }}/order
           tags: |
             type=raw,value=latest
             type=sha,prefix=
 
       - uses: docker/build-push-action@v6
         with:
-          context: catalog
-          file: catalog/Dockerfile
+          context: order
+          file: order/Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

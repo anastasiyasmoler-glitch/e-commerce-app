@@ -5,7 +5,19 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 
-#[Fillable(['topic', 'key', 'payload', 'published_at', 'attempts', 'last_error'])]
+/**
+ * @property array<string, mixed> $payload
+ */
+#[Fillable([
+    'topic',
+    'key',
+    'payload',
+    'published_at',
+    'locked_by',
+    'locked_until',
+    'attempts',
+    'last_error',
+])]
 class OutboxMessage extends Model
 {
     /**
@@ -16,6 +28,7 @@ class OutboxMessage extends Model
         return [
             'payload' => 'array',
             'published_at' => 'datetime',
+            'locked_until' => 'datetime',
         ];
     }
 }
