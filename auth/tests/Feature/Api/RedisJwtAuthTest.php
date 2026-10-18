@@ -81,7 +81,7 @@ class RedisJwtAuthTest extends TestCase
         $hash = hash('sha256', $refresh);
         $jti = $this->jwtClaim($access, 'jti');
 
-        $this->withUnencryptedCookie((string) config('jwt.refresh_cookie'), $refresh)
+        $this->withUnencryptedCookie((string) config('auth.refresh_cookie.name'), $refresh)
             ->postJson('/logout', [], [
                 'Authorization' => 'Bearer '.$access,
             ])
@@ -108,7 +108,7 @@ class RedisJwtAuthTest extends TestCase
 
     private function refreshCookieValue($response): string
     {
-        $cookie = $response->getCookie((string) config('jwt.refresh_cookie'), false);
+        $cookie = $response->getCookie((string) config('auth.refresh_cookie.name'), false);
         $this->assertNotNull($cookie);
 
         return (string) $cookie->getValue();

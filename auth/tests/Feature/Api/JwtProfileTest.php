@@ -79,7 +79,7 @@ class JwtProfileTest extends TestCase
         ]);
 
         $access = $login->json('access_token');
-        $cookie = $login->getCookie((string) config('jwt.refresh_cookie'), false);
+        $cookie = $login->getCookie((string) config('auth.refresh_cookie.name'), false);
         $this->assertNotNull($cookie);
 
         $this->withUnencryptedCookie($cookie->getName(), (string) $cookie->getValue())
@@ -107,7 +107,7 @@ class JwtProfileTest extends TestCase
         ]);
 
         $access = (string) $login->json('access_token');
-        $refresh = (string) $login->getCookie((string) config('jwt.refresh_cookie'), false)?->getValue();
+        $refresh = (string) $login->getCookie((string) config('auth.refresh_cookie.name'), false)?->getValue();
 
         $this->putJson('/profile/password', [
             'current_password' => 'password',
@@ -115,7 +115,7 @@ class JwtProfileTest extends TestCase
             'password_confirmation' => 'new-password',
         ], ['Authorization' => 'Bearer '.$access])->assertOk();
 
-        $this->withUnencryptedCookie((string) config('jwt.refresh_cookie'), $refresh)
+        $this->withUnencryptedCookie((string) config('auth.refresh_cookie.name'), $refresh)
             ->postJson('/refresh')
             ->assertUnauthorized();
     }

@@ -108,6 +108,23 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Refresh Token Cookie
+    |--------------------------------------------------------------------------
+    |
+    | The refresh token travels in an httpOnly cookie rather than in the JSON
+    | response body. These settings control that cookie's name and flags.
+    |
+    */
+
+    'refresh_cookie' => [
+        'name' => env('JWT_REFRESH_COOKIE', 'refresh_token'),
+        'path' => env('JWT_REFRESH_COOKIE_PATH', '/'),
+        'secure' => filter_var(env('JWT_REFRESH_COOKIE_SECURE', true), FILTER_VALIDATE_BOOLEAN),
+        'same_site' => env('JWT_REFRESH_COOKIE_SAME_SITE', 'none'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Password Confirmation Timeout
     |--------------------------------------------------------------------------
     |

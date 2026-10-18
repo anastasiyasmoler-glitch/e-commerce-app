@@ -7,6 +7,8 @@ services:
       POSTGRES_DB: auth
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U marketplace -d auth"]
       interval: 5s
@@ -15,6 +17,8 @@ services:
 
   redis:
     image: redis:7-alpine
+    ports:
+      - "6379:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -68,6 +72,7 @@ services:
       KAFKA_BROKERS: kafka:9092
     volumes:
       - .:/var/www/html
+      - vendor:/var/www/html/vendor
     healthcheck:
       test: ["CMD-SHELL", "php -r \"exit(@fsockopen('127.0.0.1', 9000) ? 0 : 1);\""]
       interval: 5s
@@ -95,6 +100,7 @@ services:
     volumes:
       - ./public:/var/www/html/public
       - ./docker/nginx/certs:/etc/nginx/certs
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
       back:
         condition: service_healthy
@@ -108,4 +114,5 @@ networks:
     external: true
 
 volumes:
+  vendor:
   postgres_data:

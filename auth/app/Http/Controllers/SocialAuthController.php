@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Responses\JwtTokenResponse;
-use App\Services\JwtAuthService;
+use App\Http\Responses\TokenResponse;
+use App\Services\AuthService;
 use App\Services\SocialAuthService;
 use Illuminate\Http\JsonResponse;
 use Laravel\Socialite\Facades\Socialite;
@@ -14,8 +14,8 @@ class SocialAuthController extends Controller
 {
     public function __construct(
         private readonly SocialAuthService $social,
-        private readonly JwtAuthService $auth,
-        private readonly JwtTokenResponse $tokens,
+        private readonly AuthService $auth,
+        private readonly TokenResponse $tokens,
     ) {}
 
     public function redirect(): SymfonyRedirectResponse

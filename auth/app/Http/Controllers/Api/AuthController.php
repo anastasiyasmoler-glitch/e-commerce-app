@@ -2,30 +2,30 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Contracts\Auth\TokenIssuer;
 use App\Http\Controllers\Controller;
 use App\Http\Cookies\RefreshTokenCookie;
 use App\Http\Requests\Api\LoginRequest;
 use App\Http\Requests\Api\RegisterRequest;
-use App\Http\Responses\JwtTokenResponse;
+use App\Http\Responses\TokenResponse;
 use App\Models\User;
-use App\Services\JwtAuthService;
+use App\Services\AuthService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
-use Throwable;
-use Tymon\JWTAuth\Facades\JWTAuth;
 
 class AuthController extends Controller
 {
     public function __construct(
-        private readonly JwtAuthService $auth,
-        private readonly JwtTokenResponse $tokens,
+        private readonly AuthService $auth,
+        private readonly TokenIssuer $issuer,
+        private readonly TokenResponse $tokenResponse,
         private readonly RefreshTokenCookie $refreshCookie,
     ) {}
 
     public function register(RegisterRequest $request): JsonResponse
     {
-        return $this->tokens->make(
+        return $this->tokenResponse->make(
             $this->auth->register($request->safe()->only(['name', 'email', 'phone', 'password'])),
             201,
         );
@@ -33,7 +33,7 @@ class AuthController extends Controller
 
     public function login(LoginRequest $request): JsonResponse
     {
-        return $this->tokens->make($this->auth->login(
+        return $this->tokenResponse->make($this->auth->login(
             (string) $request->validated('email'),
             (string) $request->validated('password'),
         ));
@@ -41,14 +41,14 @@ class AuthController extends Controller
 
     public function refresh(Request $request): JsonResponse
     {
-        $refreshToken = (string) $request->cookie((string) config('jwt.refresh_cookie'), '');
+        $refreshToken = (string) $request->cookie($this->refreshCookie->name(), '');
 
-        return $this->tokens->make($this->auth->refresh($refreshToken));
+        return $this->tokenResponse->make($this->auth->refresh($refreshToken));
     }
 
     public function logout(Request $request): JsonResponse
     {
-        $this->auth->logout($request->cookie((string) config('jwt.refresh_cookie')));
+        $this->auth->logout($request->cookie($this->refreshCookie->name()));
 
         return response()->json(['message' => 'Successfully logged out.'])
             ->withCookie($this->refreshCookie->forget());
@@ -76,18 +76,7 @@ class AuthController extends Controller
             return response()->noContent();
         }
 
-        try {
-            $payload = JWTAuth::setToken($bearer)->getPayload();
-
-            if ($payload->get('token_use') === 'refresh') {
-                abort(401, 'Refresh token cannot be used as an access token.');
-            }
-
-            /** @var User|null $user */
-            $user = auth('api')->setToken($bearer)->user();
-        } catch (Throwable) {
-            abort(401);
-        }
+        $user = $this->issuer->userFromAccessToken($bearer);
 
         if ($user === null) {
             abort(401);

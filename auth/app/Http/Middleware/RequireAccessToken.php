@@ -2,23 +2,23 @@
 
 namespace App\Http\Middleware;
 
+use App\Contracts\Auth\TokenIssuer;
 use Closure;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Throwable;
 
-class RejectRefreshJwt
+class RequireAccessToken
 {
+    public function __construct(
+        private readonly TokenIssuer $tokens,
+    ) {}
+
     public function handle(Request $request, Closure $next): Response
     {
-        try {
-            $use = auth('api')->payload()->get('token_use');
-        } catch (Throwable) {
-            throw new AuthenticationException('Unauthenticated.');
-        }
+        $bearer = $request->bearerToken();
 
-        if ($use === 'refresh') {
+        if ($bearer === null || $bearer === '' || $this->tokens->userFromAccessToken($bearer) === null) {
             throw new AuthenticationException('Unauthenticated.');
         }
 

@@ -6,26 +6,31 @@ use Symfony\Component\HttpFoundation\Cookie;
 
 class RefreshTokenCookie
 {
+    public function name(): string
+    {
+        return (string) config('auth.refresh_cookie.name', 'refresh_token');
+    }
+
     public function make(string $token): Cookie
     {
         return cookie(
-            (string) config('jwt.refresh_cookie'),
+            $this->name(),
             $token,
             (int) config('jwt.refresh_ttl', 10080),
-            (string) config('jwt.refresh_cookie_path', '/'),
+            (string) config('auth.refresh_cookie.path', '/'),
             null,
-            (bool) config('jwt.refresh_cookie_secure', true),
+            (bool) config('auth.refresh_cookie.secure', true),
             true,
             false,
-            (string) config('jwt.refresh_cookie_same_site', 'none'),
+            (string) config('auth.refresh_cookie.same_site', 'none'),
         );
     }
 
     public function forget(): Cookie
     {
         return cookie()->forget(
-            (string) config('jwt.refresh_cookie'),
-            (string) config('jwt.refresh_cookie_path', '/'),
+            $this->name(),
+            (string) config('auth.refresh_cookie.path', '/'),
         );
     }
 }

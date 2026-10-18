@@ -5,7 +5,7 @@ namespace App\Http\Responses;
 use App\Http\Cookies\RefreshTokenCookie;
 use Illuminate\Http\JsonResponse;
 
-class JwtTokenResponse
+class TokenResponse
 {
     public function __construct(
         private readonly RefreshTokenCookie $refreshCookie,

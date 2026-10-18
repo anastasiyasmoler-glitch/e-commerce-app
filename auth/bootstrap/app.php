@@ -1,7 +1,7 @@
 <?php
 
 use App\Exceptions\InvalidRefreshTokenException;
-use App\Http\Middleware\RejectRefreshJwt;
+use App\Http\Middleware\RequireAccessToken;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -24,7 +24,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->trustProxies(at: '*');
 
         $middleware->alias([
-            'jwt.access' => RejectRefreshJwt::class,
+            'auth.access' => RequireAccessToken::class,
             'role' => RoleMiddleware::class,
             'permission' => PermissionMiddleware::class,
             'role_or_permission' => RoleOrPermissionMiddleware::class,

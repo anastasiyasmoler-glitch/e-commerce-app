@@ -19,6 +19,13 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www/html
 
+COPY composer.json composer.lock ./
+RUN composer install --no-interaction --prefer-dist --no-scripts --no-autoloader
+
+COPY . .
+
+RUN composer install --no-interaction --prefer-dist --optimize-autoloader
+
 COPY docker/entrypoint.sh /usr/local/bin/auth-entrypoint
 RUN chmod +x /usr/local/bin/auth-entrypoint
 

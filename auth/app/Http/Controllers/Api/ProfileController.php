@@ -9,7 +9,7 @@ use App\Http\Requests\Api\UpdatePasswordRequest;
 use App\Http\Requests\Api\UpdateProfileRequest;
 use App\Http\Requests\Api\VerifyEmailRequest;
 use App\Models\User;
-use App\Services\JwtAuthService;
+use App\Services\AuthService;
 use App\Services\ProfileService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -18,7 +18,7 @@ class ProfileController extends Controller
 {
     public function __construct(
         private readonly ProfileService $profiles,
-        private readonly JwtAuthService $auth,
+        private readonly AuthService $auth,
         private readonly RefreshTokenCookie $refreshCookie,
     ) {}
 
@@ -83,7 +83,7 @@ class ProfileController extends Controller
         $user = $request->user('api');
 
         $this->profiles->delete($user, $request->validated('password'));
-        $this->auth->logout($request->cookie((string) config('jwt.refresh_cookie')));
+        $this->auth->logout($request->cookie($this->refreshCookie->name()));
 
         return response()->json(['message' => 'Account deleted.'])
             ->withCookie($this->refreshCookie->forget());

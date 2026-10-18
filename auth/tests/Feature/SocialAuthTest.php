@@ -29,7 +29,7 @@ class SocialAuthTest extends TestCase
             ->assertOk()
             ->assertJsonStructure(['access_token', 'token_type', 'expires_in'])
             ->assertJsonMissingPath('refresh_token')
-            ->assertCookie((string) config('jwt.refresh_cookie'));
+            ->assertCookie((string) config('auth.refresh_cookie.name'));
 
         $this->assertGuest();
 

@@ -3,11 +3,13 @@
 namespace App\Providers;
 
 use App\Contracts\Auth\RefreshTokenStore;
+use App\Contracts\Auth\TokenIssuer;
 use App\Contracts\Kafka\KafkaPublisherInterface;
 use App\Contracts\Repositories\AdminUserRepositoryInterface;
 use App\Contracts\Repositories\SocialUserRepositoryInterface;
 use App\Contracts\Repositories\UserRepository;
 use App\Infrastructure\ArrayRefreshTokenStore;
+use App\Infrastructure\Auth\TymonTokenIssuer;
 use App\Infrastructure\RedisRefreshTokenStore;
 use App\Kafka\ArrayKafkaPublisher;
 use App\Kafka\LonglangKafkaPublisher;
@@ -27,6 +29,7 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->singleton(ArrayRefreshTokenStore::class);
         $this->app->bind(UserRepository::class, EloquentUserRepository::class);
+        $this->app->bind(TokenIssuer::class, TymonTokenIssuer::class);
         $this->app->singleton(RefreshTokenStore::class, function ($app) {
             if ($app->runningUnitTests()) {
                 return $app->make(ArrayRefreshTokenStore::class);
