@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Contracts\KafkaPublisherInterface;
+use App\Jobs\SendNotificationEmailJob;
 use App\Mail\OrderCancelledMail;
 use App\Mail\OrderConfirmedMail;
 use App\Mail\OrderPaidMail;
@@ -12,6 +13,7 @@ use App\Repositories\Contracts\NotificationLogRepositoryInterface;
 use Illuminate\Contracts\Mail\Mailer;
 use Illuminate\Mail\Mailable;
 use InvalidArgumentException;
+use RuntimeException;
 use Throwable;
 
 class NotificationDispatchService
@@ -25,32 +27,39 @@ class NotificationDispatchService
     /**
      * @param  array<string, mixed>  $payload
      */
+    public function enqueue(string $event, string $recipient, array $payload, bool $skipDlqPublish = false): NotificationLog
+    {
+        $this->assertKnownEvent($event);
+
+        $log = $this->logs->createPending($event, 'email', $recipient, $payload);
+
+        SendNotificationEmailJob::dispatch((string) $log->getKey(), $skipDlqPublish);
+
+        return $log;
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     *
+     * @deprecated Prefer enqueue(); kept for unit tests that assert sync mail attempts.
+     */
     public function dispatch(string $event, string $recipient, array $payload): NotificationLog
     {
-        if (! in_array($event, config('kafka.topics'), true)) {
-            throw new InvalidArgumentException("Unknown notification event [{$event}].");
-        }
+        $this->assertKnownEvent($event);
 
         $log = $this->logs->createPending($event, 'email', $recipient, $payload);
         $maxAttempts = max(1, (int) config('kafka.max_attempts'));
 
         for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
             try {
-                $mailable = $this->mailableFor($event, $payload);
-                $mailable->to($recipient);
-                $this->mailer->send($mailable);
+                $this->sendMailable($event, $recipient, $payload);
 
                 return $this->logs->markSent($log);
             } catch (Throwable $exception) {
                 $log = $this->logs->markFailed($log, $exception->getMessage());
 
                 if ($attempt === $maxAttempts) {
-                    $this->kafka->publish((string) config('kafka.dlq_topic'), [
-                        'event' => $event,
-                        'recipient' => $recipient,
-                        'payload' => $payload,
-                        'notification_log_id' => (string) $log->getKey(),
-                    ]);
+                    $this->publishDlq($event, $recipient, $payload, $log);
 
                     return $this->logs->markDlq($log);
                 }
@@ -60,6 +69,107 @@ class NotificationDispatchService
         }
 
         return $log;
+    }
+
+    public function deliver(string $notificationLogId): void
+    {
+        $log = $this->logs->findById($notificationLogId);
+
+        if ($log === null) {
+            throw new RuntimeException("Notification log [{$notificationLogId}] not found.");
+        }
+
+        try {
+            $this->sendMailable(
+                (string) $log->event,
+                (string) $log->recipient,
+                (array) $log->payload,
+            );
+            $this->logs->markSent($log);
+        } catch (Throwable $exception) {
+            $this->logs->markFailed($log, $exception->getMessage());
+
+            throw $exception;
+        }
+    }
+
+    public function afterDeliveryFailed(string $notificationLogId, bool $skipDlqPublish): void
+    {
+        $log = $this->logs->findById($notificationLogId);
+
+        if ($log === null) {
+            return;
+        }
+
+        if ($skipDlqPublish) {
+            $this->logs->markDlq($log);
+
+            return;
+        }
+
+        $this->publishDlq(
+            (string) $log->event,
+            (string) $log->recipient,
+            (array) $log->payload,
+            $log,
+        );
+        $this->logs->markDlq($log);
+    }
+
+    /**
+     * @param  array<string, mixed>  $body
+     */
+    public function replayFromDlq(array $body): void
+    {
+        $logId = (string) ($body['notification_log_id'] ?? '');
+        $event = (string) ($body['event'] ?? '');
+        $recipient = (string) ($body['recipient'] ?? '');
+        $payload = $body['payload'] ?? [];
+
+        if ($event === '' || $recipient === '' || ! is_array($payload)) {
+            throw new InvalidArgumentException('DLQ message is missing event, recipient, or payload.');
+        }
+
+        if ($logId !== '') {
+            $existing = $this->logs->findById($logId);
+            if ($existing !== null) {
+                SendNotificationEmailJob::dispatch($logId, skipDlqPublish: true);
+
+                return;
+            }
+        }
+
+        $this->enqueue($event, $recipient, $payload, skipDlqPublish: true);
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    private function publishDlq(string $event, string $recipient, array $payload, NotificationLog $log): void
+    {
+        $this->kafka->publish((string) config('kafka.dlq_topic'), [
+            'event' => $event,
+            'recipient' => $recipient,
+            'payload' => $payload,
+            'notification_log_id' => (string) $log->getKey(),
+        ]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    private function sendMailable(string $event, string $recipient, array $payload): void
+    {
+        $mailable = $this->mailableFor($event, $payload);
+        $mailable->to($recipient);
+        $this->mailer->send($mailable);
+    }
+
+    private function assertKnownEvent(string $event): void
+    {
+        if (! in_array($event, config('kafka.topics'), true)) {
+            throw new InvalidArgumentException("Unknown notification event [{$event}].");
+        }
     }
 
     /**

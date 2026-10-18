@@ -9,7 +9,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libzip-dev \
         cmake \
         $PHPIZE_DEPS \
-    && MAKEFLAGS="-j1" pecl install mongodb \
+    && pecl channel-update pecl.php.net \
+    && (MAKEFLAGS="-j1" pecl install mongodb || (pecl channel-update pecl.php.net && MAKEFLAGS="-j1" pecl install mongodb)) \
     && docker-php-ext-enable mongodb \
     && pecl install redis \
     && docker-php-ext-enable redis \
@@ -20,6 +21,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www/html
+
+COPY composer.json composer.lock ./
+RUN composer install --no-interaction --prefer-dist --no-scripts --no-autoloader
+
+COPY . .
+
+RUN composer install --no-interaction --prefer-dist --optimize-autoloader
 
 COPY docker/entrypoint.sh /usr/local/bin/notification-entrypoint
 RUN chmod +x /usr/local/bin/notification-entrypoint

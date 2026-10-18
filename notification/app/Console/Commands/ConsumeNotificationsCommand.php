@@ -63,7 +63,7 @@ class ConsumeNotificationsCommand extends Command
         }
 
         try {
-            $dispatcher->dispatch($message->getTopic(), $recipient, $payload);
+            $dispatcher->enqueue($message->getTopic(), $recipient, $payload);
             $this->info('Handled '.$message->getTopic().' for '.$recipient);
         } catch (Throwable $exception) {
             $this->error($exception->getMessage());

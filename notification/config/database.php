@@ -118,6 +118,16 @@ return [
             'database' => env('MONGODB_DATABASE', 'notification'),
         ],
 
+        /*
+         * Laravel queue "database" driver needs SQL. App data stays in MongoDB.
+         */
+        'queue' => [
+            'driver' => 'sqlite',
+            'database' => env('DB_QUEUE_DATABASE', database_path('queue.sqlite')),
+            'prefix' => '',
+            'foreign_key_constraints' => env('DB_FOREIGN_KEYS', true),
+        ],
+
     ],
 
     /*

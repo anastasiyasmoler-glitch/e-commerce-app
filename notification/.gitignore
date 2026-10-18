@@ -20,6 +20,7 @@
 /public/storage
 /storage/*.key
 /storage/pail
+/database/queue.sqlite
 /vendor
 /docker/nginx/certs/*.pem
 /docker/nginx/certs/*.key
