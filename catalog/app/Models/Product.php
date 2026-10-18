@@ -7,9 +7,20 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
-#[Fillable(['store_id', 'category_id', 'name', 'slug', 'description', 'sku'])]
+#[Fillable(['store_id', 'category_id', 'name', 'slug', 'description', 'sku', 'price', 'attributes', 'image'])]
 class Product extends Model
 {
+    /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'price' => 'integer',
+            'attributes' => 'array',
+        ];
+    }
+
     public function store(): BelongsTo
     {
         return $this->belongsTo(Store::class);

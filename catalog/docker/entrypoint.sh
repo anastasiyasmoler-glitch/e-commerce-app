@@ -7,7 +7,6 @@ if [ ! -f .env ]; then
     cp .env.example .env
 fi
 
-composer install --no-interaction --prefer-dist
 
 if ! grep -qE '^APP_KEY=base64:' .env; then
     php artisan key:generate --force --no-interaction
@@ -32,6 +31,15 @@ try {
     sleep 2
 done
 
-php artisan migrate --force --no-interaction
+php artisan migrate --force --no-interaction --isolated
 
-exec docker-php-entrypoint php-fpm
+store_count="$(php artisan tinker --execute="echo \\App\\Models\\Store::query()->count();" 2>/dev/null | tail -n 1 | tr -d '\r')"
+if [ "${store_count:-0}" = "0" ]; then
+    echo "Catalog is empty — running CatalogSeeder..."
+    php artisan db:seed --force --no-interaction
+fi
+
+echo "Publishing Filament assets to public/..."
+php artisan filament:assets --ansi --no-interaction
+
+exec docker-php-entrypoint "$@"

@@ -17,6 +17,15 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www/html
 
+COPY composer.json composer.lock ./
+RUN composer install --no-interaction --prefer-dist --no-scripts --no-autoloader
+
+COPY . .
+
+RUN composer install --no-interaction --prefer-dist --optimize-autoloader \
+    && php artisan key:generate --force --no-interaction \
+    && php artisan filament:assets --ansi --no-interaction
+
 COPY docker/entrypoint.sh /usr/local/bin/catalog-entrypoint
 RUN chmod +x /usr/local/bin/catalog-entrypoint
 

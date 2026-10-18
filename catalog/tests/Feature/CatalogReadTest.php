@@ -35,6 +35,8 @@ class CatalogReadTest extends TestCase
             'name' => 'Linen Sofa',
             'slug' => 'linen-sofa',
             'sku' => 'SOFA-1',
+            'price' => 45900,
+            'attributes' => ['color' => 'beige', 'material' => 'linen'],
         ]);
         Stock::query()->create([
             'product_id' => $product->id,
@@ -51,11 +53,15 @@ class CatalogReadTest extends TestCase
         $this->getJson('/products?store_id='.$store->id)
             ->assertOk()
             ->assertJsonCount(1, 'data')
-            ->assertJsonPath('data.0.stock.quantity', 4);
+            ->assertJsonPath('data.0.stock.quantity', 4)
+            ->assertJsonPath('data.0.price', 45900)
+            ->assertJsonPath('data.0.attributes.color', 'beige');
 
         $this->getJson('/products/'.$product->id.'?store_id='.$store->id)
             ->assertOk()
-            ->assertJsonPath('data.name', 'Linen Sofa');
+            ->assertJsonPath('data.name', 'Linen Sofa')
+            ->assertJsonPath('data.price', 45900)
+            ->assertJsonPath('data.attributes.material', 'linen');
 
         $this->getJson('/products/'.$product->id.'?store_id='.$other->id)
             ->assertNotFound();
@@ -75,6 +81,8 @@ class CatalogReadTest extends TestCase
             'name' => 'Linen Sofa',
             'slug' => 'linen-sofa',
             'sku' => 'SOFA-1',
+            'price' => 45900,
+            'attributes' => ['color' => 'beige', 'material' => 'linen'],
         ]);
         $stock = Stock::query()->create([
             'product_id' => $product->id,

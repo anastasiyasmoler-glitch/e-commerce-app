@@ -7,6 +7,8 @@ services:
       POSTGRES_DB: catalog
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U marketplace -d catalog"]
       interval: 5s
@@ -15,6 +17,8 @@ services:
 
   redis:
     image: redis:7-alpine
+    ports:
+      - "6380:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -33,6 +37,11 @@ services:
       - "9005:9001"
     volumes:
       - minio_data:/data
+    networks:
+      default: {}
+      microservices-net:
+        aliases:
+          - catalog-minio
 
   minio-init:
     image: pgsty/mc:latest
@@ -44,6 +53,7 @@ services:
       sleep 3;
       mc alias set local http://minio:9000 catalog catalogsecret;
       mc mb --ignore-existing local/product-images;
+      mc anonymous set download local/product-images;
       exit 0;
       "
 
@@ -73,11 +83,14 @@ services:
       AWS_DEFAULT_REGION: us-east-1
       AWS_BUCKET: product-images
       AWS_ENDPOINT: http://minio:9000
+      AWS_URL: https://localhost/product-images
+      AWS_TEMPORARY_URL: https://localhost
       AWS_USE_PATH_STYLE_ENDPOINT: "true"
       KAFKA_BROKERS: kafka:9092
       KAFKA_CONSUMER_GROUP: catalog-service-group
     volumes:
       - .:/var/www/html
+      - vendor:/var/www/html/vendor
     healthcheck:
       test: ["CMD-SHELL", "php -r \"exit(@fsockopen('127.0.0.1', 9000) ? 0 : 1);\""]
       interval: 5s
@@ -121,11 +134,57 @@ services:
       AWS_DEFAULT_REGION: us-east-1
       AWS_BUCKET: product-images
       AWS_ENDPOINT: http://minio:9000
+      AWS_URL: https://localhost/product-images
+      AWS_TEMPORARY_URL: https://localhost
       AWS_USE_PATH_STYLE_ENDPOINT: "true"
       KAFKA_BROKERS: kafka:9092
       KAFKA_CONSUMER_GROUP: catalog-service-group
     volumes:
       - .:/var/www/html
+      - vendor:/var/www/html/vendor
+    depends_on:
+      sql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks: [default, microservices-net]
+
+  outbox:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["php", "artisan", "kafka:publish-outbox"]
+    restart: unless-stopped
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "true"
+      APP_URL: https://localhost
+      DB_CONNECTION: pgsql
+      DB_HOST: sql
+      DB_PORT: "5432"
+      DB_DATABASE: catalog
+      DB_USERNAME: marketplace
+      DB_PASSWORD: marketplace
+      SESSION_DRIVER: file
+      CACHE_STORE: redis
+      REDIS_CLIENT: predis
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      QUEUE_CONNECTION: sync
+      FILESYSTEM_DISK: s3
+      AWS_ACCESS_KEY_ID: catalog
+      AWS_SECRET_ACCESS_KEY: catalogsecret
+      AWS_DEFAULT_REGION: us-east-1
+      AWS_BUCKET: product-images
+      AWS_ENDPOINT: http://minio:9000
+      AWS_URL: https://localhost/product-images
+      AWS_TEMPORARY_URL: https://localhost
+      AWS_USE_PATH_STYLE_ENDPOINT: "true"
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_CONSUMER_GROUP: catalog-service-group
+    volumes:
+      - .:/var/www/html
+      - vendor:/var/www/html/vendor
     depends_on:
       sql:
         condition: service_healthy
@@ -156,5 +215,6 @@ networks:
     external: true
 
 volumes:
+  vendor:
   postgres_data:
   minio_data:

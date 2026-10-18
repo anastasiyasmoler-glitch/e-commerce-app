@@ -163,6 +163,11 @@ class CatalogSeeder extends Seeder
                 'slug' => $item['slug'],
                 'description' => $item['desc'],
                 'sku' => $item['sku'],
+                'price' => $item['price'] ?? 12900,
+                'attributes' => $item['attributes'] ?? [
+                    'color' => 'natural',
+                    'material' => 'wood',
+                ],
             ]);
 
             Stock::query()->create([

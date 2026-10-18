@@ -7,6 +7,7 @@ use App\Models\Product;
 use App\Services\CatalogReadService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class ProductController extends Controller
 {
@@ -56,10 +57,23 @@ class ProductController extends Controller
             'slug' => $product->slug,
             'description' => $product->description,
             'sku' => $product->sku,
+            'price' => $product->price,
+            'attributes' => $product->attributes ?? [],
+            'image' => $product->image,
+            'image_url' => $this->imageUrl($product->image),
             'stock' => [
                 'quantity' => $product->stock?->quantity ?? 0,
                 'reserved' => $product->stock?->reserved ?? 0,
             ],
         ];
+    }
+
+    private function imageUrl(?string $path): ?string
+    {
+        if ($path === null || $path === '') {
+            return null;
+        }
+
+        return Storage::disk((string) config('filesystems.default'))->url($path);
     }
 }

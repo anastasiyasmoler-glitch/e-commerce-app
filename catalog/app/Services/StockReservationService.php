@@ -3,7 +3,7 @@
 namespace App\Services;
 
 use App\Contracts\KafkaPublisherInterface;
-use App\Models\Stock;
+use App\Repositories\Contracts\StockRepositoryInterface;
 use Illuminate\Support\Facades\DB;
 use Throwable;
 
@@ -11,6 +11,7 @@ class StockReservationService
 {
     public function __construct(
         private readonly KafkaPublisherInterface $kafka,
+        private readonly StockRepositoryInterface $stocks,
     ) {}
 
     /**
@@ -47,7 +48,7 @@ class StockReservationService
         }
 
         try {
-            DB::transaction(function () use ($items): void {
+            DB::transaction(function () use ($items, $orderId): void {
                 foreach ($items as $item) {
                     $productId = (int) ($item['product_id'] ?? 0);
                     $storeId = (int) ($item['store_id'] ?? 0);
@@ -57,13 +58,7 @@ class StockReservationService
                         throw new \RuntimeException('invalid_item');
                     }
 
-                    /** @var Stock|null $stock */
-                    $stock = Stock::query()
-                        ->where('product_id', $productId)
-                        ->where('store_id', $storeId)
-                        ->lockForUpdate()
-                        ->first();
-
+                    $stock = $this->stocks->lockForUpdate($productId, $storeId);
                     $available = $stock === null ? 0 : ($stock->quantity - $stock->reserved);
 
                     if ($stock === null || $available < $qty) {
@@ -71,19 +66,17 @@ class StockReservationService
                     }
 
                     $stock->reserved += $qty;
-                    $stock->save();
+                    $this->stocks->save($stock);
                 }
+
+                $this->kafka->publish('stock.reserved', ['order_id' => $orderId]);
             });
         } catch (Throwable) {
             $this->kafka->publish('stock.reservation_failed', [
                 'order_id' => $orderId,
                 'reason' => 'insufficient_stock',
             ]);
-
-            return;
         }
-
-        $this->kafka->publish('stock.reserved', ['order_id' => $orderId]);
     }
 
     /**
@@ -102,19 +95,14 @@ class StockReservationService
                 $storeId = (int) ($item['store_id'] ?? 0);
                 $qty = (int) ($item['quantity'] ?? 0);
 
-                /** @var Stock|null $stock */
-                $stock = Stock::query()
-                    ->where('product_id', $productId)
-                    ->where('store_id', $storeId)
-                    ->lockForUpdate()
-                    ->first();
+                $stock = $this->stocks->lockForUpdate($productId, $storeId);
 
                 if ($stock === null || $qty < 1) {
                     continue;
                 }
 
                 $stock->reserved = max(0, $stock->reserved - $qty);
-                $stock->save();
+                $this->stocks->save($stock);
             }
         });
     }

@@ -46,6 +46,9 @@ class ProductObserver
             'name' => $product->name,
             'slug' => $product->slug,
             'sku' => $product->sku,
+            'price' => $product->price,
+            'attributes' => $product->attributes ?? [],
+            'image' => $product->image,
         ];
     }
 }

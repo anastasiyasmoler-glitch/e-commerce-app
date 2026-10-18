@@ -28,6 +28,9 @@ class ProductsTable
                 TextColumn::make('sku')
                     ->label('SKU')
                     ->searchable(),
+                TextColumn::make('price')
+                    ->numeric()
+                    ->sortable(),
                 TextColumn::make('stock.quantity')
                     ->label('Quantity')
                     ->numeric()
