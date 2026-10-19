@@ -4,7 +4,6 @@ namespace App\Enums;
 
 /**
  * Saga lifecycle for an order (see order service spec).
- * Only a subset is implemented so far; extend as payment and shipping are added.
  */
 enum OrderStatus: string
 {
@@ -16,6 +15,13 @@ enum OrderStatus: string
     case PaymentPending = 'payment_pending';
 
     case Paid = 'paid';
+
+    /** Payment succeeded; order is confirmed for fulfillment (order.confirmed). */
+    case Confirmed = 'confirmed';
+
+    case Shipped = 'shipped';
+
+    case Completed = 'completed';
 
     case PaymentFailed = 'payment_failed';
 

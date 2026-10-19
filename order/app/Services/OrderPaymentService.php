@@ -83,20 +83,40 @@ class OrderPaymentService
             $payment->status = PaymentStatus::Succeeded->value;
             $payment->save();
 
-            $moved = $this->orders->transitionStatus(
-                (int) $payment->order_id,
+            $orderId = (int) $payment->order_id;
+            $order = $this->orders->findById($orderId);
+
+            if ($order === null) {
+                return;
+            }
+
+            if (in_array($order->status, [
+                OrderStatus::Confirmed->value,
+                OrderStatus::Shipped->value,
+                OrderStatus::Completed->value,
+            ], true)) {
+                return;
+            }
+
+            $movedToPaid = $this->orders->transitionStatus(
+                $orderId,
                 OrderStatus::PaymentPending->value,
                 OrderStatus::Paid->value,
             );
 
-            if (! $moved) {
-                return;
+            if ($movedToPaid) {
+                $this->kafka->publish('order.paid', ['order_id' => $orderId]);
             }
 
-            $orderId = (int) $payment->order_id;
+            $movedToConfirmed = $this->orders->transitionStatus(
+                $orderId,
+                OrderStatus::Paid->value,
+                OrderStatus::Confirmed->value,
+            );
 
-            $this->kafka->publish('order.paid', ['order_id' => $orderId]);
-            $this->kafka->publish('order.confirmed', ['order_id' => $orderId]);
+            if ($movedToConfirmed) {
+                $this->kafka->publish('order.confirmed', ['order_id' => $orderId]);
+            }
         });
     }
 

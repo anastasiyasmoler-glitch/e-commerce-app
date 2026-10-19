@@ -20,6 +20,7 @@ class CancelOrderService
         OrderStatus::StockReserved->value,
         OrderStatus::PaymentPending->value,
         OrderStatus::Paid->value,
+        OrderStatus::Confirmed->value,
     ];
 
     /** @var list<string> */
@@ -27,6 +28,7 @@ class CancelOrderService
         OrderStatus::StockReserved->value,
         OrderStatus::PaymentPending->value,
         OrderStatus::Paid->value,
+        OrderStatus::Confirmed->value,
     ];
 
     public function __construct(

@@ -8,7 +8,15 @@ class StoreOrderRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        $roles = $this->attributes->get('auth_user_roles');
+
+        if (! is_string($roles) || trim($roles) === '') {
+            return false;
+        }
+
+        $roleList = array_values(array_filter(array_map('trim', explode(',', $roles))));
+
+        return in_array('customer', $roleList, true);
     }
 
     /**

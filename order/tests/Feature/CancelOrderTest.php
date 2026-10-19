@@ -54,6 +54,17 @@ class CancelOrderTest extends TestCase
         ])->assertForbidden();
     }
 
+    public function test_cannot_cancel_after_shipped(): void
+    {
+        $order = $this->seedOrderForUser(7, OrderStatus::Shipped);
+
+        $this->postJson('/orders/'.$order->id.'/cancel', [], [
+            'X-Auth-User-Id' => '7',
+            'X-Auth-User-Email' => 'c@example.com',
+            'X-Auth-User-Roles' => 'customer',
+        ])->assertUnprocessable();
+    }
+
     public function test_cannot_cancel_already_cancelled_order(): void
     {
         $order = $this->seedOrderForUser(7, OrderStatus::Cancelled);

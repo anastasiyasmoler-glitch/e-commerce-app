@@ -148,7 +148,7 @@ services:
 
   stripe-cli:
     image: stripe/stripe-cli:latest
-    command: ["listen", "--forward-to", "https://order-nginx/webhooks/stripe", "--skip-verify"]
+    command: ["listen", "--forward-to", "https://auth-nginx/webhooks/stripe", "--skip-verify"]
     environment:
       STRIPE_API_KEY: ${STRIPE_SECRET:-sk_test_placeholder}
     networks: [default, microservices-net]

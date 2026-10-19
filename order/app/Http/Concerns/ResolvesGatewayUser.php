@@ -31,4 +31,9 @@ trait ResolvesGatewayUser
 
         return in_array('admin', $roles, true) || in_array('analyst', $roles, true);
     }
+
+    protected function gatewayIsCustomer(Request $request): bool
+    {
+        return in_array('customer', $this->gatewayRoles($request), true);
+    }
 }

@@ -28,6 +28,7 @@ class CreateOrderTest extends TestCase
         ], [
             'X-Auth-User-Id' => '42',
             'X-Auth-User-Email' => 'buyer@example.com',
+            'X-Auth-User-Roles' => 'customer',
             'Idempotency-Key' => 'checkout-attempt-1',
         ]);
 
@@ -62,6 +63,7 @@ class CreateOrderTest extends TestCase
         $headers = [
             'X-Auth-User-Id' => '7',
             'X-Auth-User-Email' => 'repeat@example.com',
+            'X-Auth-User-Roles' => 'customer',
             'Idempotency-Key' => 'same-key',
         ];
 
@@ -79,5 +81,27 @@ class CreateOrderTest extends TestCase
         $this->assertDatabaseCount('orders', 1);
         $this->assertDatabaseCount('outbox_messages', 1);
         $this->assertDatabaseCount('order_idempotency_keys', 1);
+    }
+
+    public function test_create_order_requires_customer_role(): void
+    {
+        ProductSnapshot::query()->create([
+            'product_id' => 1,
+            'store_id' => 1,
+            'name' => 'Item',
+            'sku' => null,
+            'price_cents' => 100,
+        ]);
+
+        $this->postJson('/orders', [
+            'items' => [['product_id' => 1, 'quantity' => 1]],
+        ], [
+            'X-Auth-User-Id' => '1',
+            'X-Auth-User-Email' => 'admin@example.com',
+            'X-Auth-User-Roles' => 'admin',
+            'Idempotency-Key' => 'admin-attempt',
+        ])->assertForbidden();
+
+        $this->assertDatabaseCount('orders', 0);
     }
 }

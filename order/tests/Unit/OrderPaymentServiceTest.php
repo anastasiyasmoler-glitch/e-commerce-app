@@ -17,7 +17,7 @@ class OrderPaymentServiceTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_payment_succeeded_marks_order_paid_and_enqueues_outbox_events(): void
+    public function test_payment_succeeded_marks_order_confirmed_and_enqueues_outbox_events(): void
     {
         $order = $this->seedPaymentPendingOrder('pi_test_1');
 
@@ -29,11 +29,28 @@ class OrderPaymentServiceTest extends TestCase
             ),
         );
 
-        $this->assertSame(OrderStatus::Paid->value, $order->fresh()->status);
+        $this->assertSame(OrderStatus::Confirmed->value, $order->fresh()->status);
         $this->assertSame(PaymentStatus::Succeeded->value, Payment::query()->first()->status);
 
         $topics = OutboxMessage::query()->orderBy('id')->pluck('topic')->all();
         $this->assertSame(['order.paid', 'order.confirmed'], $topics);
+    }
+
+    public function test_payment_webhook_is_idempotent_when_order_already_confirmed(): void
+    {
+        $order = $this->seedPaymentPendingOrder('pi_test_3');
+        $order->update(['status' => OrderStatus::Confirmed->value]);
+        Payment::query()->where('order_id', $order->id)->update(['status' => PaymentStatus::Succeeded->value]);
+
+        $this->app->make(OrderPaymentService::class)->handleWebhookNotification(
+            new PaymentWebhookNotification(
+                provider: 'stripe',
+                providerPaymentId: 'pi_test_3',
+                outcome: PaymentWebhookOutcome::Succeeded,
+            ),
+        );
+
+        $this->assertDatabaseCount('outbox_messages', 0);
     }
 
     public function test_payment_failed_releases_stock_via_outbox(): void
