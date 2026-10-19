@@ -30,7 +30,8 @@ class GatewayCustomerTest extends TestCase
         $response->assertNoContent()
             ->assertHeader('X-Auth-User-Id', (string) $user->id)
             ->assertHeader('X-Auth-User-Email', 'buyer@example.com')
-            ->assertHeader('X-Auth-User-Name', $user->name);
+            ->assertHeader('X-Auth-User-Name', $user->name)
+            ->assertHeader('X-Auth-User-Roles', 'customer');
     }
 
     public function test_gateway_customer_rejects_missing_bearer_token(): void

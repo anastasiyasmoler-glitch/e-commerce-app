@@ -108,9 +108,12 @@ class AuthController extends Controller
 
     private function gatewayIdentityResponse(User $user): Response
     {
+        $roles = $user->getRoleNames()->values()->all();
+
         return response()->noContent()
             ->header('X-Auth-User-Id', (string) $user->id)
             ->header('X-Auth-User-Email', (string) $user->email)
-            ->header('X-Auth-User-Name', (string) $user->name);
+            ->header('X-Auth-User-Name', (string) $user->name)
+            ->header('X-Auth-User-Roles', implode(',', $roles));
     }
 }
