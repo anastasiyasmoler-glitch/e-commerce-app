@@ -86,6 +86,28 @@ class AuthController extends Controller
             abort(403);
         }
 
+        return $this->gatewayIdentityResponse($user);
+    }
+
+    public function gatewayCustomer(Request $request): Response
+    {
+        $bearer = $request->bearerToken();
+
+        if ($bearer === null || $bearer === '') {
+            abort(401);
+        }
+
+        $user = $this->issuer->userFromAccessToken($bearer);
+
+        if ($user === null) {
+            abort(401);
+        }
+
+        return $this->gatewayIdentityResponse($user);
+    }
+
+    private function gatewayIdentityResponse(User $user): Response
+    {
         return response()->noContent()
             ->header('X-Auth-User-Id', (string) $user->id)
             ->header('X-Auth-User-Email', (string) $user->email)

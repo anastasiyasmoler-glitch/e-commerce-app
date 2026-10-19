@@ -25,3 +25,4 @@ Route::middleware(['auth:api', 'auth.access'])->group(function (): void {
 });
 
 Route::get('/_gateway/admin', [AuthController::class, 'gatewayAdmin']);
+Route::get('/_gateway/customer', [AuthController::class, 'gatewayCustomer']);

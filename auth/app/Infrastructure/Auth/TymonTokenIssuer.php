@@ -60,8 +60,11 @@ class TymonTokenIssuer implements TokenIssuer
                 return null;
             }
 
+            /** @var JWTGuard $guard */
+            $guard = auth('api');
+
             /** @var User|null $user */
-            $user = auth('api')->setToken($token)->user();
+            $user = $guard->setToken($token)->user();
         } catch (\Throwable) {
             return null;
         }
