@@ -25,9 +25,7 @@ class OutboxPublisherService
                     return false;
                 }
 
-                /** @var array<string, mixed> $payload */
-                $payload = is_array($message->payload) ? $message->payload : [];
-                $this->kafka->publish($message->topic, $payload);
+                $this->kafka->publish($message->topic, $message->payload);
                 $this->outbox->markPublished($message);
 
                 return true;

@@ -49,6 +49,8 @@ class ProductController extends Controller
      */
     private function present(Product $product): array
     {
+        $stock = $product->stock;
+
         return [
             'id' => $product->id,
             'store_id' => $product->store_id,
@@ -62,8 +64,8 @@ class ProductController extends Controller
             'image' => $product->image,
             'image_url' => $this->imageUrl($product->image),
             'stock' => [
-                'quantity' => $product->stock?->quantity ?? 0,
-                'reserved' => $product->stock?->reserved ?? 0,
+                'quantity' => $stock !== null ? $stock->quantity : 0,
+                'reserved' => $stock !== null ? $stock->reserved : 0,
             ],
         ];
     }

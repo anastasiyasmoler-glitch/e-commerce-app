@@ -24,7 +24,9 @@ class EloquentOutboxMessageRepository implements OutboxMessageRepositoryInterfac
             ->whereNull('published_at')
             ->orderBy('id');
 
-        if (OutboxMessage::query()->getConnection()->getDriverName() === 'pgsql') {
+        $driver = config('database.connections.'.config('database.default').'.driver');
+
+        if ($driver === 'pgsql') {
             $query->lock('FOR UPDATE SKIP LOCKED');
         } else {
             $query->lockForUpdate();

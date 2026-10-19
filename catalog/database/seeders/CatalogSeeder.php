@@ -146,7 +146,7 @@ class CatalogSeeder extends Seeder
     }
 
     /**
-     * @param  array<int, array{cat: string, name: string, slug: string, sku: string, desc: string, qty: int, res: int}>  $items
+     * @param  array<int, array{cat: string, name: string, slug: string, sku: string, desc: string, qty: int, res: int, price?: int, attributes?: array<string, string>}>  $items
      */
     private function products(Store $store, array $items): void
     {

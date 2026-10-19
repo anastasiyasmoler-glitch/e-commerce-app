@@ -7,6 +7,9 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
+/**
+ * @property-read Stock|null $stock
+ */
 #[Fillable(['store_id', 'category_id', 'name', 'slug', 'description', 'sku', 'price', 'attributes', 'image'])]
 class Product extends Model
 {

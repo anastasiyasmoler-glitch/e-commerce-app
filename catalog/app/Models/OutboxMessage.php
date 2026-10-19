@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @property array<string, mixed> $payload
+ */
 #[Fillable(['topic', 'payload', 'published_at'])]
 class OutboxMessage extends Model
 {

@@ -23,7 +23,7 @@ class PublishOutboxCommand extends Command
 
         $this->info('Publishing catalog outbox to Kafka.');
 
-        while (true) {
+        while (config('kafka.outbox_relay_enabled')) {
             try {
                 $outbox->flush();
             } catch (Throwable $exception) {
@@ -32,5 +32,7 @@ class PublishOutboxCommand extends Command
 
             usleep(500_000);
         }
+
+        return self::SUCCESS;
     }
 }
