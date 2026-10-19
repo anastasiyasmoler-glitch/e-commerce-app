@@ -2,8 +2,21 @@
 
 namespace App\Models;
 
+use Illuminate\Support\Carbon;
 use MongoDB\Laravel\Eloquent\Model;
 
+/**
+ * @property string $event
+ * @property string $channel
+ * @property string $recipient
+ * @property array<string, mixed> $payload
+ * @property string $status
+ * @property int $attempts
+ * @property string|null $error_message
+ * @property bool $is_dlq
+ * @property Carbon|null $sent_at
+ * @property Carbon|null $created_at
+ */
 class NotificationLog extends Model
 {
     public const STATUS_PENDING = 'pending';
