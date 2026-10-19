@@ -7,7 +7,7 @@ use App\Contracts\Auth\TokenIssuer;
 use App\Exceptions\InvalidRefreshTokenException;
 use App\Models\User;
 use Tymon\JWTAuth\Exceptions\JWTException;
-use Tymon\JWTAuth\Facades\JWTAuth;
+use Tymon\JWTAuth\JWTAuth;
 use Tymon\JWTAuth\JWTGuard;
 use Tymon\JWTAuth\Payload;
 
@@ -15,6 +15,7 @@ class TymonTokenIssuer implements TokenIssuer
 {
     public function __construct(
         private readonly RefreshTokenStore $refreshTokens,
+        private readonly JWTAuth $jwt,
     ) {}
 
     public function attempt(array $credentials): ?array
@@ -54,7 +55,7 @@ class TymonTokenIssuer implements TokenIssuer
     public function userFromAccessToken(string $token): ?User
     {
         try {
-            $payload = JWTAuth::setToken($token)->getPayload();
+            $payload = $this->jwt->setToken($token)->getPayload();
 
             if ($payload->get('token_use') === 'refresh') {
                 return null;
@@ -95,7 +96,7 @@ class TymonTokenIssuer implements TokenIssuer
 
     private function encode(User $user, string $tokenUse, int $ttlMinutes): string
     {
-        $factory = JWTAuth::factory();
+        $factory = $this->jwt->factory();
         $previousTtl = $factory->getTTL();
         $factory->setTTL($ttlMinutes);
 
@@ -104,18 +105,18 @@ class TymonTokenIssuer implements TokenIssuer
             // previously encoded token_use=refresh would leak into later decodes.
             $factory->emptyClaims();
 
-            return JWTAuth::customClaims(['token_use' => $tokenUse])->fromUser($user);
+            return $this->jwt->customClaims(['token_use' => $tokenUse])->fromUser($user);
         } finally {
             $factory->setTTL($previousTtl);
             $factory->emptyClaims();
-            JWTAuth::customClaims([]);
+            $this->jwt->customClaims([]);
         }
     }
 
     private function assertRefreshPayload(string $token): Payload
     {
         try {
-            $payload = JWTAuth::setToken($token)->getPayload();
+            $payload = $this->jwt->setToken($token)->getPayload();
         } catch (JWTException) {
             throw new InvalidRefreshTokenException;
         }
