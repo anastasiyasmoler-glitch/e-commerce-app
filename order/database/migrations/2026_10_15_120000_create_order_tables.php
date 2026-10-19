@@ -46,14 +46,14 @@ return new class extends Migration
             $table->id();
             $table->foreignId('order_id')->constrained()->cascadeOnDelete();
             $table->string('provider')->default('stripe');
-            $table->string('stripe_payment_intent_id')->nullable();
+            $table->string('provider_payment_id')->nullable();
             $table->string('status');
             $table->unsignedInteger('amount_cents');
             $table->string('currency', 3)->default('USD');
             $table->text('error_message')->nullable();
             $table->timestamps();
 
-            $table->index('stripe_payment_intent_id');
+            $table->index(['provider', 'provider_payment_id']);
         });
 
         Schema::create('outbox_messages', function (Blueprint $table) {

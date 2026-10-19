@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 #[Fillable([
     'order_id',
     'provider',
-    'stripe_payment_intent_id',
+    'provider_payment_id',
     'status',
     'amount_cents',
     'currency',

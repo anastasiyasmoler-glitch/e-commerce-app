@@ -3,14 +3,16 @@
 namespace App\Providers;
 
 use App\Contracts\KafkaPublisherInterface;
-use App\Contracts\OrderIdempotencyStore;
-use App\Infrastructure\ArrayOrderIdempotencyStore;
-use App\Infrastructure\RedisOrderIdempotencyStore;
+use App\Contracts\PaymentGatewayInterface;
+use App\Infrastructure\Payments\FakePaymentGateway;
+use App\Infrastructure\Payments\StripePaymentGateway;
 use App\Kafka\ArrayKafkaPublisher;
 use App\Kafka\OutboxKafkaPublisher;
+use App\Repositories\Contracts\OrderIdempotencyRepositoryInterface;
 use App\Repositories\Contracts\OrderRepositoryInterface;
 use App\Repositories\Contracts\OutboxMessageRepositoryInterface;
 use App\Repositories\Contracts\ProductSnapshotRepositoryInterface;
+use App\Repositories\EloquentOrderIdempotencyRepository;
 use App\Repositories\EloquentOrderRepository;
 use App\Repositories\EloquentOutboxMessageRepository;
 use App\Repositories\EloquentProductSnapshotRepository;
@@ -27,17 +29,16 @@ class AppServiceProvider extends ServiceProvider
 
         $this->app->bind(OrderRepositoryInterface::class, EloquentOrderRepository::class);
         $this->app->bind(ProductSnapshotRepositoryInterface::class, EloquentProductSnapshotRepository::class);
-        $this->app->bind(OrderIdempotencyStore::class, function ($app) {
-            if ($app->environment('testing')) {
-                return $app->make(ArrayOrderIdempotencyStore::class);
-            }
-
-            return $app->make(RedisOrderIdempotencyStore::class);
-        });
+        $this->app->bind(OrderIdempotencyRepositoryInterface::class, EloquentOrderIdempotencyRepository::class);
 
         $this->app->singleton(ArrayKafkaPublisher::class);
 
         $this->app->bind(KafkaPublisherInterface::class, OutboxKafkaPublisher::class);
+
+        $this->app->bind(
+            PaymentGatewayInterface::class,
+            $this->app->environment('testing') ? FakePaymentGateway::class : StripePaymentGateway::class,
+        );
     }
 
     public function boot(): void

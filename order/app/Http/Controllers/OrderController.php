@@ -2,17 +2,63 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Concerns\ResolvesGatewayUser;
+use App\Http\Requests\ListOrdersRequest;
 use App\Http\Requests\StoreOrderRequest;
+use App\Http\Resources\OrderResource;
 use App\Models\Order;
-use App\Models\OrderItem;
+use App\Services\CancelOrderService;
 use App\Services\CreateOrderService;
+use App\Services\OrderReadService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class OrderController extends Controller
 {
+    use ResolvesGatewayUser;
+
     public function __construct(
         private readonly CreateOrderService $createOrder,
+        private readonly OrderReadService $orderRead,
+        private readonly CancelOrderService $cancelOrder,
     ) {}
+
+    public function index(ListOrdersRequest $request): JsonResponse
+    {
+        $paginator = $this->orderRead->listForViewer(
+            $this->gatewayUserId($request),
+            $this->gatewayCanViewAllOrders($request),
+            $request->page(),
+            $request->perPage(),
+        );
+
+        return response()->json([
+            'data' => $paginator->getCollection()
+                ->map(fn (Order $order): array => OrderResource::toArray($order))
+                ->values(),
+            'meta' => [
+                'current_page' => $paginator->currentPage(),
+                'per_page' => $paginator->perPage(),
+                'total' => $paginator->total(),
+                'last_page' => $paginator->lastPage(),
+            ],
+        ]);
+    }
+
+    public function show(Request $request, int $order): JsonResponse
+    {
+        $model = $this->orderRead->findForViewer(
+            $this->gatewayUserId($request),
+            $this->gatewayCanViewAllOrders($request),
+            $order,
+        );
+
+        if ($model === null) {
+            abort(404);
+        }
+
+        return response()->json(['data' => OrderResource::toArray($model)]);
+    }
 
     public function store(StoreOrderRequest $request): JsonResponse
     {
@@ -25,30 +71,18 @@ class OrderController extends Controller
             (string) ($request->validated('currency') ?? 'USD'),
         );
 
-        return response()->json(['data' => $this->present($order)], 201);
+        return response()->json(['data' => OrderResource::toArray($order)], 201);
     }
 
-    /**
-     * @return array<string, mixed>
-     */
-    private function present(Order $order): array
+    public function cancel(Request $request, int $order): JsonResponse
     {
-        return [
-            'id' => $order->id,
-            'user_id' => $order->user_id,
-            'status' => $order->status,
-            'total_cents' => $order->total_cents,
-            'currency' => $order->currency,
-            'shipping_address' => $order->shipping_address,
-            'items' => $order->items->map(fn (OrderItem $item): array => [
-                'product_id' => $item->product_id,
-                'store_id' => $item->store_id,
-                'product_name' => $item->product_name,
-                'sku' => $item->sku,
-                'price_cents' => $item->price_cents,
-                'quantity' => $item->quantity,
-            ])->values()->all(),
-            'created_at' => $order->created_at?->toIso8601String(),
-        ];
+        $model = $this->cancelOrder->cancelForViewer(
+            $this->gatewayUserId($request),
+            $this->gatewayCanViewAllOrders($request),
+            $order,
+            $request->input('reason') !== null ? (string) $request->input('reason') : null,
+        );
+
+        return response()->json(['data' => OrderResource::toArray($model)]);
     }
 }

@@ -12,4 +12,9 @@ interface ProductSnapshotRepositoryInterface
      * @return Collection<int, ProductSnapshot>
      */
     public function findMany(array $productIds): Collection;
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    public function upsertFromCatalogEvent(array $payload): void;
 }

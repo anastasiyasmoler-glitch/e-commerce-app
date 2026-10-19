@@ -3,6 +3,7 @@
 namespace App\Repositories\Contracts;
 
 use App\Models\Order;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 interface OrderRepositoryInterface
 {
@@ -20,4 +21,19 @@ interface OrderRepositoryInterface
     ): Order;
 
     public function findById(int $orderId): ?Order;
+
+    /**
+     * Move status forward only when the row still has $fromStatus (idempotent saga step).
+     */
+    public function transitionStatus(int $orderId, string $fromStatus, string $toStatus): bool;
+
+    /**
+     * @param  list<string>  $fromStatuses
+     */
+    public function transitionStatusFromAny(int $orderId, array $fromStatuses, string $toStatus): bool;
+
+    /**
+     * @return LengthAwarePaginator<int, Order>
+     */
+    public function paginate(?int $userId, int $page, int $perPage): LengthAwarePaginator;
 }

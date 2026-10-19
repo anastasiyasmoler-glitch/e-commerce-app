@@ -3,10 +3,10 @@
 namespace App\Services;
 
 use App\Contracts\KafkaPublisherInterface;
-use App\Contracts\OrderIdempotencyStore;
 use App\Enums\OrderStatus;
 use App\Models\Order;
 use App\Models\ProductSnapshot;
+use App\Repositories\Contracts\OrderIdempotencyRepositoryInterface;
 use App\Repositories\Contracts\OrderRepositoryInterface;
 use App\Repositories\Contracts\ProductSnapshotRepositoryInterface;
 use Illuminate\Support\Facades\DB;
@@ -18,7 +18,7 @@ class CreateOrderService
         private readonly OrderRepositoryInterface $orders,
         private readonly ProductSnapshotRepositoryInterface $snapshots,
         private readonly KafkaPublisherInterface $kafka,
-        private readonly OrderIdempotencyStore $idempotency,
+        private readonly OrderIdempotencyRepositoryInterface $idempotency,
     ) {}
 
     /**
@@ -32,23 +32,24 @@ class CreateOrderService
         ?array $shippingAddress = null,
         string $currency = 'USD',
     ): Order {
-        $existingId = $this->idempotency->findOrderId($userId, $idempotencyKey);
-
-        if ($existingId !== null) {
-            $existing = $this->orders->findById($existingId);
-
-            if ($existing !== null) {
-                return $existing;
-            }
-        }
-
-        $order = DB::transaction(function () use (
+        return DB::transaction(function () use (
             $userId,
             $userEmail,
+            $idempotencyKey,
             $lineItems,
             $shippingAddress,
             $currency,
         ): Order {
+            $existingOrderId = $this->idempotency->lockForKey($userId, $idempotencyKey);
+
+            if ($existingOrderId !== null) {
+                $existing = $this->orders->findById($existingOrderId);
+
+                if ($existing !== null) {
+                    return $existing;
+                }
+            }
+
             $items = $this->buildOrderItems($lineItems);
             $totalCents = array_sum(
                 array_map(
@@ -67,6 +68,8 @@ class CreateOrderService
                 $items,
             );
 
+            $this->idempotency->attachOrderId($userId, $idempotencyKey, $order->id);
+
             $this->kafka->publish('order.created', [
                 'order_id' => $order->id,
                 'items' => array_map(
@@ -81,11 +84,6 @@ class CreateOrderService
 
             return $order;
         });
-
-        $ttl = (int) config('order.idempotency_ttl_seconds', 86400);
-        $this->idempotency->remember($userId, $idempotencyKey, $order->id, $ttl);
-
-        return $order;
     }
 
     /**

@@ -38,6 +38,7 @@ class CreateOrderTest extends TestCase
 
         $this->assertDatabaseCount('orders', 1);
         $this->assertDatabaseCount('order_items', 1);
+        $this->assertDatabaseCount('order_idempotency_keys', 1);
 
         $outbox = OutboxMessage::query()->first();
         $this->assertNotNull($outbox);
@@ -77,5 +78,6 @@ class CreateOrderTest extends TestCase
         $this->assertSame($first->json('data.id'), $second->json('data.id'));
         $this->assertDatabaseCount('orders', 1);
         $this->assertDatabaseCount('outbox_messages', 1);
+        $this->assertDatabaseCount('order_idempotency_keys', 1);
     }
 }

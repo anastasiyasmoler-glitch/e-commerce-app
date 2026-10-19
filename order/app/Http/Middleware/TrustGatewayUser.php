@@ -21,8 +21,14 @@ class TrustGatewayUser
             abort(401, 'Authentication required.');
         }
 
+        $roles = $request->header('X-Auth-User-Roles');
+
         $request->attributes->set('auth_user_id', (int) $userId);
         $request->attributes->set('auth_user_email', trim($email));
+        $request->attributes->set(
+            'auth_user_roles',
+            is_string($roles) ? trim($roles) : '',
+        );
 
         return $next($request);
     }
