@@ -4,7 +4,7 @@
   "scripts": {
     "prepare": "husky",
     "lint:js": "npm run lint --prefix frontend && npm run lint --prefix admin",
-    "lint:php": "composer --working-dir=auth lint && composer --working-dir=catalog lint && composer --working-dir=notification lint",
+    "lint:php": "composer --working-dir=auth lint && composer --working-dir=catalog lint && composer --working-dir=notification lint && composer --working-dir=order lint",
     "lint:all": "npm run lint:js && npm run lint:php",
     "test:all": "composer --working-dir=auth test && composer --working-dir=catalog test && composer --working-dir=notification test",
     "test": "echo \"No root tests\" && exit 0"

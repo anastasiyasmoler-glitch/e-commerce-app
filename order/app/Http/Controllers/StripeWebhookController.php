@@ -7,7 +7,6 @@ use App\Services\OrderPaymentService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 
-
 class StripeWebhookController extends Controller
 {
     public function __construct(
