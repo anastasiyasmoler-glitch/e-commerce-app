@@ -32,6 +32,10 @@ try {
     sleep 2
 done
 
-php artisan migrate --force --no-interaction
+# Only the main php-fpm container runs migrations; worker/relay containers
+# share the same database and would race each other (and it) on a fresh start.
+if [ "$1" = "php-fpm" ]; then
+    php artisan migrate --force --isolated --no-interaction
+fi
 
-exec docker-php-entrypoint php-fpm
+exec docker-php-entrypoint "$@"

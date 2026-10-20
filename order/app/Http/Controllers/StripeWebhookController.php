@@ -7,9 +7,7 @@ use App\Services\OrderPaymentService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 
-/**
- * Stripe HTTP endpoint — signature verification lives in the Stripe payment gateway adapter.
- */
+
 class StripeWebhookController extends Controller
 {
     public function __construct(

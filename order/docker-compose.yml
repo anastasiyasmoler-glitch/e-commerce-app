@@ -60,7 +60,10 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    networks: [default, microservices-net]
+    networks:
+      default:
+        aliases: [order-back]
+      microservices-net: {}
 
   outbox-relay:
     build:
@@ -148,7 +151,15 @@ services:
 
   stripe-cli:
     image: stripe/stripe-cli:latest
-    command: ["listen", "--forward-to", "https://auth-nginx/webhooks/stripe", "--skip-verify"]
+    command:
+      [
+        "listen",
+        "--forward-to",
+        "https://auth-nginx/webhooks/stripe",
+        "--skip-verify",
+        "--events",
+        "payment_intent.succeeded,payment_intent.payment_failed",
+      ]
     environment:
       STRIPE_API_KEY: ${STRIPE_SECRET:-sk_test_placeholder}
     networks: [default, microservices-net]

@@ -22,9 +22,7 @@ interface OrderRepositoryInterface
 
     public function findById(int $orderId): ?Order;
 
-    /**
-     * Move status forward only when the row still has $fromStatus (idempotent saga step).
-     */
+
     public function transitionStatus(int $orderId, string $fromStatus, string $toStatus): bool;
 
     /**

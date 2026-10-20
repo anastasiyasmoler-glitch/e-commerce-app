@@ -6,9 +6,7 @@ use App\Models\Order;
 use App\Repositories\Contracts\OrderRepositoryInterface;
 use Illuminate\Pagination\LengthAwarePaginator;
 
-/**
- * Read-side use cases for order history (ABAC: customer = own rows, admin/analyst = all).
- */
+
 class OrderReadService
 {
     public function __construct(

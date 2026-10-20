@@ -7,12 +7,7 @@ use App\Enums\OrderStatus;
 use App\Repositories\Contracts\OrderRepositoryInterface;
 use Illuminate\Support\Facades\DB;
 
-/**
- * Reacts to Catalog inventory outcomes after order.created (choreography saga).
- *
- * Catalog publishes stock.reserved or stock.reservation_failed; this service updates
- * orders.status and, on failure, enqueues order.cancelled via the outbox in the same DB transaction.
- */
+
 class OrderStockReservationHandler
 {
     public function __construct(
