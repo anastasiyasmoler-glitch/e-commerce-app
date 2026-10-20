@@ -88,7 +88,10 @@ services:
         condition: service_started
       oidc:
         condition: service_started
-    networks: [default, microservices-net]
+    networks:
+      default:
+        aliases: [auth-back]
+      microservices-net: {}
 
   nginx:
     build:

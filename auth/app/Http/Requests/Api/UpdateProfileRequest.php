@@ -21,9 +21,10 @@ class UpdateProfileRequest extends FormRequest
         $userId = $this->user('api')?->id;
 
         return [
-            'name' => ['required', 'string', 'max:255'],
-            'phone' => ['required', 'string', 'max:32', 'regex:/^\+?[1-9]\d{7,14}$/', Rule::unique(User::class)->ignore($userId)],
+            'name' => ['sometimes', 'required', 'string', 'max:255'],
+            'phone' => ['sometimes', 'required', 'string', 'max:32', 'regex:/^\+?[1-9]\d{7,14}$/', Rule::unique(User::class)->ignore($userId)],
             'email' => [
+                'sometimes',
                 'required',
                 'string',
                 'lowercase',

@@ -47,6 +47,19 @@ class JwtProfileTest extends TestCase
         ]);
     }
 
+    public function test_patch_profile_allows_partial_update(): void
+    {
+        $headers = $this->bearerForEmail('partial@example.com');
+
+        $this->patchJson('/profile', [
+            'name' => 'Only Name Changed',
+        ], $headers)
+            ->assertOk()
+            ->assertJsonPath('name', 'Only Name Changed')
+            ->assertJsonPath('email', 'partial@example.com')
+            ->assertJsonPath('phone', '375293333333');
+    }
+
     public function test_change_password_and_login_with_new_one(): void
     {
         $headers = $this->bearerForEmail('pwd@example.com');

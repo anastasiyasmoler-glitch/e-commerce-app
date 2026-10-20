@@ -33,7 +33,7 @@ class ProfileService
     }
 
     /**
-     * @param  array{name: string, email: string, phone: string}  $attributes
+     * @param  array{name?: string, email?: string, phone?: string}  $attributes
      */
     public function update(User $user, array $attributes): User
     {
