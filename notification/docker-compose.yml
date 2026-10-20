@@ -86,7 +86,10 @@ services:
         condition: service_started
       kafka:
         condition: service_healthy
-    networks: [default, microservices-net]
+    networks:
+      default:
+        aliases: [notification-back]
+      microservices-net: {}
 
   consumer:
     build:
