@@ -22,7 +22,6 @@ interface OrderRepositoryInterface
 
     public function findById(int $orderId): ?Order;
 
-
     public function transitionStatus(int $orderId, string $fromStatus, string $toStatus): bool;
 
     /**

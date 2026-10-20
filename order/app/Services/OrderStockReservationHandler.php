@@ -7,7 +7,6 @@ use App\Enums\OrderStatus;
 use App\Repositories\Contracts\OrderRepositoryInterface;
 use Illuminate\Support\Facades\DB;
 
-
 class OrderStockReservationHandler
 {
     public function __construct(

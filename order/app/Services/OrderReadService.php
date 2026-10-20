@@ -6,7 +6,6 @@ use App\Models\Order;
 use App\Repositories\Contracts\OrderRepositoryInterface;
 use Illuminate\Pagination\LengthAwarePaginator;
 
-
 class OrderReadService
 {
     public function __construct(
