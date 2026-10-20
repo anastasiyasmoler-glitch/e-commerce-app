@@ -1,0 +1,9 @@
+.env
+/bin/
+*.exe
+*.test
+coverage.out
+
+docker/nginx/certs/*.pem
+docker/nginx/certs/*.key
+!docker/nginx/certs/.gitkeep
