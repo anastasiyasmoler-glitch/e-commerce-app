@@ -39,6 +39,9 @@ class Product extends Model
         return $this->hasOne(Stock::class);
     }
 
+    /**
+     * @return HasMany<ProductAttributeValue, $this>
+     */
     public function attributeValues(): HasMany
     {
         return $this->hasMany(ProductAttributeValue::class);
