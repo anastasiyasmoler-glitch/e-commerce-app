@@ -24,7 +24,9 @@ export function CategoryPage() {
   const title = current?.name ?? 'Catalog'
   const rows = products.data ?? []
   const storeName = selectedStore?.name ?? ''
-  const loading = roots.isPending || products.isPending || products.isFetching
+  const catalogReady = selectedStore?.id !== undefined
+  const loading =
+    catalogReady && (roots.isLoading || products.isLoading || products.isFetching)
 
   const facetLinks = useMemo(
     () => [
@@ -36,6 +38,15 @@ export function CategoryPage() {
 
   if (loading) {
     return <PageLoading />
+  }
+
+  if (!catalogReady) {
+    return (
+      <Container className="py-20 text-center">
+        <h2 className="font-display text-[28px] font-medium">No stores in the catalog yet</h2>
+        <p className="mt-2 text-[15px] text-muted">Add catalog data, then refresh this page.</p>
+      </Container>
+    )
   }
 
   if (products.isError) {

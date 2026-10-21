@@ -57,12 +57,10 @@ class RedisRefreshTokenStore implements RefreshTokenStore
 
         $result = Redis::eval(
             $script,
-            [
-                $this->lookupKey($hash),
-                $this->tokenPrefix(),
-                $hash,
-            ],
             2,
+            $this->lookupKey($hash),
+            $this->tokenPrefix(),
+            $hash,
         );
 
         return is_numeric($result) ? (int) $result : null;
@@ -95,12 +93,10 @@ class RedisRefreshTokenStore implements RefreshTokenStore
 
         Redis::eval(
             $script,
-            [
-                $pattern,
-                $this->tokenPrefix().$userId.':',
-                $this->lookupPrefix(),
-            ],
             3,
+            $pattern,
+            $this->tokenPrefix().$userId.':',
+            $this->lookupPrefix(),
         );
     }
 

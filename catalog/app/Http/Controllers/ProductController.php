@@ -60,7 +60,7 @@ class ProductController extends Controller
             'description' => $product->description,
             'sku' => $product->sku,
             'price' => $product->price,
-            'attributes' => $product->attributes ?? [],
+            'attributes' => $product->attributesMap(),
             'image' => $product->image,
             'image_url' => $this->imageUrl($product->image),
             'stock' => [

@@ -25,7 +25,7 @@ class EloquentCatalogReadRepository implements CatalogReadRepositoryInterface
     public function productsForStore(int $storeId, ?int $categoryId, int $page, int $perPage): Collection
     {
         return Product::query()
-            ->with('stock')
+            ->with(['stock', 'attributeValues.attribute'])
             ->where('store_id', $storeId)
             ->when($categoryId !== null, fn ($q) => $q->where('category_id', $categoryId))
             ->orderBy('name')
@@ -36,7 +36,7 @@ class EloquentCatalogReadRepository implements CatalogReadRepositoryInterface
     public function findProductInStore(int $storeId, int $productId): ?Product
     {
         return Product::query()
-            ->with('stock')
+            ->with(['stock', 'attributeValues.attribute'])
             ->where('store_id', $storeId)
             ->whereKey($productId)
             ->first();

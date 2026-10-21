@@ -6,6 +6,7 @@ import { HomePage } from './pages/HomePage'
 import { ProductPage } from './pages/ProductPage'
 import { paths } from './paths'
 import { ProfilePage } from './pages/ProfilePage'
+import { SearchPage } from './pages/SearchPage'
 
 export const router = createBrowserRouter([
   {
@@ -16,6 +17,7 @@ export const router = createBrowserRouter([
       { path: 'categories', element: <CategoryPage /> },
       { path: 'categories/:slug', element: <CategoryPage /> },
       { path: 'products/:id', element: <ProductPage /> },
+      { path: 'search', element: <SearchPage /> },
       {
         element: <RequireAuth />,
         children: [{ path: 'profile', element: <ProfilePage /> }],

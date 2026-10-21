@@ -7,8 +7,10 @@ use App\Kafka\ArrayKafkaPublisher;
 use App\Kafka\OutboxKafkaPublisher;
 use App\Models\Category;
 use App\Models\Product;
+use App\Models\ProductAttributeValue;
 use App\Models\Stock;
 use App\Observers\CategoryObserver;
+use App\Observers\ProductAttributeValueObserver;
 use App\Observers\ProductObserver;
 use App\Observers\StockObserver;
 use App\Repositories\Contracts\CatalogReadRepositoryInterface;
@@ -48,6 +50,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Product::observe(ProductObserver::class);
+        ProductAttributeValue::observe(ProductAttributeValueObserver::class);
         Category::observe(CategoryObserver::class);
         Stock::observe(StockObserver::class);
     }

@@ -39,16 +39,6 @@ class ProductObserver
      */
     private function body(Product $product): array
     {
-        return [
-            'id' => $product->id,
-            'store_id' => $product->store_id,
-            'category_id' => $product->category_id,
-            'name' => $product->name,
-            'slug' => $product->slug,
-            'sku' => $product->sku,
-            'price' => $product->price,
-            'attributes' => $product->attributes ?? [],
-            'image' => $product->image,
-        ];
+        return $product->toEventPayload();
     }
 }

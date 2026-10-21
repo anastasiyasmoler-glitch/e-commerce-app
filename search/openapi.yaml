@@ -1,0 +1,214 @@
+openapi: 3.0.3
+info:
+  title: Search Service API
+  version: 1.0.0
+  description: Public product search over OpenSearch. No authentication required.
+
+servers:
+  - url: https://localhost/api/search
+    description: Auth gateway (storefront)
+  - url: https://localhost:8446
+    description: Search nginx (direct dev)
+
+paths:
+  /search:
+    get:
+      summary: Search products
+      operationId: searchProducts
+      parameters:
+        - name: q
+          in: query
+          description: Full-text query (name, description)
+          schema:
+            type: string
+        - name: store_id
+          in: query
+          schema:
+            type: string
+        - name: category_id
+          in: query
+          description: Repeat or single category id filter
+          schema:
+            type: array
+            items:
+              type: string
+          style: form
+          explode: true
+        - name: available
+          in: query
+          schema:
+            type: boolean
+        - name: price_min
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+        - name: price_max
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+        - name: attr.{code}
+          in: query
+          description: Attribute facet filter, e.g. attr.color=black
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: per_page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [relevance, price_asc, price_desc]
+            default: relevance
+      responses:
+        '200':
+          description: Search results with facets
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    $ref: '#/components/schemas/SearchResult'
+        '400':
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Search failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /healthz:
+    get:
+      summary: Liveness probe
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: string
+
+  /readyz:
+    get:
+      summary: Readiness (OpenSearch reachable)
+      responses:
+        '200':
+          description: Ready
+        '503':
+          description: OpenSearch unavailable
+
+components:
+  schemas:
+    Error:
+      type: object
+      properties:
+        message:
+          type: string
+
+    FacetValue:
+      type: object
+      required: [value, count]
+      properties:
+        value:
+          type: string
+        label:
+          type: string
+          description: Human-readable label (category name)
+        count:
+          type: integer
+
+    Facets:
+      type: object
+      properties:
+        category_id:
+          type: array
+          items:
+            $ref: '#/components/schemas/FacetValue'
+        available:
+          type: array
+          items:
+            $ref: '#/components/schemas/FacetValue'
+        price:
+          type: array
+          items:
+            $ref: '#/components/schemas/FacetValue'
+        attributes:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              $ref: '#/components/schemas/FacetValue'
+
+    SearchItem:
+      type: object
+      properties:
+        id:
+          type: string
+        store_id:
+          type: string
+        category_id:
+          type: string
+        name:
+          type: string
+        slug:
+          type: string
+        sku:
+          type: string
+        description:
+          type: string
+        price:
+          type: integer
+        attributes:
+          type: object
+          additionalProperties:
+            type: string
+        image:
+          type: string
+        available:
+          type: boolean
+
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+        per_page:
+          type: integer
+        total:
+          type: integer
+        total_pages:
+          type: integer
+
+    SearchResult:
+      type: object
+      required: [query, items, facets, pagination]
+      properties:
+        query:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/SearchItem'
+        facets:
+          $ref: '#/components/schemas/Facets'
+        pagination:
+          $ref: '#/components/schemas/Pagination'

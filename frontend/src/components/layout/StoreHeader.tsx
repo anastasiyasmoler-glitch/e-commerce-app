@@ -1,14 +1,15 @@
-import { Search, ShoppingCart, Sparkles, User } from 'lucide-react'
-import { type FormEvent } from 'react'
-import { Link, NavLink } from 'react-router-dom'
+import { Search as SearchIcon, ShoppingCart, Sparkles, User } from 'lucide-react'
+import { type FormEvent, useState } from 'react'
+import { Link, NavLink, useNavigate, useSearchParams } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Container } from '@/components/ui/container'
 import { readDisplayName } from '@/auth/displayName'
+import { StoreSelector } from '@/components/catalog/StoreSelector'
 import { useSelectedStore } from '@/catalog/SelectedStoreContext'
 import { useCategories } from '@/hooks/useCategories'
 import { useMe } from '@/hooks/useMe'
 import { useSession } from '@/hooks/useSession'
-import { categoryPath, paths } from '@/paths'
+import { categoryPath, paths, searchPath } from '@/paths'
 
 type StoreHeaderProps = {
   onSignIn: () => void
@@ -16,46 +17,66 @@ type StoreHeaderProps = {
 }
 
 export function StoreHeader({ onSignIn, onRegister }: StoreHeaderProps) {
+  const navigate = useNavigate()
+  const [urlSearchParams] = useSearchParams()
   const session = useSession()
   const me = useMe()
   const { selectedStore, isPending: storesPending } = useSelectedStore()
+  const [searchInput, setSearchInput] = useState(() => urlSearchParams.get('q') ?? '')
   const categoriesQuery = useCategories(selectedStore?.id)
   const categories = (categoriesQuery.data ?? []).filter((category) => category.parent_id === null)
   const categoriesLoading = storesPending || categoriesQuery.isPending || !categoriesQuery.isSuccess
   const signedOut = session.isFetched && session.data === false
   const name = me.data?.name ?? (signedOut ? null : readDisplayName())
 
-  function onSearch(event: FormEvent) {
+  function submitSearch(event: FormEvent) {
     event.preventDefault()
+    navigate(searchPath(searchInput))
   }
 
   return (
     <>
       <header className="sticky top-0 z-20 border-b border-line bg-surface/96 backdrop-blur-md">
-        <Container className="flex h-[68px] items-center gap-6">
+        <Container className="flex min-h-[68px] flex-wrap items-center gap-x-4 gap-y-3 py-2 sm:flex-nowrap sm:gap-x-5 sm:py-0">
           <Link
             to={paths.home}
-            className="font-display text-[28px] leading-none font-semibold tracking-[-0.03em] text-brand"
+            className="shrink-0 font-display text-[28px] leading-none font-semibold tracking-[-0.03em] text-brand"
           >
             Domo<i className="not-italic text-accent">.</i>
           </Link>
+          <StoreSelector />
           <form
-            className="relative ml-auto flex-initial basis-[280px]"
+            className="relative flex min-w-0 flex-1 basis-full items-center gap-2 sm:ml-auto sm:max-w-[380px] sm:basis-auto"
             role="search"
-            onSubmit={onSearch}
+            onSubmit={submitSearch}
           >
-            <Search
-              className="pointer-events-none absolute top-1/2 left-[11px] size-4 -translate-y-1/2 text-muted"
-              aria-hidden
-            />
-            <input
-              className="h-9 w-full rounded-[6px] border border-line bg-transparent pr-3 pl-9 text-[13px] outline-none transition-all placeholder:text-muted/70 focus:border-brand focus:bg-surface focus:ring-3 focus:ring-brand/14"
-              type="search"
-              placeholder="Search furniture and home goods"
-              aria-label="Search products"
-            />
+            <div className="relative min-w-0 flex-1">
+              <SearchIcon
+                className="pointer-events-none absolute top-1/2 left-[11px] size-4 -translate-y-1/2 text-muted"
+                aria-hidden
+              />
+              <input
+                className="h-9 w-full rounded-[6px] border border-line bg-transparent pr-3 pl-9 text-[13px] outline-none transition-all placeholder:text-muted/70 focus:border-brand focus:bg-surface focus:ring-3 focus:ring-brand/14"
+                type="text"
+                inputMode="search"
+                name="q"
+                value={searchInput}
+                onChange={(event) => setSearchInput(event.target.value)}
+                placeholder="Search furniture and home goods"
+                aria-label="Search products"
+              />
+            </div>
+            <Button
+              type="submit"
+              className="h-9 shrink-0 rounded-[6px] bg-brand px-4 text-[13px] font-semibold text-white hover:bg-brand-dark"
+            >
+              Search
+            </Button>
           </form>
-          <nav className="flex shrink-0 items-center gap-6 text-[13px] font-medium" aria-label="Account">
+          <nav
+            className="flex shrink-0 items-center gap-4 text-[13px] font-medium sm:gap-6"
+            aria-label="Account"
+          >
             <button
               type="button"
               className="inline-flex items-center gap-2 text-ink transition-colors hover:text-brand"

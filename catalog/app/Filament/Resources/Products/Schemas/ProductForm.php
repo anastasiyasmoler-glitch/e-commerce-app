@@ -3,7 +3,7 @@
 namespace App\Filament\Resources\Products\Schemas;
 
 use Filament\Forms\Components\FileUpload;
-use Filament\Forms\Components\KeyValue;
+use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -34,10 +34,24 @@ class ProductForm
                     ->default(0)
                     ->required()
                     ->helperText('Price in the smallest currency unit (cents).'),
-                KeyValue::make('attributes')
-                    ->keyLabel('Name')
-                    ->valueLabel('Value')
-                    ->reorderable(),
+                Repeater::make('attributeValues')
+                    ->relationship('attributeValues')
+                    ->schema([
+                        Select::make('attribute_id')
+                            ->relationship(
+                                name: 'attribute',
+                                titleAttribute: 'name',
+                                modifyQueryUsing: fn ($query, $get) => $query->where('store_id', (int) $get('../../store_id')),
+                            )
+                            ->required()
+                            ->searchable()
+                            ->preload(),
+                        TextInput::make('value')
+                            ->required()
+                            ->maxLength(255),
+                    ])
+                    ->columns(2)
+                    ->columnSpanFull(),
                 FileUpload::make('image')
                     ->image()
                     ->disk('s3')
