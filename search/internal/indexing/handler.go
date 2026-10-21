@@ -15,12 +15,18 @@ type ProductStore interface {
 	PatchProductAvailability(ctx context.Context, productID string, available bool) error
 }
 
-type Handler struct {
-	products ProductStore
+type CategoryStore interface {
+	UpsertCategory(ctx context.Context, doc opensearch.CategoryDocument) error
+	DeleteCategory(ctx context.Context, categoryID string) error
 }
 
-func NewHandler(products ProductStore) *Handler {
-	return &Handler{products: products}
+type Handler struct {
+	products   ProductStore
+	categories CategoryStore
+}
+
+func NewHandler(products ProductStore, categories CategoryStore) *Handler {
+	return &Handler{products: products, categories: categories}
 }
 
 func (h *Handler) Handle(ctx context.Context, topic string, payload []byte) error {
@@ -43,6 +49,18 @@ func (h *Handler) Handle(ctx context.Context, topic string, payload []byte) erro
 			return err
 		}
 		return h.products.PatchProductAvailability(ctx, id, available)
+	case "category.created", "category.updated":
+		doc, err := categoryDocumentFromPayload(payload)
+		if err != nil {
+			return err
+		}
+		return h.categories.UpsertCategory(ctx, doc)
+	case "category.deleted":
+		id, err := categoryIDFromDeletePayload(payload)
+		if err != nil {
+			return err
+		}
+		return h.categories.DeleteCategory(ctx, id)
 	default:
 		slog.Debug("skip unhandled topic", "topic", topic)
 		return nil
@@ -123,4 +141,43 @@ func availabilityFromStockPayload(payload []byte) (string, bool, error) {
 	available := quantity-reserved > 0
 
 	return productID, available, nil
+}
+
+func categoryDocumentFromPayload(payload []byte) (opensearch.CategoryDocument, error) {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(payload, &raw); err != nil {
+		return opensearch.CategoryDocument{}, fmt.Errorf("decode category payload: %w", err)
+	}
+
+	id, err := requiredStringID(raw, "id")
+	if err != nil {
+		return opensearch.CategoryDocument{}, err
+	}
+	storeID, err := requiredStringID(raw, "store_id")
+	if err != nil {
+		return opensearch.CategoryDocument{}, err
+	}
+	name, err := requiredString(raw, "name")
+	if err != nil {
+		return opensearch.CategoryDocument{}, err
+	}
+
+	slug, _ := optionalString(raw, "slug")
+
+	return opensearch.CategoryDocument{
+		ID:       id,
+		StoreID:  storeID,
+		ParentID: optionalStringID(raw, "parent_id"),
+		Name:     name,
+		Slug:     slug,
+	}, nil
+}
+
+func categoryIDFromDeletePayload(payload []byte) (string, error) {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(payload, &raw); err != nil {
+		return "", fmt.Errorf("decode category delete payload: %w", err)
+	}
+
+	return requiredStringID(raw, "id")
 }

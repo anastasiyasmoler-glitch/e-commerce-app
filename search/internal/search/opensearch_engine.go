@@ -9,13 +9,19 @@ import (
 	"github.com/anastasiyasmoler-glitch/e-commerce-app/search/internal/opensearch"
 )
 
+type CategoryNameLookup interface {
+	CategoryNames(ctx context.Context, ids []string) (map[string]string, error)
+}
+
 type OpenSearchEngine struct {
 	Client             *opensearch.Client
+	Categories         CategoryNameLookup
 	FacetAttributeKeys []string
+	FuzzySearch        bool
 }
 
 func (e *OpenSearchEngine) Search(ctx context.Context, params Params) (Result, error) {
-	body, err := buildSearchBody(params, e.FacetAttributeKeys)
+	body, err := buildSearchBody(params, e.FacetAttributeKeys, e.FuzzySearch)
 	if err != nil {
 		return Result{}, err
 	}
@@ -25,11 +31,20 @@ func (e *OpenSearchEngine) Search(ctx context.Context, params Params) (Result, e
 		return Result{}, err
 	}
 
-	return parseSearchResponse(raw, params, e.FacetAttributeKeys)
+	return parseSearchResponse(ctx, raw, params, e.FacetAttributeKeys, e.Categories)
 }
 
-func buildSearchBody(p Params, facetAttributeKeys []string) ([]byte, error) {
+func buildSearchBody(p Params, facetAttributeKeys []string, fuzzySearch bool) ([]byte, error) {
 	from := (p.Page - 1) * p.PerPage
+	// OpenSearch rejects from+size beyond max_result_window (default 10000) with a 400.
+	// Clamp so an out-of-range page still returns a valid empty page instead of an error.
+	const maxResultWindow = 10000
+	if from+p.PerPage > maxResultWindow {
+		from = maxResultWindow - p.PerPage
+		if from < 0 {
+			from = 0
+		}
+	}
 
 	filters := []map[string]interface{}{}
 	if p.StoreID != "" {
@@ -71,11 +86,15 @@ func buildSearchBody(p Params, facetAttributeKeys []string) ([]byte, error) {
 	if strings.TrimSpace(p.Query) == "" {
 		must = map[string]interface{}{"match_all": map[string]interface{}{}}
 	} else {
+		multiMatch := map[string]interface{}{
+			"query":  p.Query,
+			"fields": []string{"name^2", "description"},
+		}
+		if fuzzySearch {
+			multiMatch["fuzziness"] = "AUTO"
+		}
 		must = map[string]interface{}{
-			"multi_match": map[string]interface{}{
-				"query":  p.Query,
-				"fields": []string{"name^2", "description"},
-			},
+			"multi_match": multiMatch,
 		}
 	}
 
@@ -136,7 +155,7 @@ func buildSearchBody(p Params, facetAttributeKeys []string) ([]byte, error) {
 	return json.Marshal(payload)
 }
 
-func parseSearchResponse(raw []byte, params Params, facetAttributeKeys []string) (Result, error) {
+func parseSearchResponse(ctx context.Context, raw []byte, params Params, facetAttributeKeys []string, categories CategoryNameLookup) (Result, error) {
 	var decoded struct {
 		Hits struct {
 			Total struct {
@@ -180,6 +199,21 @@ func parseSearchResponse(raw []byte, params Params, facetAttributeKeys []string)
 
 	if agg, ok := decoded.Aggregations["category_id"]; ok {
 		result.Facets.CategoryID = parseTermsBuckets(agg)
+		if categories != nil && len(result.Facets.CategoryID) > 0 {
+			ids := make([]string, 0, len(result.Facets.CategoryID))
+			for _, facet := range result.Facets.CategoryID {
+				ids = append(ids, facet.Value)
+			}
+			names, err := categories.CategoryNames(ctx, ids)
+			if err != nil {
+				return Result{}, err
+			}
+			for i := range result.Facets.CategoryID {
+				if label := names[result.Facets.CategoryID[i].Value]; label != "" {
+					result.Facets.CategoryID[i].Label = label
+				}
+			}
+		}
 	}
 	if agg, ok := decoded.Aggregations["available"]; ok {
 		result.Facets.Available = parseTermsBuckets(agg)

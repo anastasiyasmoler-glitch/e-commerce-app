@@ -2,6 +2,7 @@ package search
 
 type FacetValue struct {
 	Value string `json:"value"`
+	Label string `json:"label,omitempty"`
 	Count int    `json:"count"`
 }
 

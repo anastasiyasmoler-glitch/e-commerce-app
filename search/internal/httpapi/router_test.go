@@ -44,6 +44,28 @@ func TestReadyzOk(t *testing.T) {
 	require.Equal(t, http.StatusOK, rec.Code)
 }
 
+func TestSwaggerUI(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/docs", nil)
+	rec := httptest.NewRecorder()
+
+	NewRouter(Dependencies{}).ServeHTTP(rec, req)
+
+	require.Equal(t, http.StatusOK, rec.Code)
+	require.Contains(t, rec.Body.String(), "swagger-ui")
+}
+
+func TestOpenAPISpec(t *testing.T) {
+	t.Setenv("OPENAPI_PATH", "../../openapi.yaml")
+
+	req := httptest.NewRequest(http.MethodGet, "/docs/openapi.yaml", nil)
+	rec := httptest.NewRecorder()
+
+	NewRouter(Dependencies{}).ServeHTTP(rec, req)
+
+	require.Equal(t, http.StatusOK, rec.Code)
+	require.Contains(t, rec.Body.String(), "openapi: 3.0.3")
+}
+
 func TestReadyzFailsWhenOpenSearchDown(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/readyz", nil)
 	rec := httptest.NewRecorder()

@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/anastasiyasmoler-glitch/e-commerce-app/search/internal/cache"
 	"github.com/anastasiyasmoler-glitch/e-commerce-app/search/internal/config"
 	"github.com/anastasiyasmoler-glitch/e-commerce-app/search/internal/httpapi"
 	"github.com/anastasiyasmoler-glitch/e-commerce-app/search/internal/kafka"
@@ -29,16 +30,38 @@ func main() {
 	defer cancel()
 
 	if err := osClient.EnsureProductsIndex(ctx); err != nil {
-		slog.Error("opensearch index bootstrap failed", "err", err)
+		slog.Error("opensearch products index bootstrap failed", "err", err)
+		os.Exit(1)
+	}
+	if err := osClient.EnsureCategoriesIndex(ctx); err != nil {
+		slog.Error("opensearch categories index bootstrap failed", "err", err)
 		os.Exit(1)
 	}
 
 	publisher := kafka.NewPublisher(cfg.KafkaBrokers)
 	facetKeys := config.FacetAttributeKeysFromEnv()
-	engine := &search.OpenSearchEngine{
+	baseEngine := &search.OpenSearchEngine{
 		Client:             osClient,
+		Categories:         osClient,
 		FacetAttributeKeys: facetKeys,
+		FuzzySearch:        cfg.FuzzySearch,
 	}
+
+	var engine search.Engine = baseEngine
+	if cfg.CacheEnabled {
+		redisStore, err := cache.NewRedis(cfg.RedisAddr)
+		if err != nil {
+			slog.Warn("redis cache disabled", "err", err)
+		} else {
+			engine = &search.CachingEngine{
+				Inner: baseEngine,
+				Store: redisStore,
+				TTL:   time.Duration(cfg.CacheTTLSeconds) * time.Second,
+			}
+			slog.Info("redis search cache enabled", "ttl_seconds", cfg.CacheTTLSeconds)
+		}
+	}
+
 	searchService := search.NewService(engine, publisher)
 
 	server := &http.Server{

@@ -28,11 +28,15 @@ func main() {
 	defer cancelBootstrap()
 
 	if err := osClient.EnsureProductsIndex(bootstrapCtx); err != nil {
-		slog.Error("opensearch index bootstrap failed", "err", err)
+		slog.Error("opensearch products index bootstrap failed", "err", err)
+		os.Exit(1)
+	}
+	if err := osClient.EnsureCategoriesIndex(bootstrapCtx); err != nil {
+		slog.Error("opensearch categories index bootstrap failed", "err", err)
 		os.Exit(1)
 	}
 
-	handler := indexing.NewHandler(osClient)
+	handler := indexing.NewHandler(osClient, osClient)
 	consumer := kafka.NewConsumer(cfg.KafkaBrokers, cfg.KafkaConsumerGroup, config.KafkaConsumeTopicsFromEnv())
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)

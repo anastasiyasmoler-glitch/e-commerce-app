@@ -22,6 +22,7 @@ WORKDIR /app
 
 COPY --from=build /out/search-server /app/search-server
 COPY --from=build /out/search-consumer /app/search-consumer
+COPY openapi.yaml /app/openapi.yaml
 
 RUN adduser -D -H -u 10001 appuser \
     && chown -R appuser:appuser /app
@@ -30,4 +31,4 @@ USER appuser
 
 EXPOSE 8080
 
-ENTRYPOINT ["/app/search-server"]
+CMD ["/app/search-server"]

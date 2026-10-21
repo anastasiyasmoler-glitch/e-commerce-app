@@ -43,6 +43,8 @@ services:
       KAFKA_BROKERS: kafka:9092
       KAFKA_CONSUMER_GROUP: search-service-group
       REDIS_ADDR: redis:6379
+      CACHE_ENABLED: "true"
+      FUZZY_SEARCH: "true"
     depends_on:
       opensearch:
         condition: service_healthy
@@ -63,7 +65,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    command: ["/app/search-consumer"]
+    entrypoint: ["/app/search-consumer"]
     restart: unless-stopped
     environment:
       OPENSEARCH_URL: http://opensearch:9200

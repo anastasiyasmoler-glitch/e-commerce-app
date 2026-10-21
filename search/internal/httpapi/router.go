@@ -20,6 +20,7 @@ func NewRouter(deps Dependencies) http.Handler {
 		}
 		handleSearch(w, r, deps.Search)
 	})
+	registerDocsRoutes(mux)
 
 	return mux
 }

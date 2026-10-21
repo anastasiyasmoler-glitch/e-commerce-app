@@ -29,9 +29,28 @@ func (r *recordingStore) PatchProductAvailability(_ context.Context, productID s
 	return nil
 }
 
+type recordingCategoryStore struct {
+	upserted []opensearch.CategoryDocument
+	deleted  []string
+}
+
+func (r *recordingCategoryStore) UpsertCategory(_ context.Context, doc opensearch.CategoryDocument) error {
+	r.upserted = append(r.upserted, doc)
+	return nil
+}
+
+func (r *recordingCategoryStore) DeleteCategory(_ context.Context, categoryID string) error {
+	r.deleted = append(r.deleted, categoryID)
+	return nil
+}
+
+func newTestHandler(products *recordingStore) *Handler {
+	return NewHandler(products, &recordingCategoryStore{})
+}
+
 func TestHandlerUpsertsProductCreated(t *testing.T) {
 	store := &recordingStore{patched: map[string]bool{}}
-	handler := NewHandler(store)
+	handler := newTestHandler(store)
 
 	err := handler.Handle(context.Background(), "product.created", []byte(`{
 		"id": 12,
@@ -52,7 +71,7 @@ func TestHandlerUpsertsProductCreated(t *testing.T) {
 
 func TestHandlerDeletesProduct(t *testing.T) {
 	store := &recordingStore{patched: map[string]bool{}}
-	handler := NewHandler(store)
+	handler := newTestHandler(store)
 
 	err := handler.Handle(context.Background(), "product.deleted", []byte(`{"id":5,"store_id":1}`))
 	require.NoError(t, err)
@@ -61,7 +80,7 @@ func TestHandlerDeletesProduct(t *testing.T) {
 
 func TestHandlerPatchesAvailabilityFromStock(t *testing.T) {
 	store := &recordingStore{patched: map[string]bool{}}
-	handler := NewHandler(store)
+	handler := newTestHandler(store)
 
 	err := handler.Handle(context.Background(), "stock.changed", []byte(`{
 		"product_id": 7,
@@ -71,4 +90,32 @@ func TestHandlerPatchesAvailabilityFromStock(t *testing.T) {
 	}`))
 	require.NoError(t, err)
 	require.False(t, store.patched["7"])
+}
+
+func TestHandlerUpsertsCategoryCreated(t *testing.T) {
+	products := &recordingStore{patched: map[string]bool{}}
+	categories := &recordingCategoryStore{}
+	handler := NewHandler(products, categories)
+
+	err := handler.Handle(context.Background(), "category.created", []byte(`{
+		"id": 9,
+		"store_id": 3,
+		"parent_id": null,
+		"name": "Sofas",
+		"slug": "sofas"
+	}`))
+	require.NoError(t, err)
+	require.Len(t, categories.upserted, 1)
+	require.Equal(t, "9", categories.upserted[0].ID)
+	require.Equal(t, "Sofas", categories.upserted[0].Name)
+}
+
+func TestHandlerDeletesCategory(t *testing.T) {
+	products := &recordingStore{patched: map[string]bool{}}
+	categories := &recordingCategoryStore{}
+	handler := NewHandler(products, categories)
+
+	err := handler.Handle(context.Background(), "category.deleted", []byte(`{"id":4,"store_id":1}`))
+	require.NoError(t, err)
+	require.Equal(t, []string{"4"}, categories.deleted)
 }

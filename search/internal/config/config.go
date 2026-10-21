@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -12,6 +13,9 @@ type Config struct {
 	KafkaBrokers       string
 	KafkaConsumerGroup string
 	RedisAddr          string
+	CacheEnabled       bool
+	CacheTTLSeconds    int
+	FuzzySearch        bool
 }
 
 func Load() (Config, error) {
@@ -21,6 +25,9 @@ func Load() (Config, error) {
 		KafkaBrokers:       envOrDefault("KAFKA_BROKERS", "kafka:9092"),
 		KafkaConsumerGroup: envOrDefault("KAFKA_CONSUMER_GROUP", "search-service-group"),
 		RedisAddr:          envOrDefault("REDIS_ADDR", "redis:6379"),
+		CacheEnabled:       envOrDefault("CACHE_ENABLED", "true") == "true",
+		CacheTTLSeconds:    envIntOrDefault("CACHE_TTL_SECONDS", 60),
+		FuzzySearch:        envOrDefault("FUZZY_SEARCH", "true") == "true",
 	}
 
 	if cfg.OpenSearchURL == "" {
@@ -36,4 +43,18 @@ func envOrDefault(key, fallback string) string {
 	}
 
 	return fallback
+}
+
+func envIntOrDefault(key string, fallback int) int {
+	raw := strings.TrimSpace(os.Getenv(key))
+	if raw == "" {
+		return fallback
+	}
+
+	parsed, err := strconv.Atoi(raw)
+	if err != nil || parsed < 1 {
+		return fallback
+	}
+
+	return parsed
 }

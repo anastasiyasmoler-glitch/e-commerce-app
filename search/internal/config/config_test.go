@@ -27,4 +27,6 @@ func TestLoadDefaults(t *testing.T) {
 	require.Equal(t, "kafka:9092", cfg.KafkaBrokers)
 	require.Equal(t, "search-service-group", cfg.KafkaConsumerGroup)
 	require.Equal(t, "redis:6379", cfg.RedisAddr)
+	require.True(t, cfg.CacheEnabled)
+	require.Equal(t, 60, cfg.CacheTTLSeconds)
 }
