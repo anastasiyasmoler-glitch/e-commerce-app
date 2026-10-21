@@ -108,6 +108,18 @@ jobs:
       - name: Download modules
         run: go mod download
 
+      - name: Wait for Kafka and create topics
+        run: |
+          for i in $(seq 1 30); do
+            if docker run --rm --network host apache/kafka:3.9.1 /opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 >/dev/null 2>&1; then
+              break
+            fi
+            sleep 2
+          done
+          for topic in search.performed product.created product.updated product.deleted category.created category.updated category.deleted stock.changed; do
+            docker run --rm --network host apache/kafka:3.9.1 /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --if-not-exists --topic "$topic"
+          done
+
       - name: Go integration test
         env:
           OPENSEARCH_URL: http://localhost:9200
