@@ -18,4 +18,9 @@ class Store extends Model
     {
         return $this->hasMany(Product::class);
     }
+
+    public function attributes(): HasMany
+    {
+        return $this->hasMany(Attribute::class);
+    }
 }

@@ -2,8 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Models\Attribute;
 use App\Models\Category;
 use App\Models\Product;
+use App\Models\ProductAttributeValue;
 use App\Models\Stock;
 use App\Models\Store;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -36,7 +38,26 @@ class CatalogReadTest extends TestCase
             'slug' => 'linen-sofa',
             'sku' => 'SOFA-1',
             'price' => 45900,
-            'attributes' => ['color' => 'beige', 'material' => 'linen'],
+        ]);
+        $color = Attribute::query()->create([
+            'store_id' => $store->id,
+            'code' => 'color',
+            'name' => 'Color',
+        ]);
+        $material = Attribute::query()->create([
+            'store_id' => $store->id,
+            'code' => 'material',
+            'name' => 'Material',
+        ]);
+        ProductAttributeValue::query()->create([
+            'product_id' => $product->id,
+            'attribute_id' => $color->id,
+            'value' => 'beige',
+        ]);
+        ProductAttributeValue::query()->create([
+            'product_id' => $product->id,
+            'attribute_id' => $material->id,
+            'value' => 'linen',
         ]);
         Stock::query()->create([
             'product_id' => $product->id,
@@ -82,7 +103,6 @@ class CatalogReadTest extends TestCase
             'slug' => 'linen-sofa',
             'sku' => 'SOFA-1',
             'price' => 45900,
-            'attributes' => ['color' => 'beige', 'material' => 'linen'],
         ]);
         $stock = Stock::query()->create([
             'product_id' => $product->id,

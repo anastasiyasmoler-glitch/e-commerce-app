@@ -2,8 +2,10 @@
 
 namespace Database\Seeders;
 
+use App\Models\Attribute;
 use App\Models\Category;
 use App\Models\Product;
+use App\Models\ProductAttributeValue;
 use App\Models\Stock;
 use App\Models\Store;
 use Illuminate\Database\Seeder;
@@ -18,8 +20,10 @@ class CatalogSeeder extends Seeder
      */
     public function run(): void
     {
+        ProductAttributeValue::query()->delete();
         Stock::query()->delete();
         Product::query()->delete();
+        Attribute::query()->delete();
         Category::query()->delete();
         Store::query()->delete();
 
@@ -164,11 +168,13 @@ class CatalogSeeder extends Seeder
                 'description' => $item['desc'],
                 'sku' => $item['sku'],
                 'price' => $item['price'] ?? 12900,
-                'attributes' => $item['attributes'] ?? [
-                    'color' => 'natural',
-                    'material' => 'wood',
-                ],
             ]);
+
+            $attributeMap = $item['attributes'] ?? [
+                'color' => 'natural',
+                'material' => 'wood',
+            ];
+            $this->syncProductAttributes($store, $product, $attributeMap);
 
             Stock::query()->create([
                 'product_id' => $product->id,
@@ -187,5 +193,29 @@ class CatalogSeeder extends Seeder
             'name' => $name,
             'slug' => $slug,
         ]);
+    }
+
+    /**
+     * @param  array<string, string>  $attributeMap
+     */
+    private function syncProductAttributes(Store $store, Product $product, array $attributeMap): void
+    {
+        foreach ($attributeMap as $code => $value) {
+            $attribute = Attribute::query()->firstOrCreate(
+                [
+                    'store_id' => $store->id,
+                    'code' => $code,
+                ],
+                [
+                    'name' => ucfirst(str_replace('_', ' ', $code)),
+                ],
+            );
+
+            ProductAttributeValue::query()->create([
+                'product_id' => $product->id,
+                'attribute_id' => $attribute->id,
+                'value' => $value,
+            ]);
+        }
     }
 }
