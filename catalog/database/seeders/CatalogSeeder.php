@@ -9,6 +9,7 @@ use App\Models\ProductAttributeValue;
 use App\Models\Stock;
 use App\Models\Store;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Cache;
 
 class CatalogSeeder extends Seeder
 {
@@ -31,6 +32,8 @@ class CatalogSeeder extends Seeder
         $this->seedWarmLight();
         $this->seedSoftLinen();
         $this->seedCozyStorage();
+
+        Cache::forget('catalog:stores');
     }
 
     private function seedNordicHome(): void
