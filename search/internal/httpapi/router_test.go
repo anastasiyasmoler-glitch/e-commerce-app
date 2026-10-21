@@ -27,14 +27,13 @@ func TestHealthz(t *testing.T) {
 	require.Equal(t, "ok", rec.Body.String())
 }
 
-func TestSearchNotImplemented(t *testing.T) {
+func TestSearchRequiresService(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/search?q=chair", nil)
 	rec := httptest.NewRecorder()
 
 	NewRouter(Dependencies{}).ServeHTTP(rec, req)
 
-	require.Equal(t, http.StatusNotImplemented, rec.Code)
-	require.Contains(t, rec.Body.String(), "not implemented")
+	require.Equal(t, http.StatusServiceUnavailable, rec.Code)
 }
 
 func TestReadyzOk(t *testing.T) {

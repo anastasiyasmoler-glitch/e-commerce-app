@@ -24,7 +24,7 @@ Align with Catalog event names:
 
 - `search.performed` — query, filters, result count, timestamp (Analytics)
 
-Consumer worker (`cmd/consumer`) — not implemented yet.
+Consumer worker: `cmd/consumer` (compose service `consumer`) — indexes catalog Kafka events into OpenSearch.
 
 ## Local run
 
@@ -37,10 +37,11 @@ cp .env.example .env
 docker compose up --build -d
 curl -k https://localhost:8446/healthz
 curl -k https://localhost:8446/readyz
-curl -k "https://localhost:8446/search?q=desk"
+curl -k "https://localhost:8446/search?q=desk&store_id=1&page=1&per_page=20&sort=relevance"
+curl -k "https://localhost:8446/search?q=sofa&category_id=2&available=true&price_min=1000&attr.color=natural"
 ```
 
-On startup the API creates the **`products`** index in OpenSearch if missing (mapping: name, price, category, attributes, availability, etc.).
+On startup the API creates the **`products`** index in OpenSearch if missing (mapping: name, description, price, category, relational `attributes` map with keyword subfields for facets, availability, etc.). Catalog stores attribute definitions in SQL (`attributes`, `product_attribute_values`); Kafka still sends `attributes` as a key-value object for indexing.
 
 OpenSearch (direct): `http://localhost:9200/_cluster/health` — `GET http://localhost:9200/products/_mapping`
 

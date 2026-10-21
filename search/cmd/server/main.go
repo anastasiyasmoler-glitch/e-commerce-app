@@ -9,7 +9,9 @@ import (
 
 	"github.com/anastasiyasmoler-glitch/e-commerce-app/search/internal/config"
 	"github.com/anastasiyasmoler-glitch/e-commerce-app/search/internal/httpapi"
+	"github.com/anastasiyasmoler-glitch/e-commerce-app/search/internal/kafka"
 	"github.com/anastasiyasmoler-glitch/e-commerce-app/search/internal/opensearch"
+	"github.com/anastasiyasmoler-glitch/e-commerce-app/search/internal/search"
 )
 
 func main() {
@@ -31,9 +33,20 @@ func main() {
 		os.Exit(1)
 	}
 
+	publisher := kafka.NewPublisher(cfg.KafkaBrokers)
+	facetKeys := config.FacetAttributeKeysFromEnv()
+	engine := &search.OpenSearchEngine{
+		Client:             osClient,
+		FacetAttributeKeys: facetKeys,
+	}
+	searchService := search.NewService(engine, publisher)
+
 	server := &http.Server{
-		Addr:              cfg.HTTPAddr,
-		Handler:           httpapi.NewRouter(httpapi.Dependencies{Ready: osClient}),
+		Addr: cfg.HTTPAddr,
+		Handler: httpapi.NewRouter(httpapi.Dependencies{
+			Ready:  osClient,
+			Search: searchService,
+		}),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 

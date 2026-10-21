@@ -11,7 +11,8 @@ RUN go mod download
 
 COPY . .
 
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o /out/search-server ./cmd/server
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o /out/search-server ./cmd/server \
+    && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o /out/search-consumer ./cmd/consumer
 
 FROM alpine:3.21
 
@@ -20,6 +21,7 @@ RUN apk add --no-cache ca-certificates wget
 WORKDIR /app
 
 COPY --from=build /out/search-server /app/search-server
+COPY --from=build /out/search-consumer /app/search-consumer
 
 RUN adduser -D -H -u 10001 appuser \
     && chown -R appuser:appuser /app

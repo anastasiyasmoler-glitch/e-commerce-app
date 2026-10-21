@@ -59,6 +59,26 @@ services:
       microservices-net:
         aliases: [search-back]
 
+  consumer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["/app/search-consumer"]
+    restart: unless-stopped
+    environment:
+      OPENSEARCH_URL: http://opensearch:9200
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_CONSUMER_GROUP: search-service-group
+      REDIS_ADDR: redis:6379
+    depends_on:
+      opensearch:
+        condition: service_healthy
+      back:
+        condition: service_healthy
+    networks:
+      default: {}
+      microservices-net: {}
+
   nginx:
     build:
       context: ./docker/nginx

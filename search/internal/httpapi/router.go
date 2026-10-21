@@ -13,7 +13,13 @@ func NewRouter(deps Dependencies) http.Handler {
 	mux.HandleFunc("GET /readyz", func(w http.ResponseWriter, r *http.Request) {
 		handleReadyz(w, r, deps)
 	})
-	mux.HandleFunc("GET /search", handleSearchNotImplemented)
+	mux.HandleFunc("GET /search", func(w http.ResponseWriter, r *http.Request) {
+		if deps.Search == nil {
+			writeJSONError(w, http.StatusServiceUnavailable, "search is not configured")
+			return
+		}
+		handleSearch(w, r, deps.Search)
+	})
 
 	return mux
 }
@@ -48,12 +54,4 @@ func handleHealthz(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write([]byte("ok"))
-}
-
-func handleSearchNotImplemented(w http.ResponseWriter, _ *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusNotImplemented)
-	_ = json.NewEncoder(w).Encode(map[string]string{
-		"message": "Search API is not implemented yet",
-	})
 }

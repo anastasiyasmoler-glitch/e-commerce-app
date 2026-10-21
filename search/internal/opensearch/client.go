@@ -1,6 +1,7 @@
 package opensearch
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -58,6 +59,31 @@ func (c *Client) Ready(ctx context.Context) error {
 	}
 }
 
+func (c *Client) SearchIndex(ctx context.Context, body []byte) ([]byte, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+"/"+productsIndex+"/_search", bytes.NewReader(body))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	raw, err := io.ReadAll(io.LimitReader(resp.Body, 8<<20))
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("search: status %d: %s", resp.StatusCode, strings.TrimSpace(string(raw)))
+	}
+
+	return raw, nil
+}
+
 func (c *Client) EnsureProductsIndex(ctx context.Context) error {
 	head, err := http.NewRequestWithContext(ctx, http.MethodHead, c.baseURL+"/"+productsIndex, nil)
 	if err != nil {
@@ -106,6 +132,16 @@ const productsIndexMapping = `{
     }
   },
   "mappings": {
+    "dynamic_templates": [
+      {
+        "attribute_facets": {
+          "path_match": "attributes.*",
+          "mapping": {
+            "type": "keyword"
+          }
+        }
+      }
+    ],
     "properties": {
       "id": { "type": "keyword" },
       "store_id": { "type": "keyword" },
@@ -115,7 +151,7 @@ const productsIndexMapping = `{
       "sku": { "type": "keyword" },
       "description": { "type": "text" },
       "price": { "type": "integer" },
-      "attributes": { "type": "object", "enabled": true },
+      "attributes": { "type": "object" },
       "image": { "type": "keyword" },
       "available": { "type": "boolean" }
     }
