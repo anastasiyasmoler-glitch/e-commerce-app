@@ -1,6 +1,3 @@
 #!/bin/sh
-export PATH="/c/Users/Nastja/.config/herd/bin/php85:/c/Users/Nastja/.config/herd/bin:$PATH"
-export TEMP="$LOCALAPPDATA/Temp"
-export TMP="$TEMP"
 npm run lint:all || exit 1
 npm run test:all || exit 1
