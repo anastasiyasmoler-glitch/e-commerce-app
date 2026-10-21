@@ -65,10 +65,12 @@ class RedisRefreshTokenStoreTest extends TestCase
             ->once()
             ->with(
                 Mockery::type('string'),
+                [
+                    'auth:refresh:lookup:'.$hash,
+                    'auth:refresh:',
+                    $hash,
+                ],
                 2,
-                'auth:refresh:lookup:'.$hash,
-                'auth:refresh:',
-                $hash,
             )
             ->andReturn('7');
 
@@ -88,10 +90,12 @@ class RedisRefreshTokenStoreTest extends TestCase
             ->once()
             ->with(
                 Mockery::type('string'),
+                [
+                    'auth:refresh:7:*',
+                    'auth:refresh:7:',
+                    'auth:refresh:lookup:',
+                ],
                 3,
-                'auth:refresh:7:*',
-                'auth:refresh:7:',
-                'auth:refresh:lookup:',
             )
             ->andReturnNull();
 
