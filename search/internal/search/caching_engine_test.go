@@ -11,7 +11,7 @@ import (
 )
 
 type stubEngine struct {
-	calls int
+	calls  int
 	result Result
 }
 
@@ -27,7 +27,7 @@ func TestCachingEngineReturnsCachedResultWithoutSecondEngineCall(t *testing.T) {
 
 	engine := &stubEngine{
 		result: Result{
-			Query: "chair",
+			Query:      "chair",
 			Pagination: Pagination{Total: 3},
 		},
 	}
