@@ -1,5 +1,9 @@
 FROM php:8.5-fpm-bookworm
 
+# Match container www-data uid/gid to the host user (1000) so bind-mounted
+# storage/ and bootstrap/cache files keep host-writable ownership.
+RUN usermod -u 1000 www-data && groupmod -g 1000 www-data
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
         git \
         unzip \
