@@ -29,16 +29,16 @@ func (p Params) CacheKey() string {
 	}
 
 	canonical := struct {
-		Query       string            `json:"q"`
-		StoreID     string            `json:"store_id"`
-		CategoryIDs []string          `json:"category_id"`
-		Available   *bool             `json:"available"`
-		PriceMin    *int              `json:"price_min"`
-		PriceMax    *int              `json:"price_max"`
-		Attributes  [][2]string       `json:"attributes"`
-		Page        int               `json:"page"`
-		PerPage     int               `json:"per_page"`
-		Sort        Sort              `json:"sort"`
+		Query       string      `json:"q"`
+		StoreID     string      `json:"store_id"`
+		CategoryIDs []string    `json:"category_id"`
+		Available   *bool       `json:"available"`
+		PriceMin    *int        `json:"price_min"`
+		PriceMax    *int        `json:"price_max"`
+		Attributes  [][2]string `json:"attributes"`
+		Page        int         `json:"page"`
+		PerPage     int         `json:"per_page"`
+		Sort        Sort        `json:"sort"`
 	}{
 		Query:       p.Query,
 		StoreID:     p.StoreID,
