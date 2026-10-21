@@ -22,11 +22,25 @@ export function HomePage() {
   const categories = (categoriesQuery.data ?? []).filter((category) => category.parent_id === null)
   const storeName = selectedStore?.name ?? ''
   const firstCategory = categories[0]
+  const catalogReady = storeId !== undefined
   const loading =
-    storesPending || categoriesQuery.isPending || latestQuery.isPending || moreQuery.isPending
+    storesPending ||
+    (catalogReady &&
+      (categoriesQuery.isLoading || latestQuery.isLoading || moreQuery.isLoading))
 
   if (loading) {
     return <PageLoading />
+  }
+
+  if (!catalogReady) {
+    return (
+      <Container className="py-20 text-center">
+        <h2 className="font-display text-[28px] font-medium">No stores in the catalog yet</h2>
+        <p className="mt-2 text-[15px] text-muted">
+          Seed the Catalog service or add a store in Filament, then refresh this page.
+        </p>
+      </Container>
+    )
   }
 
   if (categoriesQuery.isError || latestQuery.isError || moreQuery.isError) {
