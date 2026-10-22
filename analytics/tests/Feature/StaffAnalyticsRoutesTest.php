@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Contracts\Repositories\EventMetricsRepositoryInterface;
+use Mockery\MockInterface;
 use Tests\TestCase;
 
 class StaffAnalyticsRoutesTest extends TestCase
@@ -26,25 +28,62 @@ class StaffAnalyticsRoutesTest extends TestCase
         $this->getJson('/api/search', $headers)->assertForbidden();
     }
 
-    public function test_analyst_can_access_user_metrics_stub(): void
+    public function test_analyst_can_access_user_metrics(): void
     {
-        $this->getJson('/api/users', [
+        $this->mock(EventMetricsRepositoryInterface::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('userRegistrations')->once()->andReturn([
+                'total' => 2,
+                'by_day' => [
+                    ['date' => '2026-10-01', 'count' => 2],
+                ],
+            ]);
+        });
+
+        $this->getJson('/api/users', $this->analystHeaders())
+            ->assertOk()
+            ->assertJsonPath('data.total', 2)
+            ->assertJsonPath('data.by_day.0.count', 2)
+            ->assertJsonStructure(['meta' => ['from', 'to']]);
+    }
+
+    public function test_admin_can_access_order_metrics(): void
+    {
+        $this->mock(EventMetricsRepositoryInterface::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('orderFunnel')->once()->andReturn([
+                'created' => 10,
+                'paid' => 4,
+                'cancelled' => 1,
+                'conversion_rate' => 0.4,
+            ]);
+        });
+
+        $this->getJson('/api/orders', $this->adminHeaders())
+            ->assertOk()
+            ->assertJsonPath('data.paid', 4)
+            ->assertJsonPath('data.conversion_rate', 0.4);
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function analystHeaders(): array
+    {
+        return [
             'X-Auth-User-Id' => '5',
             'X-Auth-User-Email' => 'analyst@example.com',
             'X-Auth-User-Roles' => 'analyst',
-        ])
-            ->assertOk()
-            ->assertJsonPath('message', 'User metrics are not implemented yet.');
+        ];
     }
 
-    public function test_admin_can_access_order_metrics_stub(): void
+    /**
+     * @return array<string, string>
+     */
+    private function adminHeaders(): array
     {
-        $this->getJson('/api/orders', [
+        return [
             'X-Auth-User-Id' => '2',
             'X-Auth-User-Email' => 'admin@example.com',
             'X-Auth-User-Roles' => 'admin',
-        ])
-            ->assertOk()
-            ->assertJsonPath('message', 'Order metrics are not implemented yet.');
+        ];
     }
 }
