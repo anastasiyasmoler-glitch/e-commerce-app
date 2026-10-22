@@ -7,6 +7,8 @@ return [
         'user.registered',
         'order.created',
         'order.paid',
+        'order.shipped',
+        'order.completed',
         'order.cancelled',
         'search.performed',
     ],

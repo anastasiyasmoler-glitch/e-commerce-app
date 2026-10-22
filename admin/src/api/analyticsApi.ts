@@ -20,8 +20,11 @@ type OrderMetricsResponse = {
   data: {
     created: number
     paid: number
+    shipped: number
+    completed: number
     cancelled: number
     conversion_rate: number | null
+    completion_rate: number | null
     revenue_cents: number
     average_order_value_cents: number | null
     currency: string | null
@@ -118,6 +121,8 @@ function mapToSummary(
   const { data: s } = search
 
   const paidPct = o.created > 0 ? Math.round((o.paid / o.created) * 100) : 0
+  const shippedPct = o.created > 0 ? Math.round((o.shipped / o.created) * 100) : 0
+  const completedPct = o.created > 0 ? Math.round((o.completed / o.created) * 100) : 0
   const cancelledPct = o.created > 0 ? Math.round((o.cancelled / o.created) * 100) : 0
 
   return {
@@ -153,6 +158,8 @@ function mapToSummary(
     funnel: [
       { label: 'Created', value: `${numberFmt.format(o.created)} · 100%`, width: 100 },
       { label: 'Paid', value: `${numberFmt.format(o.paid)} · ${paidPct}%`, width: Math.max(paidPct, 4) },
+      { label: 'Shipped', value: `${numberFmt.format(o.shipped)} · ${shippedPct}%`, width: Math.max(shippedPct, 4) },
+      { label: 'Completed', value: `${numberFmt.format(o.completed)} · ${completedPct}%`, width: Math.max(completedPct, 4) },
       {
         label: 'Cancelled',
         value: `${numberFmt.format(o.cancelled)} · ${cancelledPct}%`,

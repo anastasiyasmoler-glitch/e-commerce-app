@@ -220,8 +220,11 @@ components:
       required:
         - created
         - paid
+        - shipped
+        - completed
         - cancelled
         - conversion_rate
+        - completion_rate
         - revenue_cents
         - average_order_value_cents
         - revenue_by_day
@@ -232,6 +235,12 @@ components:
         paid:
           type: integer
           minimum: 0
+        shipped:
+          type: integer
+          minimum: 0
+        completed:
+          type: integer
+          minimum: 0
         cancelled:
           type: integer
           minimum: 0
@@ -239,6 +248,11 @@ components:
           type: number
           format: float
           nullable: true
+        completion_rate:
+          type: number
+          format: float
+          nullable: true
+          description: completed / created in the selected period
         revenue_cents:
           type: integer
           minimum: 0

@@ -52,8 +52,11 @@ class StaffAnalyticsRoutesTest extends TestCase
             $mock->shouldReceive('orderFunnel')->once()->andReturn([
                 'created' => 10,
                 'paid' => 4,
+                'shipped' => 3,
+                'completed' => 2,
                 'cancelled' => 1,
                 'conversion_rate' => 0.4,
+                'completion_rate' => 0.2,
                 'revenue_cents' => 12000,
                 'average_order_value_cents' => 3000,
                 'currency' => 'USD',

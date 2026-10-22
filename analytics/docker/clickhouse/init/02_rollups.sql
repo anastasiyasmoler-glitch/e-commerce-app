@@ -23,6 +23,8 @@ CREATE TABLE IF NOT EXISTS analytics.orders_daily
     day Date,
     created UInt64,
     paid UInt64,
+    shipped UInt64,
+    completed UInt64,
     cancelled UInt64,
     revenue_cents Int64
 )
@@ -36,10 +38,18 @@ SELECT
     toDate(occurred_at) AS day,
     countIf(topic = 'order.created') AS created,
     countIf(topic = 'order.paid') AS paid,
+    countIf(topic = 'order.shipped') AS shipped,
+    countIf(topic = 'order.completed') AS completed,
     countIf(topic = 'order.cancelled') AS cancelled,
     sumIf(JSONExtractInt(payload, 'total_cents'), topic = 'order.paid') AS revenue_cents
 FROM analytics.events_raw
-WHERE topic IN ('order.created', 'order.paid', 'order.cancelled')
+WHERE topic IN (
+    'order.created',
+    'order.paid',
+    'order.shipped',
+    'order.completed',
+    'order.cancelled'
+)
 GROUP BY day;
 
 CREATE TABLE IF NOT EXISTS analytics.search_daily

@@ -70,6 +70,8 @@ class ClickHouseEventMetricsRepository implements EventMetricsRepositoryInterfac
             SELECT
                 sum(created) AS created,
                 sum(paid) AS paid,
+                sum(shipped) AS shipped,
+                sum(completed) AS completed,
                 sum(cancelled) AS cancelled,
                 sum(revenue_cents) AS revenue_cents
             FROM orders_daily
@@ -84,6 +86,8 @@ class ClickHouseEventMetricsRepository implements EventMetricsRepositoryInterfac
 
         $created = (int) ($row['created'] ?? 0);
         $paid = (int) ($row['paid'] ?? 0);
+        $shipped = (int) ($row['shipped'] ?? 0);
+        $completed = (int) ($row['completed'] ?? 0);
         $cancelled = (int) ($row['cancelled'] ?? 0);
         $revenueCents = (int) ($row['revenue_cents'] ?? 0);
 
@@ -132,8 +136,11 @@ class ClickHouseEventMetricsRepository implements EventMetricsRepositoryInterfac
         return [
             'created' => $created,
             'paid' => $paid,
+            'shipped' => $shipped,
+            'completed' => $completed,
             'cancelled' => $cancelled,
             'conversion_rate' => $created > 0 ? round($paid / $created, 4) : null,
+            'completion_rate' => $created > 0 ? round($completed / $created, 4) : null,
             'revenue_cents' => $revenueCents,
             'average_order_value_cents' => $paid > 0 ? (int) round($revenueCents / $paid) : null,
             'currency' => $currency,

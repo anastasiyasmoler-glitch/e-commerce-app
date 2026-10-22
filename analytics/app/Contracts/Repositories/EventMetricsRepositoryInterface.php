@@ -15,8 +15,11 @@ interface EventMetricsRepositoryInterface
      * @return array{
      *     created: int,
      *     paid: int,
+     *     shipped: int,
+     *     completed: int,
      *     cancelled: int,
      *     conversion_rate: float|null,
+     *     completion_rate: float|null,
      *     revenue_cents: int,
      *     average_order_value_cents: int|null,
      *     currency: string|null,

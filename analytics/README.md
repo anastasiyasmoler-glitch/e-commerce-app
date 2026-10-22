@@ -16,6 +16,8 @@ Laravel service that ingests platform facts from **Kafka** into **ClickHouse** f
 | `user.registered` | Auth |
 | `order.created` | Order |
 | `order.paid` | Order |
+| `order.shipped` | Order (staff ship) |
+| `order.completed` | Order (staff complete) |
 | `order.cancelled` | Order |
 | `search.performed` | Search |
 
@@ -77,7 +79,7 @@ OpenAPI: [`openapi.yaml`](openapi.yaml) (gateway base `https://localhost/api/ana
 | Gateway path | Metrics in `data` |
 | --- | --- |
 | `GET /api/analytics/users?from=&to=` | `total`, `by_day[]` from `user.registered` |
-| `GET /api/analytics/orders?from=&to=` | funnel `created` / `paid` / `cancelled`, `conversion_rate`, `revenue_cents`, `average_order_value_cents`, `currency`, `revenue_by_day[]` from `order.*` (`total_cents` on `order.paid`) |
+| `GET /api/analytics/orders?from=&to=` | funnel `created` / `paid` / `shipped` / `completed` / `cancelled`, `conversion_rate`, `completion_rate`, revenue fields from `order.*` |
 | `GET /api/analytics/search?from=&to=` | `total`, `top_queries[]`, `zero_result_total`, `zero_result_queries[]` from `search.performed` (`result_count`) |
 
 ## Environment
