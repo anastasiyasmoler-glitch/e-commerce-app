@@ -8,6 +8,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         curl \
         ca-certificates \
         libzip-dev \
+        libsqlite3-dev \
         $PHPIZE_DEPS \
     && docker-php-ext-install zip bcmath \
     && docker-php-ext-install pdo_sqlite \
