@@ -13,4 +13,6 @@ Route::middleware('gateway.user')->group(function (): void {
     Route::get('/orders/{order}', [OrderController::class, 'show'])->whereNumber('order');
     Route::post('/orders', [OrderController::class, 'store']);
     Route::post('/orders/{order}/cancel', [OrderController::class, 'cancel'])->whereNumber('order');
+    Route::post('/orders/{order}/ship', [OrderController::class, 'ship'])->whereNumber('order');
+    Route::post('/orders/{order}/complete', [OrderController::class, 'complete'])->whereNumber('order');
 });
