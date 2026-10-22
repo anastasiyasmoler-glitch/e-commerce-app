@@ -94,6 +94,10 @@ services:
     depends_on:
       back:
         condition: service_healthy
+    networks:
+      default: {}
+      microservices-net:
+        aliases: [analytics-nginx]
 
 volumes:
   clickhouse_data:
