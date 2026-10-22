@@ -28,9 +28,13 @@ Laravel service that ingests platform facts from **Kafka** into **ClickHouse** f
 docker compose up -d --build
 ```
 
-3. Health:
+3. Health (direct to service nginx):
    - `https://localhost:8447/api/healthz` — process up
    - `https://localhost:8447/api/readyz` — ClickHouse ping
+
+   Through **Auth gateway** (same paths under `/api/analytics`, CORS handled by Auth nginx):
+   - `https://localhost/api/analytics/healthz`
+   - `https://localhost/api/analytics/readyz`
 
 4. Consumer logs: `docker compose logs -f consumer`
 
