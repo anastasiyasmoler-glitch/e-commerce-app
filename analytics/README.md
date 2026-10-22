@@ -68,6 +68,10 @@ Report APIs read rollup tables (`sum(...)` by day range). `currency` on orders s
 php artisan kafka:consume-analytics
 ```
 
+## API contract
+
+OpenAPI: [`openapi.yaml`](openapi.yaml) (gateway base `https://localhost/api/analytics`).
+
 ## Report APIs (staff JWT via gateway)
 
 | Gateway path | Metrics in `data` |

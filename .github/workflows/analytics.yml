@@ -42,6 +42,23 @@ jobs:
     defaults:
       run:
         working-directory: analytics
+    services:
+      clickhouse:
+        image: clickhouse/clickhouse-server:24.8
+        ports:
+          - 8123:8123
+        options: >-
+          --health-cmd "wget -q -O- http://localhost:8123/ping | grep -q Ok"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 15
+    env:
+      ANALYTICS_CLICKHOUSE_TESTS: '1'
+      CLICKHOUSE_HOST: 127.0.0.1
+      CLICKHOUSE_PORT: 8123
+      CLICKHOUSE_DATABASE: analytics
+      CLICKHOUSE_USERNAME: default
+      CLICKHOUSE_PASSWORD: ''
     steps:
       - uses: actions/checkout@v4
 
