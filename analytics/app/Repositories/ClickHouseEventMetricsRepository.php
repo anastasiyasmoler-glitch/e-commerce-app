@@ -15,36 +15,34 @@ class ClickHouseEventMetricsRepository implements EventMetricsRepositoryInterfac
     public function userRegistrations(CarbonImmutable $from, CarbonImmutable $to): array
     {
         $client = $this->clickHouse->make();
+        $fromDay = $this->formatDate($from);
+        $toDay = $this->formatDate($to);
 
         $totalRow = $client->select(
             <<<'SQL'
-            SELECT count() AS total
-            FROM events_raw
-            WHERE topic = {topic:String}
-              AND occurred_at >= {from:DateTime64(3)}
-              AND occurred_at <= {to:DateTime64(3)}
+            SELECT sum(registrations) AS total
+            FROM registrations_daily
+            WHERE day >= {from:Date}
+              AND day <= {to:Date}
             SQL,
             [
-                'topic' => 'user.registered',
-                'from' => $this->formatDateTime($from),
-                'to' => $this->formatDateTime($to),
+                'from' => $fromDay,
+                'to' => $toDay,
             ],
         )->fetchOne();
 
         $byDayRows = $client->select(
             <<<'SQL'
-            SELECT toDate(occurred_at) AS day, count() AS registrations
-            FROM events_raw
-            WHERE topic = {topic:String}
-              AND occurred_at >= {from:DateTime64(3)}
-              AND occurred_at <= {to:DateTime64(3)}
+            SELECT day, sum(registrations) AS registrations
+            FROM registrations_daily
+            WHERE day >= {from:Date}
+              AND day <= {to:Date}
             GROUP BY day
             ORDER BY day
             SQL,
             [
-                'topic' => 'user.registered',
-                'from' => $this->formatDateTime($from),
-                'to' => $this->formatDateTime($to),
+                'from' => $fromDay,
+                'to' => $toDay,
             ],
         )->rows();
 
@@ -64,36 +62,39 @@ class ClickHouseEventMetricsRepository implements EventMetricsRepositoryInterfac
 
     public function orderFunnel(CarbonImmutable $from, CarbonImmutable $to): array
     {
+        $fromDay = $this->formatDate($from);
+        $toDay = $this->formatDate($to);
+
         $row = $this->clickHouse->make()->select(
             <<<'SQL'
             SELECT
-                countIf(topic = 'order.created') AS created,
-                countIf(topic = 'order.paid') AS paid,
-                countIf(topic = 'order.cancelled') AS cancelled
-            FROM events_raw
-            WHERE topic IN ('order.created', 'order.paid', 'order.cancelled')
-              AND occurred_at >= {from:DateTime64(3)}
-              AND occurred_at <= {to:DateTime64(3)}
+                sum(created) AS created,
+                sum(paid) AS paid,
+                sum(cancelled) AS cancelled,
+                sum(revenue_cents) AS revenue_cents
+            FROM orders_daily
+            WHERE day >= {from:Date}
+              AND day <= {to:Date}
             SQL,
             [
-                'from' => $this->formatDateTime($from),
-                'to' => $this->formatDateTime($to),
+                'from' => $fromDay,
+                'to' => $toDay,
             ],
         )->fetchOne();
 
         $created = (int) ($row['created'] ?? 0);
         $paid = (int) ($row['paid'] ?? 0);
         $cancelled = (int) ($row['cancelled'] ?? 0);
+        $revenueCents = (int) ($row['revenue_cents'] ?? 0);
 
-        $revenueRow = $this->clickHouse->make()->select(
+        $currencyRow = $this->clickHouse->make()->select(
             <<<'SQL'
-            SELECT
-                sum(JSONExtractInt(payload, 'total_cents')) AS revenue_cents,
-                anyLast(JSONExtractString(payload, 'currency')) AS currency
+            SELECT anyLast(JSONExtractString(payload, 'currency')) AS currency
             FROM events_raw
             WHERE topic = 'order.paid'
               AND occurred_at >= {from:DateTime64(3)}
               AND occurred_at <= {to:DateTime64(3)}
+              AND JSONExtractString(payload, 'currency') != ''
             SQL,
             [
                 'from' => $this->formatDateTime($from),
@@ -101,26 +102,22 @@ class ClickHouseEventMetricsRepository implements EventMetricsRepositoryInterfac
             ],
         )->fetchOne();
 
-        $revenueCents = (int) ($revenueRow['revenue_cents'] ?? 0);
-        $currency = isset($revenueRow['currency']) && $revenueRow['currency'] !== ''
-            ? (string) $revenueRow['currency']
+        $currency = isset($currencyRow['currency']) && $currencyRow['currency'] !== ''
+            ? (string) $currencyRow['currency']
             : null;
 
         $revenueByDayRows = $this->clickHouse->make()->select(
             <<<'SQL'
-            SELECT
-                toDate(occurred_at) AS day,
-                sum(JSONExtractInt(payload, 'total_cents')) AS revenue_cents
-            FROM events_raw
-            WHERE topic = 'order.paid'
-              AND occurred_at >= {from:DateTime64(3)}
-              AND occurred_at <= {to:DateTime64(3)}
+            SELECT day, sum(revenue_cents) AS revenue_cents
+            FROM orders_daily
+            WHERE day >= {from:Date}
+              AND day <= {to:Date}
             GROUP BY day
             ORDER BY day
             SQL,
             [
-                'from' => $this->formatDateTime($from),
-                'to' => $this->formatDateTime($to),
+                'from' => $fromDay,
+                'to' => $toDay,
             ],
         )->rows();
 
@@ -147,40 +144,37 @@ class ClickHouseEventMetricsRepository implements EventMetricsRepositoryInterfac
     public function searchMetrics(CarbonImmutable $from, CarbonImmutable $to): array
     {
         $client = $this->clickHouse->make();
+        $fromDay = $this->formatDate($from);
+        $toDay = $this->formatDate($to);
 
         $totalRow = $client->select(
             <<<'SQL'
-            SELECT count() AS total
-            FROM events_raw
-            WHERE topic = {topic:String}
-              AND occurred_at >= {from:DateTime64(3)}
-              AND occurred_at <= {to:DateTime64(3)}
+            SELECT sum(searches) AS total
+            FROM search_daily
+            WHERE day >= {from:Date}
+              AND day <= {to:Date}
             SQL,
             [
-                'topic' => 'search.performed',
-                'from' => $this->formatDateTime($from),
-                'to' => $this->formatDateTime($to),
+                'from' => $fromDay,
+                'to' => $toDay,
             ],
         )->fetchOne();
 
         $topRows = $client->select(
             <<<'SQL'
             SELECT
-                JSONExtractString(payload, 'query') AS query,
-                count() AS count
-            FROM events_raw
-            WHERE topic = {topic:String}
-              AND occurred_at >= {from:DateTime64(3)}
-              AND occurred_at <= {to:DateTime64(3)}
-              AND JSONExtractString(payload, 'query') != ''
+                query,
+                sum(searches) AS count
+            FROM search_query_daily
+            WHERE day >= {from:Date}
+              AND day <= {to:Date}
             GROUP BY query
             ORDER BY count DESC
             LIMIT 10
             SQL,
             [
-                'topic' => 'search.performed',
-                'from' => $this->formatDateTime($from),
-                'to' => $this->formatDateTime($to),
+                'from' => $fromDay,
+                'to' => $toDay,
             ],
         )->rows();
 
@@ -194,39 +188,33 @@ class ClickHouseEventMetricsRepository implements EventMetricsRepositoryInterfac
 
         $zeroRow = $client->select(
             <<<'SQL'
-            SELECT count() AS zero_result_total
-            FROM events_raw
-            WHERE topic = {topic:String}
-              AND occurred_at >= {from:DateTime64(3)}
-              AND occurred_at <= {to:DateTime64(3)}
-              AND JSONExtractInt(payload, 'result_count') = 0
+            SELECT sum(zero_results) AS zero_result_total
+            FROM search_daily
+            WHERE day >= {from:Date}
+              AND day <= {to:Date}
             SQL,
             [
-                'topic' => 'search.performed',
-                'from' => $this->formatDateTime($from),
-                'to' => $this->formatDateTime($to),
+                'from' => $fromDay,
+                'to' => $toDay,
             ],
         )->fetchOne();
 
         $zeroTopRows = $client->select(
             <<<'SQL'
             SELECT
-                JSONExtractString(payload, 'query') AS query,
-                count() AS count
-            FROM events_raw
-            WHERE topic = {topic:String}
-              AND occurred_at >= {from:DateTime64(3)}
-              AND occurred_at <= {to:DateTime64(3)}
-              AND JSONExtractInt(payload, 'result_count') = 0
-              AND JSONExtractString(payload, 'query') != ''
+                query,
+                sum(zero_results) AS count
+            FROM search_query_daily
+            WHERE day >= {from:Date}
+              AND day <= {to:Date}
             GROUP BY query
+            HAVING count > 0
             ORDER BY count DESC
             LIMIT 10
             SQL,
             [
-                'topic' => 'search.performed',
-                'from' => $this->formatDateTime($from),
-                'to' => $this->formatDateTime($to),
+                'from' => $fromDay,
+                'to' => $toDay,
             ],
         )->rows();
 
@@ -244,6 +232,11 @@ class ClickHouseEventMetricsRepository implements EventMetricsRepositoryInterfac
             'zero_result_total' => (int) ($zeroRow['zero_result_total'] ?? 0),
             'zero_result_queries' => $zeroResultQueries,
         ];
+    }
+
+    private function formatDate(CarbonImmutable $value): string
+    {
+        return $value->utc()->format('Y-m-d');
     }
 
     private function formatDateTime(CarbonImmutable $value): string
