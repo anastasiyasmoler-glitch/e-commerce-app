@@ -1,0 +1,103 @@
+services:
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.8
+    environment:
+      CLICKHOUSE_DB: analytics
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: "1"
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+      - ./docker/clickhouse/init:/docker-entrypoint-initdb.d
+    ports:
+      - "8123:8123"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O- http://localhost:8123/ping | grep -q Ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+
+  back:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "true"
+      APP_URL: https://localhost:8447
+      DB_CONNECTION: sqlite
+      DB_DATABASE: /var/www/html/database/database.sqlite
+      SESSION_DRIVER: file
+      CACHE_STORE: file
+      QUEUE_CONNECTION: sync
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_CONSUMER_GROUP: analytics-service-group
+      CLICKHOUSE_HOST: clickhouse
+      CLICKHOUSE_PORT: "8123"
+      CLICKHOUSE_DATABASE: analytics
+      CLICKHOUSE_USERNAME: default
+      CLICKHOUSE_PASSWORD: ""
+    volumes:
+      - .:/var/www/html
+    healthcheck:
+      test: ["CMD-SHELL", "php -r \"exit(@fsockopen('127.0.0.1', 9000) ? 0 : 1);\""]
+      interval: 5s
+      timeout: 3s
+      retries: 60
+      start_period: 30s
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+    networks:
+      default:
+        aliases: [analytics-back]
+      microservices-net: {}
+
+  consumer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["php", "artisan", "kafka:consume-analytics"]
+    restart: unless-stopped
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "true"
+      APP_URL: https://localhost:8447
+      DB_CONNECTION: sqlite
+      DB_DATABASE: /var/www/html/database/database.sqlite
+      SESSION_DRIVER: file
+      CACHE_STORE: file
+      QUEUE_CONNECTION: sync
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_CONSUMER_GROUP: analytics-service-group
+      CLICKHOUSE_HOST: clickhouse
+      CLICKHOUSE_PORT: "8123"
+      CLICKHOUSE_DATABASE: analytics
+      CLICKHOUSE_USERNAME: default
+      CLICKHOUSE_PASSWORD: ""
+    volumes:
+      - .:/var/www/html
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+      back:
+        condition: service_healthy
+    networks: [default, microservices-net]
+
+  nginx:
+    image: nginx:1.27-alpine
+    ports:
+      - "8447:443"
+      - "8087:80"
+    volumes:
+      - .:/var/www/html:ro
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/nginx/certs:/etc/nginx/certs:ro
+    depends_on:
+      back:
+        condition: service_healthy
+
+volumes:
+  clickhouse_data:
+
+networks:
+  microservices-net:
+    external: true
