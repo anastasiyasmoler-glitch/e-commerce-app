@@ -54,13 +54,19 @@ class StaffAnalyticsRoutesTest extends TestCase
                 'paid' => 4,
                 'cancelled' => 1,
                 'conversion_rate' => 0.4,
+                'revenue_cents' => 12000,
+                'average_order_value_cents' => 3000,
+                'currency' => 'USD',
+                'revenue_by_day' => [],
             ]);
         });
 
         $this->getJson('/api/orders', $this->adminHeaders())
             ->assertOk()
             ->assertJsonPath('data.paid', 4)
-            ->assertJsonPath('data.conversion_rate', 0.4);
+            ->assertJsonPath('data.conversion_rate', 0.4)
+            ->assertJsonPath('data.revenue_cents', 12000)
+            ->assertJsonPath('data.average_order_value_cents', 3000);
     }
 
     /**

@@ -46,6 +46,14 @@ Laravel SQLite is only for framework tables; analytics data lives in ClickHouse.
 php artisan kafka:consume-analytics
 ```
 
+## Report APIs (staff JWT via gateway)
+
+| Gateway path | Metrics in `data` |
+| --- | --- |
+| `GET /api/analytics/users?from=&to=` | `total`, `by_day[]` from `user.registered` |
+| `GET /api/analytics/orders?from=&to=` | funnel `created` / `paid` / `cancelled`, `conversion_rate`, `revenue_cents`, `average_order_value_cents`, `currency`, `revenue_by_day[]` from `order.*` (`total_cents` on `order.paid`) |
+| `GET /api/analytics/search?from=&to=` | `total`, `top_queries[]`, `zero_result_total`, `zero_result_queries[]` from `search.performed` (`result_count`) |
+
 ## Environment
 
 See `.env.example` for `KAFKA_*` and `CLICKHOUSE_*`.
