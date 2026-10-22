@@ -54,8 +54,7 @@ func TestProductIndexingAndSearch(t *testing.T) {
 		"price": 4200,
 		"attributes": {"color":"oak"}
 	}`)))
-
-	time.Sleep(500 * time.Millisecond)
+	require.NoError(t, client.Refresh(ctx))
 
 	engine := &search.OpenSearchEngine{
 		Client:     client,

@@ -27,6 +27,28 @@ func NewClient(baseURL string) *Client {
 	}
 }
 
+// Refresh forces a refresh of the products and categories indices so that
+// recently indexed documents become searchable immediately.
+func (c *Client) Refresh(ctx context.Context) error {
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+"/_refresh", nil)
+	if err != nil {
+		return err
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+		body, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
+		return fmt.Errorf("refresh indices: status %d: %s", resp.StatusCode, strings.TrimSpace(string(body)))
+	}
+
+	return nil
+}
+
 func (c *Client) Ready(ctx context.Context) error {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+"/_cluster/health?wait_for_status=yellow&timeout=5s", nil)
 	if err != nil {
