@@ -1,9 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
-import { adminKeys, fetchAnalytics } from '@/api/adminApi'
+import { analyticsPeriodDays, fetchAnalyticsSummary } from '@/api/analyticsApi'
 
-export function useAnalytics() {
+export function useAnalytics(periodLabel: string) {
+  const days = analyticsPeriodDays[periodLabel] ?? 30
+
   return useQuery({
-    queryKey: adminKeys.analytics,
-    queryFn: fetchAnalytics,
+    queryKey: ['admin', 'analytics', days],
+    queryFn: () => fetchAnalyticsSummary(days),
   })
 }
