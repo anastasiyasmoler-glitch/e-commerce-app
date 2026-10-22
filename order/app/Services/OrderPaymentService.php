@@ -105,7 +105,11 @@ class OrderPaymentService
             );
 
             if ($movedToPaid) {
-                $this->kafka->publish('order.paid', ['order_id' => $orderId]);
+                $this->kafka->publish('order.paid', [
+                    'order_id' => $orderId,
+                    'total_cents' => (int) $order->total_cents,
+                    'currency' => (string) $order->currency,
+                ]);
             }
 
             $movedToConfirmed = $this->orders->transitionStatus(
