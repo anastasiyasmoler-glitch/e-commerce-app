@@ -57,21 +57,21 @@ class ClickHouseMetricsIntegrationTest extends TestCase
         foreach (['01_schema.sql', '02_rollups.sql'] as $file) {
             $sql = file_get_contents($initDir.'/'.$file);
             $this->assertNotFalse($sql);
-            $client->write($sql);
+            // ClickHouse HTTP rejects multi-statement bodies; run each statement separately.
+            foreach (explode(';', $sql) as $statement) {
+                $statement = trim($statement);
+                if ($statement !== '') {
+                    $client->write($statement);
+                }
+            }
         }
     }
 
     private function truncateRollupTables(): void
     {
         $client = $this->app->make(ClickHouseClientFactory::class)->make();
-        $client->write(
-            <<<'SQL'
-            TRUNCATE TABLE IF EXISTS analytics.events_raw;
-            TRUNCATE TABLE IF EXISTS analytics.registrations_daily;
-            TRUNCATE TABLE IF EXISTS analytics.orders_daily;
-            TRUNCATE TABLE IF EXISTS analytics.search_daily;
-            TRUNCATE TABLE IF EXISTS analytics.search_query_daily;
-            SQL,
-        );
+        foreach (['events_raw', 'registrations_daily', 'orders_daily', 'search_daily', 'search_query_daily'] as $table) {
+            $client->write("TRUNCATE TABLE IF EXISTS analytics.{$table}");
+        }
     }
 }

@@ -1,3 +1,9 @@
 #!/bin/sh
 npm run lint:all || exit 1
 npm run test:all || exit 1
+
+# Run ClickHouse-backed analytics tests when a local ClickHouse is available,
+# otherwise they self-skip via ANALYTICS_CLICKHOUSE_TESTS.
+if curl -sf http://localhost:8123/ping >/dev/null 2>&1; then
+  CLICKHOUSE_HOST=127.0.0.1 ANALYTICS_CLICKHOUSE_TESTS=1 composer --working-dir=analytics test || exit 1
+fi
