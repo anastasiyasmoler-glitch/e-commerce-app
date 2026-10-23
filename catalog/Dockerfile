@@ -27,6 +27,7 @@ RUN composer install --no-interaction --prefer-dist --no-scripts --no-autoloader
 COPY . .
 
 RUN composer install --no-interaction --prefer-dist --optimize-autoloader \
+    && cp .env.example .env \
     && php artisan key:generate --force --no-interaction \
     && php artisan filament:assets --ansi --no-interaction
 
