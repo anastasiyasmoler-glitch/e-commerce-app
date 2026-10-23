@@ -72,6 +72,8 @@ class CreateOrderService
 
             $this->kafka->publish('order.created', [
                 'order_id' => $order->id,
+                'total_cents' => $totalCents,
+                'currency' => $currency,
                 'items' => array_map(
                     fn (array $item): array => [
                         'product_id' => $item['product_id'],

@@ -9,6 +9,7 @@ use App\Http\Resources\OrderResource;
 use App\Models\Order;
 use App\Services\CancelOrderService;
 use App\Services\CreateOrderService;
+use App\Services\OrderFulfillmentService;
 use App\Services\OrderReadService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -21,6 +22,7 @@ class OrderController extends Controller
         private readonly CreateOrderService $createOrder,
         private readonly OrderReadService $orderRead,
         private readonly CancelOrderService $cancelOrder,
+        private readonly OrderFulfillmentService $fulfillment,
     ) {}
 
     public function index(ListOrdersRequest $request): JsonResponse
@@ -82,6 +84,28 @@ class OrderController extends Controller
             $order,
             $request->input('reason') !== null ? (string) $request->input('reason') : null,
         );
+
+        return response()->json(['data' => OrderResource::toArray($model)]);
+    }
+
+    public function ship(Request $request, int $order): JsonResponse
+    {
+        if (! $this->gatewayCanViewAllOrders($request)) {
+            abort(403, 'Only staff can ship orders.');
+        }
+
+        $model = $this->fulfillment->shipForStaff($order);
+
+        return response()->json(['data' => OrderResource::toArray($model)]);
+    }
+
+    public function complete(Request $request, int $order): JsonResponse
+    {
+        if (! $this->gatewayCanViewAllOrders($request)) {
+            abort(403, 'Only staff can complete orders.');
+        }
+
+        $model = $this->fulfillment->completeForStaff($order);
 
         return response()->json(['data' => OrderResource::toArray($model)]);
     }

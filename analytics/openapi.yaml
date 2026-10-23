@@ -1,0 +1,309 @@
+openapi: 3.0.3
+info:
+  title: Analytics Service API
+  version: 1.0.0
+  description: |
+    Staff-only reporting over ClickHouse rollups (Analyst/Admin JWT via Auth gateway).
+    Ingest is Kafka → `events_raw`; metrics read from daily rollup tables.
+
+servers:
+  - url: https://localhost/api/analytics
+    description: Auth gateway (Admin SPA)
+  - url: https://localhost:8447/api
+    description: Analytics nginx (direct dev)
+
+paths:
+  /healthz:
+    get:
+      summary: Liveness probe
+      operationId: analyticsHealthz
+      security: []
+      responses:
+        '200':
+          description: Process is up
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: ok
+
+  /readyz:
+    get:
+      summary: Readiness probe (ClickHouse ping)
+      operationId: analyticsReadyz
+      security: []
+      responses:
+        '200':
+          description: ClickHouse is reachable
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: ok
+        '503':
+          description: ClickHouse unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /users:
+    get:
+      summary: User registration metrics
+      operationId: getUserMetrics
+      parameters:
+        - $ref: '#/components/parameters/FromDate'
+        - $ref: '#/components/parameters/ToDate'
+      responses:
+        '200':
+          description: Registration totals and daily breakdown
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserMetricsResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /orders:
+    get:
+      summary: Order funnel and revenue metrics
+      operationId: getOrderMetrics
+      parameters:
+        - $ref: '#/components/parameters/FromDate'
+        - $ref: '#/components/parameters/ToDate'
+      responses:
+        '200':
+          description: Funnel counts, revenue, and daily revenue
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderMetricsResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /search:
+    get:
+      summary: Search query metrics
+      operationId: getSearchMetrics
+      parameters:
+        - $ref: '#/components/parameters/FromDate'
+        - $ref: '#/components/parameters/ToDate'
+      responses:
+        '200':
+          description: Search volume, top queries, zero-result stats
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchMetricsResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Auth access token; Analyst or Admin role required for report paths.
+
+  parameters:
+    FromDate:
+      name: from
+      in: query
+      description: Inclusive start date (UTC). Defaults to 30 days before `to`.
+      schema:
+        type: string
+        format: date
+        example: '2026-10-01'
+    ToDate:
+      name: to
+      in: query
+      description: Inclusive end date (UTC). Defaults to today.
+      schema:
+        type: string
+        format: date
+        example: '2026-10-22'
+
+  responses:
+    Unauthorized:
+      description: Missing or invalid staff identity (gateway or middleware)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Forbidden:
+      description: Authenticated but not Analyst/Admin
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        message:
+          type: string
+      additionalProperties: true
+
+    PeriodMeta:
+      type: object
+      required: [from, to]
+      properties:
+        from:
+          type: string
+          format: date
+        to:
+          type: string
+          format: date
+
+    DailyCount:
+      type: object
+      required: [date, count]
+      properties:
+        date:
+          type: string
+          format: date
+        count:
+          type: integer
+          minimum: 0
+
+    DailyRevenue:
+      type: object
+      required: [date, revenue_cents]
+      properties:
+        date:
+          type: string
+          format: date
+        revenue_cents:
+          type: integer
+
+    QueryCount:
+      type: object
+      required: [query, count]
+      properties:
+        query:
+          type: string
+        count:
+          type: integer
+          minimum: 0
+
+    UserMetricsData:
+      type: object
+      required: [total, by_day]
+      properties:
+        total:
+          type: integer
+          minimum: 0
+        by_day:
+          type: array
+          items:
+            $ref: '#/components/schemas/DailyCount'
+
+    UserMetricsResponse:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          $ref: '#/components/schemas/UserMetricsData'
+        meta:
+          $ref: '#/components/schemas/PeriodMeta'
+
+    OrderMetricsData:
+      type: object
+      required:
+        - created
+        - paid
+        - shipped
+        - completed
+        - cancelled
+        - conversion_rate
+        - completion_rate
+        - revenue_cents
+        - average_order_value_cents
+        - revenue_by_day
+      properties:
+        created:
+          type: integer
+          minimum: 0
+        paid:
+          type: integer
+          minimum: 0
+        shipped:
+          type: integer
+          minimum: 0
+        completed:
+          type: integer
+          minimum: 0
+        cancelled:
+          type: integer
+          minimum: 0
+        conversion_rate:
+          type: number
+          format: float
+          nullable: true
+        completion_rate:
+          type: number
+          format: float
+          nullable: true
+          description: completed / created in the selected period
+        revenue_cents:
+          type: integer
+          minimum: 0
+        average_order_value_cents:
+          type: integer
+          nullable: true
+        currency:
+          type: string
+          nullable: true
+          example: USD
+        revenue_by_day:
+          type: array
+          items:
+            $ref: '#/components/schemas/DailyRevenue'
+
+    OrderMetricsResponse:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          $ref: '#/components/schemas/OrderMetricsData'
+        meta:
+          $ref: '#/components/schemas/PeriodMeta'
+
+    SearchMetricsData:
+      type: object
+      required: [total, top_queries, zero_result_total, zero_result_queries]
+      properties:
+        total:
+          type: integer
+          minimum: 0
+        top_queries:
+          type: array
+          items:
+            $ref: '#/components/schemas/QueryCount'
+        zero_result_total:
+          type: integer
+          minimum: 0
+        zero_result_queries:
+          type: array
+          items:
+            $ref: '#/components/schemas/QueryCount'
+
+    SearchMetricsResponse:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          $ref: '#/components/schemas/SearchMetricsData'
+        meta:
+          $ref: '#/components/schemas/PeriodMeta'
+
+security:
+  - bearerAuth: []

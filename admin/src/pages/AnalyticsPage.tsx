@@ -10,7 +10,7 @@ const periods = ['Last 7 days', 'Last 30 days', 'Last 90 days']
 
 export function AnalyticsPage() {
   const [period, setPeriod] = useState(periods[0])
-  const analytics = useAnalytics()
+  const analytics = useAnalytics(period)
 
   const data = analytics.data
 
