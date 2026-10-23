@@ -1,0 +1,64 @@
+name: Recommendation
+
+on:
+  push:
+    paths:
+      - 'recommendation/**'
+      - '.github/workflows/recommendation.yml'
+  pull_request:
+    paths:
+      - 'recommendation/**'
+      - '.github/workflows/recommendation.yml'
+
+concurrency:
+  group: recommendation-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint and format
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: recommendation
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          coverage: none
+
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Laravel Pint
+        run: php vendor/bin/pint --test
+
+  test:
+    name: Unit and feature tests
+    needs: lint
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: recommendation
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: mbstring, xml, ctype, iconv, intl, pdo_sqlite, sqlite3, bcmath, tokenizer
+          coverage: none
+
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Prepare Laravel env
+        run: |
+          cp .env.example .env
+          php artisan key:generate --force --no-interaction
+          touch database/database.sqlite
+
+      - name: PHPUnit
+        run: php artisan test

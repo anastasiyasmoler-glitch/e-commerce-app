@@ -1,0 +1,107 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: recommendation
+      POSTGRES_USER: recommendation
+      POSTGRES_PASSWORD: recommendation
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U recommendation -d recommendation"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+
+  back:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "true"
+      APP_URL: https://localhost:8448
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_DATABASE: recommendation
+      DB_USERNAME: recommendation
+      DB_PASSWORD: recommendation
+      SESSION_DRIVER: file
+      CACHE_STORE: file
+      QUEUE_CONNECTION: sync
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_CONSUMER_GROUP: recommendation-service-group
+      CATALOG_BASE_URL: https://catalog-nginx
+    volumes:
+      - .:/var/www/html
+    healthcheck:
+      test: ["CMD-SHELL", "php -r \"exit(@fsockopen('127.0.0.1', 9000) ? 0 : 1);\""]
+      interval: 5s
+      timeout: 3s
+      retries: 60
+      start_period: 60s
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      default:
+        aliases: [recommendation-back]
+      microservices-net: {}
+
+  consumer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["php", "artisan", "kafka:consume-catalog-index"]
+    restart: unless-stopped
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "true"
+      APP_URL: https://localhost:8448
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_DATABASE: recommendation
+      DB_USERNAME: recommendation
+      DB_PASSWORD: recommendation
+      SESSION_DRIVER: file
+      CACHE_STORE: file
+      QUEUE_CONNECTION: sync
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_CONSUMER_GROUP: recommendation-service-group
+      CATALOG_BASE_URL: https://catalog-nginx
+    volumes:
+      - .:/var/www/html
+    depends_on:
+      postgres:
+        condition: service_healthy
+      back:
+        condition: service_healthy
+    networks: [default, microservices-net]
+
+  nginx:
+    image: nginx:1.27-alpine
+    ports:
+      - "8448:443"
+      - "8088:80"
+    volumes:
+      - .:/var/www/html:ro
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/nginx/certs:/etc/nginx/certs:ro
+    depends_on:
+      back:
+        condition: service_healthy
+    networks:
+      default: {}
+      microservices-net:
+        aliases: [recommendation-nginx]
+
+volumes:
+  postgres_data:
+
+networks:
+  microservices-net:
+    external: true
