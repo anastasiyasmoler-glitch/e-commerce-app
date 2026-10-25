@@ -89,6 +89,27 @@ class AuthController extends Controller
         return $this->gatewayIdentityResponse($user);
     }
 
+    public function gatewayStaff(Request $request): Response
+    {
+        $bearer = $request->bearerToken();
+
+        if ($bearer === null || $bearer === '') {
+            abort(401);
+        }
+
+        $user = $this->issuer->userFromAccessToken($bearer);
+
+        if ($user === null) {
+            abort(401);
+        }
+
+        if (! $user->hasAnyRole(['admin', 'analyst'])) {
+            abort(403);
+        }
+
+        return $this->gatewayIdentityResponse($user);
+    }
+
     public function gatewayCustomer(Request $request): Response
     {
         $bearer = $request->bearerToken();
