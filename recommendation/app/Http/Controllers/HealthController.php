@@ -2,13 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Infrastructure\QdrantProductVectorRepository;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use Throwable;
 
 class HealthController extends Controller
 {
-    public function health(): JsonResponse
+    public function health(QdrantProductVectorRepository $qdrant): JsonResponse
     {
         $checks = [
             'app' => 'ok',
@@ -27,10 +28,16 @@ class HealthController extends Controller
         }
 
         if (DB::connection()->getDriverName() === 'pgsql') {
-            $checks['vector_index_table'] = $this->projectionTableReady() ? 'ok' : 'pending';
+            $checks['catalog_projection_table'] = $this->projectionTableReady() ? 'ok' : 'pending';
         }
 
-        $status = collect($checks)->contains('pending') ? 'degraded' : 'ok';
+        $checks['qdrant'] = app()->environment('testing')
+            ? 'skipped'
+            : ($qdrant->ping() ? 'ok' : 'unavailable');
+
+        $status = collect($checks)->contains(
+            fn (string $value): bool => ! in_array($value, ['ok', 'skipped'], true),
+        ) ? 'degraded' : 'ok';
 
         return response()->json([
             'status' => $status,

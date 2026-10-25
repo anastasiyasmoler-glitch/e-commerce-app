@@ -1,46 +1,41 @@
 # Recommendation Service
 
-AI-assisted product recommendations from **Catalog** data only. This service keeps a local projection (PostgreSQL + **pgvector**) and will expose chat APIs behind the gateway.
+AI-assisted product recommendations from **Catalog** data only.
 
 ## Stack
 
 - Laravel (PHP 8.5)
-- **Kafka** — async index updates from Catalog (same topic names as Catalog/Search/Order)
-- PostgreSQL 16 + **pgvector** for embeddings
-- Google Gemini (via `LlmClient` — not wired in RECOMMENDATION-1)
+- **Kafka** — catalog product facts
+- **PostgreSQL** — local product projection (`catalog_product_projections`, JSON metadata)
+- **Qdrant** — vector index (Gemini embeddings)
+- **Google Gemini** — `LlmClient` (`embed` + `generate` for future chat)
 - Nginx HTTPS on **8448** (`recommendation-nginx` on `microservices-net`)
 
-## Kafka topics (consumer)
+## Indexing flow
 
-| Topic | Intended action |
-|---|---|
-| `product.created` | Add to index |
-| `product.updated` | Recompute embedding |
-| `product.deleted` | Remove from index |
-| `product.published` / `product.unpublished` | Include/exclude (when Catalog emits them) |
-| `stock.changed` | Update availability |
+1. `product.created` / `product.updated` → upsert row in Postgres.
+2. Build text from payload → `GeminiLlmClient::embed()`.
+3. Upsert point in Qdrant (cosine, collection `catalog_products`).
+4. `product.deleted` → delete from Postgres and Qdrant.
 
-RECOMMENDATION-1 ships a **stub** consumer (`kafka:consume-catalog-index`) that logs events; indexing and Gemini land in later cards.
+If Gemini or Qdrant fails, the Postgres row is still saved; check logs for `catalog_vector_index_failed`.
 
 ## Local run
 
-Prerequisites: external Docker network `microservices-net` and Kafka (`notification` compose).
+Prerequisites: `microservices-net`, Kafka (`notification` compose).
 
 ```bash
 cd recommendation
 cp .env.example .env
+# Set GEMINI_API_KEY in .env (not committed)
 docker compose up -d --build
 ```
 
-- Health: `curl -k https://localhost:8448/recommendations/health`
-- Via gateway (after Auth nginx reload): `curl -k https://localhost/api/recommendations/health`
-- Consumer logs: `docker compose logs -f consumer`
+- Health: `curl -k https://localhost:8448/recommendations/health` (`database`, `qdrant`, `catalog_projection_table`)
+- Qdrant UI/API: `http://localhost:6333`
+- Postgres: host port **5433**
 
-Postgres is exposed on host port **5433** for debugging.
-
-## Environment
-
-See `.env.example` for `KAFKA_*`, `DB_*`, `GEMINI_*`, and `CATALOG_BASE_URL`.
+If you previously used pgvector in Postgres, run migrations after pull; for a clean slate: `docker compose down -v` in `recommendation/`.
 
 ## Tests
 
@@ -50,3 +45,5 @@ cp .env.example .env && php artisan key:generate
 touch database/database.sqlite
 php artisan test
 ```
+
+CI uses SQLite; Qdrant health is `skipped` in `testing` env.
