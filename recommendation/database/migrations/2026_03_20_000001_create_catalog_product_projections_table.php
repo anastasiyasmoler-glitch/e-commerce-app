@@ -12,8 +12,6 @@ return new class extends Migration
             return;
         }
 
-        DB::statement('CREATE EXTENSION IF NOT EXISTS vector');
-
         DB::statement('
             CREATE TABLE catalog_product_projections (
                 product_id BIGINT NOT NULL,
@@ -21,7 +19,6 @@ return new class extends Migration
                 payload JSONB NOT NULL,
                 is_published BOOLEAN NOT NULL DEFAULT false,
                 in_stock BOOLEAN NOT NULL DEFAULT true,
-                embedding vector('.(int) config('recommendation.embedding_dimensions').'),
                 indexed_at TIMESTAMPTZ NULL,
                 created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
                 updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),

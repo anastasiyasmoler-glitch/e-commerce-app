@@ -26,3 +26,5 @@ Homestead.json
 Homestead.yaml
 Thumbs.db
 docker/nginx/certs/
+
+/database/database.sqlite

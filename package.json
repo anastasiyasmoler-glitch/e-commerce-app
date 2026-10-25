@@ -4,11 +4,11 @@
   "scripts": {
     "prepare": "husky",
     "lint:js": "npm run lint --prefix frontend && npm run lint --prefix admin",
-    "lint:php": "composer --working-dir=auth lint && composer --working-dir=catalog lint && composer --working-dir=notification lint && composer --working-dir=order lint && composer --working-dir=analytics lint",
+    "lint:php": "composer --working-dir=auth lint && composer --working-dir=catalog lint && composer --working-dir=notification lint && composer --working-dir=order lint && composer --working-dir=order lint && composer --working-dir=analytics lint && composer --working-dir=recommendation lint",
     "lint:go": "docker run --rm -v $PWD/search:/src -v go-mod-cache:/go/pkg/mod -w /src golang:1.24 sh -c 'test -z \"$(gofmt -l .)\" && go vet ./...'",
     "lint:all": "npm run lint:js && npm run lint:php && npm run lint:go",
     "test:go": "docker run --rm -v $PWD/search:/src -v go-mod-cache:/go/pkg/mod -w /src golang:1.24 go test ./...",
-    "test:all": "composer --working-dir=auth test && composer --working-dir=catalog test && composer --working-dir=notification test && composer --working-dir=analytics test && npm run test:go",
+    "test:all": "composer --working-dir=auth test && composer --working-dir=catalog test && composer --working-dir=notification test && composer --working-dir=order test && composer --working-dir=analytics test && composer --working-dir=recommendation test && npm run test:go",
     "test": "echo \"No root tests\" && exit 0"
   },
   "repository": {
