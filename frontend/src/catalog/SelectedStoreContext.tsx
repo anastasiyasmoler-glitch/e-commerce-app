@@ -1,16 +1,6 @@
-import { createContext, useContext, useState, type ReactNode } from 'react'
-import type { CatalogStore } from '@/api/catalogApi'
+import { useState, type ReactNode } from 'react'
 import { useStores } from '@/hooks/useStores'
-
-type SelectedStoreContextValue = {
-  stores: CatalogStore[]
-  selectedStore: CatalogStore | null
-  selectStore: (store: CatalogStore) => void
-  isPending: boolean
-  isError: boolean
-}
-
-const SelectedStoreContext = createContext<SelectedStoreContextValue | null>(null)
+import { SelectedStoreContext, type SelectedStoreContextValue } from '@/catalog/useSelectedStore'
 
 export function SelectedStoreProvider({ children }: { children: ReactNode }) {
   const storesQuery = useStores()
@@ -28,12 +18,4 @@ export function SelectedStoreProvider({ children }: { children: ReactNode }) {
   }
 
   return <SelectedStoreContext.Provider value={value}>{children}</SelectedStoreContext.Provider>
-}
-
-export function useSelectedStore(): SelectedStoreContextValue {
-  const ctx = useContext(SelectedStoreContext)
-  if (ctx === null) {
-    throw new Error('useSelectedStore must be used within SelectedStoreProvider')
-  }
-  return ctx
 }

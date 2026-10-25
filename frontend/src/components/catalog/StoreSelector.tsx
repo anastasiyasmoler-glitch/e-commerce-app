@@ -1,5 +1,5 @@
 import { Store } from 'lucide-react'
-import { useSelectedStore } from '@/catalog/SelectedStoreContext'
+import { useSelectedStore } from '@/catalog/useSelectedStore'
 
 export function StoreSelector() {
   const { stores, selectedStore, selectStore, isPending } = useSelectedStore()

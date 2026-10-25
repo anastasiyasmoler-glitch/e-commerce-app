@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { useSelectedStore } from '@/catalog/SelectedStoreContext'
+import { useSelectedStore } from '@/catalog/useSelectedStore'
 import { ProductCard } from '@/components/catalog/ProductCard'
 import {
   Breadcrumb,

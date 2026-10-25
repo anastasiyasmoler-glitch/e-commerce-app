@@ -1,7 +1,7 @@
 import { ArrowRight, Sparkles } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { artForCategory } from '@/catalog/art'
-import { useSelectedStore } from '@/catalog/SelectedStoreContext'
+import { useSelectedStore } from '@/catalog/useSelectedStore'
 import { FurnitureArt } from '@/components/catalog/FurnitureArt'
 import { ProductCard } from '@/components/catalog/ProductCard'
 import { Button } from '@/components/ui/button'

@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { useSelectedStore } from '@/catalog/SelectedStoreContext'
+import { useSelectedStore } from '@/catalog/useSelectedStore'
 import { SearchProductCard } from '@/components/catalog/SearchProductCard'
 import { Button } from '@/components/ui/button'
 import { Container } from '@/components/ui/container'

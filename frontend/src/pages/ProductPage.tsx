@@ -1,6 +1,6 @@
 import { Link, useParams } from 'react-router-dom'
 import { artForProductSlug } from '@/catalog/art'
-import { useSelectedStore } from '@/catalog/SelectedStoreContext'
+import { useSelectedStore } from '@/catalog/useSelectedStore'
 import { FurnitureArt } from '@/components/catalog/FurnitureArt'
 import {
   Breadcrumb,
