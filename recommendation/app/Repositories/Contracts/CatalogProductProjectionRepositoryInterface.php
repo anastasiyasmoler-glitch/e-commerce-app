@@ -12,4 +12,10 @@ interface CatalogProductProjectionRepositoryInterface
     public function upsertFromCatalogEvent(array $payload): void;
 
     public function deleteByProductAndStore(int $productId, int $storeId): void;
+
+    /**
+     * @param  list<int>  $productIds
+     * @return list<array{product_id: int, store_id: int, payload: array<string, mixed>}>
+     */
+    public function findPayloadsByStore(int $storeId, array $productIds): array;
 }

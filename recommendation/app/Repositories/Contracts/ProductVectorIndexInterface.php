@@ -16,4 +16,15 @@ interface ProductVectorIndexInterface
     ): void;
 
     public function deleteProductVector(int $productId, int $storeId): void;
+
+    /**
+     * @param  list<float>  $queryVector
+     * @return list<array{product_id: int, store_id: int, score: float}>
+     */
+    public function searchSimilar(
+        int $storeId,
+        array $queryVector,
+        int $limit,
+        bool $inStockOnly = false,
+    ): array;
 }

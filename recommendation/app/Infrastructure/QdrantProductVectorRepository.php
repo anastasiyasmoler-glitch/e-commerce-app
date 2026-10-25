@@ -60,6 +60,84 @@ class QdrantProductVectorRepository implements ProductVectorIndexInterface
         }
     }
 
+    public function searchSimilar(
+        int $storeId,
+        array $queryVector,
+        int $limit,
+        bool $inStockOnly = false,
+    ): array {
+        if ($storeId < 1 || $queryVector === [] || $limit < 1) {
+            return [];
+        }
+
+        $must = [
+            [
+                'key' => 'store_id',
+                'match' => ['value' => $storeId],
+            ],
+        ];
+
+        if ($inStockOnly) {
+            $must[] = [
+                'key' => 'in_stock',
+                'match' => ['value' => true],
+            ];
+        }
+
+        $response = Http::timeout(15)
+            ->acceptJson()
+            ->post($this->collectionUrl('/points/search'), [
+                'vector' => $queryVector,
+                'limit' => $limit,
+                'with_payload' => true,
+                'filter' => [
+                    'must' => $must,
+                ],
+            ]);
+
+        if ($response->failed()) {
+            throw new RuntimeException('Qdrant search failed: '.$response->body());
+        }
+
+        $decoded = $response->json();
+        if (! is_array($decoded)) {
+            return [];
+        }
+
+        $threshold = (float) config('recommendation.chat.similarity_threshold', 0.55);
+        $hits = [];
+
+        foreach ($decoded['result'] ?? [] as $point) {
+            if (! is_array($point)) {
+                continue;
+            }
+
+            $score = (float) ($point['score'] ?? 0);
+            if ($score < $threshold) {
+                continue;
+            }
+
+            $payload = $point['payload'] ?? [];
+            if (! is_array($payload)) {
+                continue;
+            }
+
+            $productId = (int) ($payload['product_id'] ?? 0);
+            $pointStoreId = (int) ($payload['store_id'] ?? 0);
+            if ($productId < 1 || $pointStoreId !== $storeId) {
+                continue;
+            }
+
+            $hits[] = [
+                'product_id' => $productId,
+                'store_id' => $pointStoreId,
+                'score' => $score,
+            ];
+        }
+
+        return $hits;
+    }
+
     public function ping(): bool
     {
         $response = Http::timeout(5)->get($this->baseUrl().'/healthz');

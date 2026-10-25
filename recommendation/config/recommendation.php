@@ -14,4 +14,12 @@ return [
         'collection' => env('QDRANT_COLLECTION', 'catalog_products'),
         'use_https' => (bool) env('QDRANT_USE_HTTPS', false),
     ],
+    'chat' => [
+        'message_max_length' => (int) env('RECOMMENDATION_MESSAGE_MAX_LENGTH', 2000),
+        'default_result_limit' => (int) env('RECOMMENDATION_DEFAULT_RESULT_LIMIT', 5),
+        'max_result_limit' => (int) env('RECOMMENDATION_MAX_RESULT_LIMIT', 20),
+        'similarity_threshold' => (float) env('RECOMMENDATION_SIMILARITY_THRESHOLD', 0.55),
+        'conversation_idle_minutes' => (int) env('RECOMMENDATION_CONVERSATION_IDLE_MINUTES', 30),
+        'conversation_max_hours' => (int) env('RECOMMENDATION_CONVERSATION_MAX_HOURS', 24),
+    ],
 ];

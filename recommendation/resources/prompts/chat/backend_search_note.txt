@@ -1,0 +1,5 @@
+Note for the model (search already ran on the server):
+
+Semantic search in Qdrant and catalog projection refresh already happened **before** this prompt was built. You do **not** call tools. Your job is to answer using **only** the verified products listed below.
+
+If the list is empty, the backend found no close matches above the similarity threshold — do not invent products.
