@@ -1,0 +1,308 @@
+openapi: 3.0.3
+info:
+  title: Order Service API
+  version: 1.0.0
+  description: |
+    Order lifecycle management (create, list, view, cancel, ship, complete)
+    and Stripe payment webhook ingestion. All user endpoints are protected by
+    the auth gateway: the gateway forwards a JWT and injects user identity
+    (`auth_user_id`, `auth_user_roles`, `auth_user_email`); the spec models
+    this as a bearer JWT for external consumers.
+
+servers:
+  - url: https://localhost/api/orders
+    description: Auth gateway (Admin SPA)
+  - url: https://localhost:8445
+    description: Order nginx (direct dev)
+
+paths:
+  /up:
+    get:
+      summary: Liveness probe
+      operationId: orderHealthz
+      security: []
+      responses:
+        '200':
+          description: Service is up
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: ok }
+
+  /webhooks/stripe:
+    post:
+      summary: Stripe payment webhook
+      operationId: handleStripeWebhook
+      description: |
+        Receives raw Stripe event payloads. Signature is verified against
+        the `Stripe-Signature` header by the payment gateway. Always returns
+        204 (unparseable payloads are ignored).
+      security: []
+      parameters:
+        - name: Stripe-Signature
+          in: header
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Raw Stripe event object
+      responses:
+        '204':
+          description: Webhook accepted
+
+  /orders:
+    get:
+      summary: List orders
+      operationId: listOrders
+      description: |
+        Customers see only their own orders; staff (admin/analyst) see all.
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, default: 1 }
+        - name: per_page
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 50, default: 20 }
+      responses:
+        '200':
+          description: Paginated list of orders
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Order' }
+                  meta: { $ref: '#/components/schemas/PaginationMeta' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      summary: Create order
+      operationId: createOrder
+      description: |
+        Creates an order from line items (product ids + quantities), reserving
+        stock and starting payment. Customer role only. The `Idempotency-Key`
+        header is required and makes retries safe.
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [items]
+              properties:
+                items:
+                  type: array
+                  minItems: 1
+                  items:
+                    type: object
+                    required: [product_id, quantity]
+                    properties:
+                      product_id: { type: integer, minimum: 1 }
+                      quantity: { type: integer, minimum: 1 }
+                shipping_address:
+                  type: object
+                  description: Free-form shipping address
+                currency:
+                  type: string
+                  minLength: 3
+                  maxLength: 3
+                  default: USD
+      responses:
+        '201':
+          description: Order created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/Order' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /orders/{order}:
+    get:
+      summary: Get order
+      operationId: showOrder
+      parameters:
+        - name: order
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Order details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/Order' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /orders/{order}/cancel:
+    post:
+      summary: Cancel order
+      operationId: cancelOrder
+      description: Cancels the order (customer owner or staff) and releases stock.
+      parameters:
+        - name: order
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason: { type: string }
+      responses:
+        '200':
+          description: Cancelled order
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/Order' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /orders/{order}/ship:
+    post:
+      summary: Mark order as shipped
+      operationId: shipOrder
+      description: Staff only (admin/analyst roles).
+      parameters:
+        - name: order
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Shipped order
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/Order' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /orders/{order}/complete:
+    post:
+      summary: Mark order as completed
+      operationId: completeOrder
+      description: Staff only (admin/analyst roles).
+      parameters:
+        - name: order
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Completed order
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/Order' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Order:
+      type: object
+      properties:
+        id: { type: integer }
+        user_id: { type: integer }
+        status:
+          type: string
+          enum: [created, stock_reserved, payment_pending, paid, confirmed, shipped, completed, payment_failed, cancelled]
+        total_cents: { type: integer }
+        currency: { type: string, example: USD }
+        shipping_address:
+          type: object
+          nullable: true
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/OrderItem' }
+        created_at: { type: string, format: date-time, nullable: true }
+    OrderItem:
+      type: object
+      properties:
+        product_id: { type: integer }
+        store_id: { type: integer }
+        product_name: { type: string }
+        sku: { type: string }
+        price_cents: { type: integer }
+        quantity: { type: integer }
+    PaginationMeta:
+      type: object
+      properties:
+        current_page: { type: integer }
+        per_page: { type: integer }
+        total: { type: integer }
+        last_page: { type: integer }
+    Message:
+      type: object
+      properties:
+        message: { type: string }
+
+  responses:
+    Unauthorized:
+      description: Not authenticated (JWT missing or invalid)
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Message' }
+    Forbidden:
+      description: Insufficient role (e.g. staff-only action)
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Message' }
+    NotFound:
+      description: Order not found or not visible to the caller
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Message' }
+    ValidationError:
+      description: Validation failed
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message: { type: string }
+              errors:
+                type: object
+                additionalProperties:
+                  type: array
+                  items: { type: string }
+
+security:
+  - bearerAuth: []
