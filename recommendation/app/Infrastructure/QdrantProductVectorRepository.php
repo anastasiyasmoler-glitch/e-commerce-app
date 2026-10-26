@@ -43,6 +43,33 @@ class QdrantProductVectorRepository implements ProductVectorIndexInterface
         }
     }
 
+    public function updateProductVectorMetadata(
+        int $productId,
+        int $storeId,
+        bool $isPublished,
+        bool $inStock,
+    ): void {
+        if ($productId < 1 || $storeId < 1) {
+            return;
+        }
+
+        $response = Http::timeout(15)
+            ->acceptJson()
+            ->post($this->collectionUrl('/points/payload'), [
+                'payload' => [
+                    'product_id' => $productId,
+                    'store_id' => $storeId,
+                    'is_published' => $isPublished,
+                    'in_stock' => $inStock,
+                ],
+                'points' => [$this->pointId($productId, $storeId)],
+            ]);
+
+        if ($response->failed()) {
+            throw new RuntimeException('Qdrant payload update failed: '.$response->body());
+        }
+    }
+
     public function deleteProductVector(int $productId, int $storeId): void
     {
         if ($productId < 1 || $storeId < 1) {
@@ -74,6 +101,10 @@ class QdrantProductVectorRepository implements ProductVectorIndexInterface
             [
                 'key' => 'store_id',
                 'match' => ['value' => $storeId],
+            ],
+            [
+                'key' => 'is_published',
+                'match' => ['value' => true],
             ],
         ];
 

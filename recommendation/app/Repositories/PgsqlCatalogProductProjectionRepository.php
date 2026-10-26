@@ -58,9 +58,92 @@ class PgsqlCatalogProductProjectionRepository implements CatalogProductProjectio
             ->delete();
     }
 
+    public function syncStockAvailability(int $productId, int $storeId, bool $inStock): ?array
+    {
+        if (DB::connection()->getDriverName() !== 'pgsql' || $productId < 1 || $storeId < 1) {
+            return null;
+        }
+
+        $row = DB::table('catalog_product_projections')
+            ->where('product_id', $productId)
+            ->where('store_id', $storeId)
+            ->first();
+
+        if ($row === null) {
+            return null;
+        }
+
+        $payload = json_decode((string) $row->payload, true);
+        if (! is_array($payload)) {
+            $payload = [];
+        }
+
+        $payload['in_stock'] = $inStock;
+        $now = now();
+
+        DB::table('catalog_product_projections')
+            ->where('product_id', $productId)
+            ->where('store_id', $storeId)
+            ->update([
+                'payload' => json_encode($payload, JSON_THROW_ON_ERROR),
+                'in_stock' => $inStock,
+                'updated_at' => $now,
+            ]);
+
+        return [
+            'is_published' => (bool) $row->is_published,
+            'in_stock' => $inStock,
+        ];
+    }
+
+    public function syncPublicationFlag(int $productId, int $storeId, bool $isPublished): ?array
+    {
+        if (DB::connection()->getDriverName() !== 'pgsql' || $productId < 1 || $storeId < 1) {
+            return null;
+        }
+
+        $row = DB::table('catalog_product_projections')
+            ->where('product_id', $productId)
+            ->where('store_id', $storeId)
+            ->first();
+
+        if ($row === null) {
+            return null;
+        }
+
+        $payload = json_decode((string) $row->payload, true);
+        if (! is_array($payload)) {
+            $payload = [];
+        }
+
+        $payload['is_published'] = $isPublished;
+        $inStock = (bool) $row->in_stock;
+        $now = now();
+
+        DB::table('catalog_product_projections')
+            ->where('product_id', $productId)
+            ->where('store_id', $storeId)
+            ->update([
+                'payload' => json_encode($payload, JSON_THROW_ON_ERROR),
+                'is_published' => $isPublished,
+                'updated_at' => $now,
+            ]);
+
+        return [
+            'is_published' => $isPublished,
+            'in_stock' => $inStock,
+        ];
+    }
+
     /**
      * @param  list<int>  $productIds
-     * @return list<array{product_id: int, store_id: int, payload: array<string, mixed>}>
+     * @return list<array{
+     *     product_id: int,
+     *     store_id: int,
+     *     payload: array<string, mixed>,
+     *     is_published: bool,
+     *     in_stock: bool
+     * }>
      */
     public function findPayloadsByStore(int $storeId, array $productIds): array
     {
@@ -71,7 +154,7 @@ class PgsqlCatalogProductProjectionRepository implements CatalogProductProjectio
         $rows = DB::table('catalog_product_projections')
             ->where('store_id', $storeId)
             ->whereIn('product_id', $productIds)
-            ->get(['product_id', 'store_id', 'payload']);
+            ->get(['product_id', 'store_id', 'payload', 'is_published', 'in_stock']);
 
         $result = [];
         foreach ($rows as $row) {
@@ -84,6 +167,8 @@ class PgsqlCatalogProductProjectionRepository implements CatalogProductProjectio
                 'product_id' => (int) $row->product_id,
                 'store_id' => (int) $row->store_id,
                 'payload' => $payload,
+                'is_published' => (bool) $row->is_published,
+                'in_stock' => (bool) $row->in_stock,
             ];
         }
 

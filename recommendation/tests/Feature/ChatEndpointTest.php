@@ -39,6 +39,8 @@ class ChatEndpointTest extends TestCase
                     [
                         'product_id' => 9,
                         'store_id' => 1,
+                        'is_published' => true,
+                        'in_stock' => true,
                         'payload' => [
                             'id' => 9,
                             'store_id' => 1,

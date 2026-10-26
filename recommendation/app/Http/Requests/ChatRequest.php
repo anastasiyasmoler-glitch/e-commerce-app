@@ -8,7 +8,15 @@ class ChatRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        $roles = $this->attributes->get('auth_user_roles');
+
+        if (! is_string($roles) || trim($roles) === '') {
+            return false;
+        }
+
+        $roleList = array_values(array_filter(array_map('trim', explode(',', $roles))));
+
+        return in_array('customer', $roleList, true);
     }
 
     /**
@@ -25,5 +33,38 @@ class ChatRequest extends FormRequest
             'conversation_id' => ['nullable', 'uuid'],
             'limit' => ['nullable', 'integer', 'min:1', 'max:'.$maxLimit],
         ];
+    }
+
+    public function userId(): int
+    {
+        return (int) $this->attributes->get('auth_user_id');
+    }
+
+    public function storeId(): int
+    {
+        return (int) $this->validated('store_id');
+    }
+
+    public function message(): string
+    {
+        return (string) $this->validated('message');
+    }
+
+    public function conversationId(): ?string
+    {
+        $id = $this->validated('conversation_id');
+
+        return is_string($id) && $id !== '' ? $id : null;
+    }
+
+    public function resultLimit(): int
+    {
+        $limit = $this->validated('limit');
+
+        if ($limit !== null) {
+            return (int) $limit;
+        }
+
+        return (int) config('recommendation.chat.default_result_limit', 5);
     }
 }

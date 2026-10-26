@@ -24,9 +24,98 @@ class CatalogIndexIngestService
     {
         match ($topic) {
             'product.created', 'product.updated' => $this->upsertFromCatalogEvent($payload),
+            'product.published' => $this->handlePublished($payload),
+            'product.unpublished' => $this->handleUnpublished($payload),
             'product.deleted' => $this->deleteFromCatalogEvent($payload),
+            'stock.changed' => $this->handleStockChanged($payload),
             default => null,
         };
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    private function handlePublished(array $payload): void
+    {
+        $name = $payload['name'] ?? null;
+        if (is_string($name) && $name !== '') {
+            $this->upsertFromCatalogEvent($payload);
+
+            return;
+        }
+
+        $this->syncPublicationOnly($payload, true);
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    private function handleUnpublished(array $payload): void
+    {
+        $this->syncPublicationOnly($payload, false);
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    private function syncPublicationOnly(array $payload, bool $isPublished): void
+    {
+        $productId = (int) ($payload['id'] ?? 0);
+        $storeId = (int) ($payload['store_id'] ?? 0);
+        if ($productId < 1 || $storeId < 1) {
+            return;
+        }
+
+        $flags = $this->projections->syncPublicationFlag($productId, $storeId, $isPublished);
+        if ($flags === null) {
+            return;
+        }
+
+        $this->syncVectorMetadata($productId, $storeId, $flags);
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    private function handleStockChanged(array $payload): void
+    {
+        $productId = (int) ($payload['product_id'] ?? 0);
+        $storeId = (int) ($payload['store_id'] ?? 0);
+        if ($productId < 1 || $storeId < 1) {
+            return;
+        }
+
+        $quantity = (int) ($payload['quantity'] ?? 0);
+        $reserved = (int) ($payload['reserved'] ?? 0);
+        $inStock = max(0, $quantity - $reserved) > 0;
+
+        $flags = $this->projections->syncStockAvailability($productId, $storeId, $inStock);
+        if ($flags === null) {
+            return;
+        }
+
+        $this->syncVectorMetadata($productId, $storeId, $flags);
+    }
+
+    /**
+     * @param  array{is_published: bool, in_stock: bool}  $flags
+     */
+    private function syncVectorMetadata(int $productId, int $storeId, array $flags): void
+    {
+        try {
+            $this->vectors->updateProductVectorMetadata(
+                $productId,
+                $storeId,
+                $flags['is_published'],
+                $flags['in_stock'],
+            );
+        } catch (Throwable $exception) {
+            Log::warning('catalog_vector_metadata_failed', [
+                'product_id' => $productId,
+                'store_id' => $storeId,
+                'error' => $exception->getMessage(),
+            ]);
+        }
     }
 
     /**

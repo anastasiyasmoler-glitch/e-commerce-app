@@ -6,7 +6,6 @@ use App\Contracts\LlmClient;
 use App\Repositories\Contracts\CatalogProductProjectionRepositoryInterface;
 use App\Repositories\Contracts\ProductVectorIndexInterface;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use Throwable;
 
 class RecommendationChatService
@@ -17,6 +16,8 @@ class RecommendationChatService
         private readonly LlmClient $llm,
         private readonly ChatPromptBuilder $prompts,
         private readonly ChatFilterExtractionService $filterExtraction,
+        private readonly ConversationService $conversations,
+        private readonly CatalogReadModelProductVerifier $readModelVerifier,
     ) {}
 
     /**
@@ -34,7 +35,7 @@ class RecommendationChatService
         ?string $conversationId,
         int $limit,
     ): array {
-        $conversation = $this->resolveConversation($userId, $storeId, $conversationId);
+        $conversation = $this->conversations->resolveForChat($userId, $storeId, $conversationId);
 
         DB::table('recommendation_messages')->insert([
             'conversation_id' => $conversation['id'],
@@ -62,6 +63,11 @@ class RecommendationChatService
         );
         $productIds = array_values(array_unique(array_column($hits, 'product_id')));
         $rows = $this->projections->findPayloadsByStore($storeId, $productIds);
+        $rows = $this->readModelVerifier->verify(
+            $storeId,
+            $rows,
+            (bool) $filters['in_stock_only'],
+        );
         $products = $this->formatProducts($storeId, $rows, $hits, $filters);
 
         $answer = $this->buildAnswer($message, $products);
@@ -92,10 +98,7 @@ class RecommendationChatService
             'created_at' => now(),
         ]);
 
-        $now = now();
-        DB::table('recommendation_conversations')
-            ->where('id', $conversationId)
-            ->update(['last_activity_at' => $now, 'updated_at' => $now]);
+        $this->conversations->touchActivity($conversationId);
 
         return [
             'conversation_id' => $conversationId,
@@ -106,64 +109,13 @@ class RecommendationChatService
     }
 
     /**
-     * @return array{id: string, user_id: int, store_id: int}
-     */
-    private function resolveConversation(int $userId, int $storeId, ?string $conversationId): array
-    {
-        $idleMinutes = (int) config('recommendation.chat.conversation_idle_minutes', 30);
-        $maxHours = (int) config('recommendation.chat.conversation_max_hours', 24);
-        $now = now();
-
-        if ($conversationId !== null && $conversationId !== '') {
-            $row = DB::table('recommendation_conversations')
-                ->where('id', $conversationId)
-                ->where('user_id', $userId)
-                ->first();
-
-            if ($row === null) {
-                abort(404, 'Conversation not found.');
-            }
-
-            if ((int) $row->store_id !== $storeId) {
-                abort(403, 'Conversation store mismatch.');
-            }
-
-            if ($now->greaterThan($row->expires_at)) {
-                abort(410, 'Conversation expired.');
-            }
-
-            $lastActivity = $row->last_activity_at ?? $row->created_at;
-            if ($now->diffInMinutes($lastActivity) > $idleMinutes) {
-                abort(410, 'Conversation idle timeout exceeded.');
-            }
-
-            return [
-                'id' => (string) $row->id,
-                'user_id' => (int) $row->user_id,
-                'store_id' => (int) $row->store_id,
-            ];
-        }
-
-        $id = (string) Str::uuid();
-        DB::table('recommendation_conversations')->insert([
-            'id' => $id,
-            'user_id' => $userId,
-            'store_id' => $storeId,
-            'expires_at' => $now->copy()->addHours($maxHours),
-            'last_activity_at' => $now,
-            'created_at' => $now,
-            'updated_at' => $now,
-        ]);
-
-        return [
-            'id' => $id,
-            'user_id' => $userId,
-            'store_id' => $storeId,
-        ];
-    }
-
-    /**
-     * @param  list<array{product_id: int, store_id: int, payload: array<string, mixed>}>  $rows
+     * @param  list<array{
+     *     product_id: int,
+     *     store_id: int,
+     *     payload: array<string, mixed>,
+     *     is_published: bool,
+     *     in_stock: bool
+     * }>  $rows
      * @param  list<array{product_id: int, store_id: int, score: float}>  $hits
      * @param  array<string, mixed>  $filters
      * @return list<array<string, mixed>>

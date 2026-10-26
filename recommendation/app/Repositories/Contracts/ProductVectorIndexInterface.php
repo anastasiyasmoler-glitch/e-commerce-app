@@ -17,6 +17,13 @@ interface ProductVectorIndexInterface
 
     public function deleteProductVector(int $productId, int $storeId): void;
 
+    public function updateProductVectorMetadata(
+        int $productId,
+        int $storeId,
+        bool $isPublished,
+        bool $inStock,
+    ): void;
+
     /**
      * @param  list<float>  $queryVector
      * @return list<array{product_id: int, store_id: int, score: float}>

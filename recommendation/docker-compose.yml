@@ -61,6 +61,30 @@ services:
         aliases: [recommendation-back]
       microservices-net: {}
 
+  scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["php", "artisan", "schedule:work"]
+    restart: unless-stopped
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "true"
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_DATABASE: recommendation
+      DB_USERNAME: recommendation
+      DB_PASSWORD: recommendation
+    volumes:
+      - .:/var/www/html
+    depends_on:
+      postgres:
+        condition: service_healthy
+      back:
+        condition: service_healthy
+    networks: [default]
+
   consumer:
     build:
       context: .

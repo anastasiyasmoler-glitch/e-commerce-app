@@ -20,6 +20,14 @@ AI-assisted product recommendations from **Catalog** data only.
 
 If Gemini or Qdrant fails, the Postgres row is still saved; check logs for `catalog_vector_index_failed`.
 
+Additional topics: `stock.changed`, `product.published`, `product.unpublished` (metadata-only updates when applicable).
+
+## Chat verification (read-model)
+
+Before the LLM answer, candidate products are verified against the **local** `catalog_product_projections` read model (synced from Catalog Kafka). There is **no** synchronous Catalog HTTP call on the chat path.
+
+`CatalogReadModelProductVerifier` drops rows that are unpublished, out of stock (when `in_stock_only` is set), missing a name, or whose `product_id` / `store_id` do not match the projection payload.
+
 ## Local run
 
 Prerequisites: `microservices-net`, Kafka (`notification` compose).
