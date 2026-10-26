@@ -19,7 +19,10 @@ use App\Repositories\EloquentAdminUserRepository;
 use App\Repositories\EloquentSocialUserRepository;
 use App\Repositories\EloquentUserRepository;
 use App\Socialite\GoogleOidcProvider;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Socialite\Facades\Socialite;
 
@@ -51,6 +54,21 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        RateLimiter::for('auth-login', function (Request $request): Limit {
+            return Limit::perMinute((int) config('auth.rate_limits.login_per_minute'))
+                ->by($request->ip());
+        });
+
+        RateLimiter::for('auth-register', function (Request $request): Limit {
+            return Limit::perMinute((int) config('auth.rate_limits.register_per_minute'))
+                ->by($request->ip());
+        });
+
+        RateLimiter::for('auth-refresh', function (Request $request): Limit {
+            return Limit::perMinute((int) config('auth.rate_limits.refresh_per_minute'))
+                ->by($request->ip());
+        });
+
         Gate::policy(User::class, UserPolicy::class);
 
         Socialite::extend('google', function ($app) {

@@ -5,9 +5,9 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ProfileController;
 use Illuminate\Support\Facades\Route;
 
-Route::post('/register', [AuthController::class, 'register']);
-Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
-Route::post('/refresh', [AuthController::class, 'refresh']);
+Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:auth-register');
+Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:auth-login');
+Route::post('/refresh', [AuthController::class, 'refresh'])->middleware('throttle:auth-refresh');
 
 Route::middleware(['auth:api', 'auth.access'])->group(function (): void {
     Route::post('/logout', [AuthController::class, 'logout']);

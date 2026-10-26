@@ -136,4 +136,16 @@ return [
 
     'password_timeout' => env('AUTH_PASSWORD_TIMEOUT', 10800),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Public auth route rate limits (per client IP, per minute)
+    |--------------------------------------------------------------------------
+    */
+
+    'rate_limits' => [
+        'login_per_minute' => (int) env('AUTH_LOGIN_RATE_LIMIT_PER_MINUTE', 5),
+        'register_per_minute' => (int) env('AUTH_REGISTER_RATE_LIMIT_PER_MINUTE', 10),
+        'refresh_per_minute' => (int) env('AUTH_REFRESH_RATE_LIMIT_PER_MINUTE', 30),
+    ],
+
 ];
