@@ -1,0 +1,111 @@
+openapi: 3.0.3
+info:
+  title: Notification Service API
+  version: 1.0.0
+  description: |
+    Notification history of sent emails (events consumed from Kafka, dispatched via mail, logged in MongoDB).
+    Routes have the `/api` prefix (Laravel api routes). Read-only history; sending happens via Kafka consumers.
+    History endpoints are protected by the auth gateway (`/_auth_check`) with a customer JWT
+    (`Authorization: Bearer`); the service itself performs no JWT validation.
+servers:
+  - url: https://localhost
+    description: Auth gateway (notification paths proxied under /api/notifications)
+  - url: https://localhost:8443
+    description: Notification nginx (direct dev, self-signed TLS)
+tags:
+  - name: History
+  - name: System
+
+paths:
+  /api/notifications:
+    get:
+      tags: [History]
+      summary: List latest notification logs
+      operationId: listNotifications
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Latest notification logs (no pagination)
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/NotificationLog'
+
+  /api/notifications/{id}:
+    get:
+      tags: [History]
+      summary: Get a notification log by id
+      operationId: showNotification
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: MongoDB ObjectId of the notification log
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Notification log
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    $ref: '#/components/schemas/NotificationLog'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /up:
+    get:
+      tags: [System]
+      summary: Liveness probe (Laravel health)
+      operationId: health
+      security: []
+      responses:
+        '200':
+          description: OK
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Customer JWT enforced by the auth gateway; the service trusts the gateway.
+  schemas:
+    NotificationLog:
+      type: object
+      properties:
+        id: { type: string, example: '66f1a2b3c4d5e6f7a8b9c0d1' }
+        event: { type: string, example: order.paid }
+        channel: { type: string, example: email }
+        recipient: { type: string, example: user@example.com }
+        payload: { type: object, additionalProperties: true }
+        status: { type: string, enum: [pending, sent, failed] }
+        attempts: { type: integer, example: 1 }
+        error_message: { type: string, nullable: true }
+        is_dlq: { type: boolean, example: false }
+        sent_at: { type: string, format: date-time, nullable: true }
+        created_at: { type: string, format: date-time, nullable: true }
+    Error:
+      type: object
+      properties:
+        message: { type: string }
+  responses:
+    NotFound:
+      description: Not Found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
