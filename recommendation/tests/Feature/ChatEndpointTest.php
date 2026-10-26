@@ -111,4 +111,68 @@ class ChatEndpointTest extends TestCase
             ->assertJsonPath('answer', 'What product type do you need?')
             ->assertJsonPath('products', []);
     }
+
+    public function test_chat_is_rate_limited_per_user(): void
+    {
+        config(['recommendation.chat.rate_limit_per_minute' => 2]);
+
+        $this->mock(ProductVectorIndexInterface::class, function ($mock): void {
+            $mock->shouldNotReceive('searchSimilar');
+        });
+
+        $this->mock(CatalogProductProjectionRepositoryInterface::class, function ($mock): void {
+            $mock->shouldNotReceive('findPayloadsByStore');
+        });
+
+        $this->mock(LlmClient::class, function ($mock): void {
+            $mock->shouldReceive('generate')->andReturn(json_encode([
+                'needs_clarification' => true,
+                'clarification_question' => 'Which type?',
+            ], JSON_THROW_ON_ERROR));
+        });
+
+        $headers = [
+            'X-Auth-User-Id' => '9001',
+            'X-Auth-User-Email' => 'buyer@example.com',
+            'X-Auth-User-Roles' => 'customer',
+        ];
+        $body = ['message' => 'help me', 'store_id' => 1];
+
+        $this->postJson('/recommendations/chat', $body, $headers)->assertOk();
+        $this->postJson('/recommendations/chat', $body, $headers)->assertOk();
+        $this->postJson('/recommendations/chat', $body, $headers)->assertStatus(429);
+    }
+
+    public function test_chat_returns_graceful_answer_when_embed_fails(): void
+    {
+        $this->mock(ProductVectorIndexInterface::class, function ($mock): void {
+            $mock->shouldNotReceive('searchSimilar');
+        });
+
+        $this->mock(CatalogProductProjectionRepositoryInterface::class, function ($mock): void {
+            $mock->shouldNotReceive('findPayloadsByStore');
+        });
+
+        $this->mock(LlmClient::class, function ($mock): void {
+            $mock->shouldReceive('generate')->once()->andReturn(json_encode([
+                'needs_clarification' => false,
+                'search_query' => 'sofa',
+                'in_stock_only' => false,
+            ], JSON_THROW_ON_ERROR));
+            $mock->shouldReceive('embed')->once()->andThrow(new \RuntimeException('Gemini down'));
+        });
+
+        $response = $this->postJson('/recommendations/chat', [
+            'message' => 'sofa',
+            'store_id' => 1,
+        ], [
+            'X-Auth-User-Id' => '77',
+            'X-Auth-User-Email' => 'buyer@example.com',
+            'X-Auth-User-Roles' => 'customer',
+        ]);
+
+        $response->assertOk()
+            ->assertJsonPath('products', [])
+            ->assertJsonPath('answer', 'Search is temporarily unavailable. Please try again in a moment or refine your product request.');
+    }
 }

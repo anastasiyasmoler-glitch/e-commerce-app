@@ -91,6 +91,57 @@ class ConversationService
         $this->conversations->touchActivity($conversationId);
     }
 
+    /**
+     * Messages before the latest turn (excludes the message just stored for this request).
+     *
+     * @return list<array{role: string, content: string}>
+     */
+    public function priorMessagesForPrompt(string $conversationId): array
+    {
+        $messages = $this->conversations->listMessages($conversationId);
+        if ($messages === []) {
+            return [];
+        }
+
+        array_pop($messages);
+
+        $maxMessages = max(0, (int) config('recommendation.chat.prompt_max_history_messages', 10));
+        $maxChars = max(0, (int) config('recommendation.chat.prompt_max_history_chars', 4000));
+
+        if ($maxMessages === 0 || $maxChars === 0) {
+            return [];
+        }
+
+        if (count($messages) > $maxMessages) {
+            $messages = array_slice($messages, -$maxMessages);
+        }
+
+        while ($messages !== [] && $this->historyCharCount($messages) > $maxChars) {
+            array_shift($messages);
+        }
+
+        return array_values(array_map(
+            static fn (array $row): array => [
+                'role' => (string) $row['role'],
+                'content' => (string) $row['content'],
+            ],
+            $messages,
+        ));
+    }
+
+    /**
+     * @param  list<array{role: string, content: string, created_at?: string}>  $messages
+     */
+    private function historyCharCount(array $messages): int
+    {
+        $total = 0;
+        foreach ($messages as $message) {
+            $total += strlen((string) $message['content']);
+        }
+
+        return $total;
+    }
+
     private function assertNotExpired(object $row): void
     {
         $idleMinutes = (int) config('recommendation.chat.conversation_idle_minutes', 30);

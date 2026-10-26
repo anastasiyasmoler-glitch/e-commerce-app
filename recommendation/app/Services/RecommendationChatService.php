@@ -44,7 +44,9 @@ class RecommendationChatService
             'created_at' => now(),
         ]);
 
-        $filters = $this->filterExtraction->extract($message);
+        $priorHistory = $this->conversations->priorMessagesForPrompt($conversation['id']);
+
+        $filters = $this->filterExtraction->extract($message, $priorHistory);
         $filters['store_id'] = $storeId;
 
         if ($filters['needs_clarification']) {
@@ -53,8 +55,26 @@ class RecommendationChatService
             return $this->finishTurn($conversation['id'], $answer, $filters, []);
         }
 
-        $searchQuery = (string) $filters['search_query'];
-        $queryVector = $this->llm->embed($searchQuery);
+        $searchQuery = (string) ($filters['search_query'] ?? '');
+        if ($searchQuery === '') {
+            return $this->finishTurn(
+                $conversation['id'],
+                $this->prompts->noMatchAnswer(),
+                $filters,
+                [],
+            );
+        }
+
+        try {
+            $queryVector = $this->llm->embed($searchQuery);
+        } catch (Throwable) {
+            return $this->finishTurn(
+                $conversation['id'],
+                $this->prompts->embedUnavailableAnswer(),
+                $filters,
+                [],
+            );
+        }
         $hits = $this->vectors->searchSimilar(
             $storeId,
             $queryVector,
@@ -70,7 +90,7 @@ class RecommendationChatService
         );
         $products = $this->formatProducts($storeId, $rows, $hits, $filters);
 
-        $answer = $this->buildAnswer($message, $products);
+        $answer = $this->buildAnswer($message, $products, $priorHistory);
 
         return $this->finishTurn($conversation['id'], $answer, $filters, $products);
     }
@@ -171,13 +191,17 @@ class RecommendationChatService
     /**
      * @param  list<array<string, mixed>>  $products
      */
-    private function buildAnswer(string $message, array $products): string
+    /**
+     * @param  list<array<string, mixed>>  $products
+     * @param  list<array{role: string, content: string}>  $priorHistory
+     */
+    private function buildAnswer(string $message, array $products, array $priorHistory): string
     {
         if ($products === []) {
             return $this->prompts->noMatchAnswer();
         }
 
-        $prompt = $this->prompts->buildAnswerPrompt($message, $products);
+        $prompt = $this->prompts->buildAnswerPrompt($message, $products, $priorHistory);
 
         try {
             return trim($this->llm->generate($prompt));

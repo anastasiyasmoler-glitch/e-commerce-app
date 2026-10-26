@@ -3,8 +3,10 @@
 namespace App\Infrastructure;
 
 use App\Contracts\LlmClient;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
+use Throwable;
 
 class GeminiLlmClient implements LlmClient
 {
@@ -60,20 +62,75 @@ class GeminiLlmClient implements LlmClient
             throw new RuntimeException('GEMINI_API_KEY is empty.');
         }
 
-        $response = Http::timeout(30)
-            ->acceptJson()
-            ->withHeaders(['x-goog-api-key' => $apiKey])
-            ->post('https://generativelanguage.googleapis.com/v1beta/'.$path, $body);
+        $timeout = max(1, (int) config('recommendation.gemini.timeout_seconds', 25));
+        $maxAttempts = max(1, (int) config('recommendation.gemini.retry_times', 2) + 1);
+        $sleepMs = max(0, (int) config('recommendation.gemini.retry_sleep_ms', 300));
 
-        if ($response->failed()) {
-            throw new RuntimeException('Gemini HTTP '.$response->status().': '.$response->body());
+        $lastError = null;
+
+        for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
+            try {
+                $response = Http::timeout($timeout)
+                    ->acceptJson()
+                    ->withHeaders(['x-goog-api-key' => $apiKey])
+                    ->post('https://generativelanguage.googleapis.com/v1beta/'.$path, $body);
+
+                if ($response->successful()) {
+                    $decoded = $response->json();
+                    if (! is_array($decoded)) {
+                        throw new RuntimeException('Gemini response is not JSON object.');
+                    }
+
+                    return $decoded;
+                }
+
+                $status = $response->status();
+                $lastError = 'Gemini HTTP '.$status.': '.$response->body();
+
+                if ($this->shouldRetryHttp($status) && $attempt < $maxAttempts) {
+                    $this->pause($sleepMs, $attempt);
+
+                    continue;
+                }
+
+                throw new RuntimeException($lastError);
+            } catch (ConnectionException $exception) {
+                $lastError = $exception->getMessage();
+                if ($attempt < $maxAttempts) {
+                    $this->pause($sleepMs, $attempt);
+
+                    continue;
+                }
+
+                throw new RuntimeException('Gemini connection failed: '.$lastError, 0, $exception);
+            } catch (RuntimeException $exception) {
+                throw $exception;
+            } catch (Throwable $exception) {
+                $lastError = $exception->getMessage();
+                if ($attempt < $maxAttempts) {
+                    $this->pause($sleepMs, $attempt);
+
+                    continue;
+                }
+
+                throw new RuntimeException('Gemini request failed: '.$lastError, 0, $exception);
+            }
         }
 
-        $decoded = $response->json();
-        if (! is_array($decoded)) {
-            throw new RuntimeException('Gemini response is not JSON object.');
+        throw new RuntimeException($lastError ?? 'Gemini request failed.');
+    }
+
+    private function shouldRetryHttp(int $status): bool
+    {
+        return in_array($status, [408, 429, 500, 502, 503, 504], true);
+    }
+
+    private function pause(int $sleepMs, int $attempt): void
+    {
+        if ($sleepMs < 1) {
+            return;
         }
 
-        return $decoded;
+        usleep($sleepMs * 1000 * $attempt);
     }
 }

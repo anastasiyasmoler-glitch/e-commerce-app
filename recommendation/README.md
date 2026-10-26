@@ -28,6 +28,10 @@ Before the LLM answer, candidate products are verified against the **local** `ca
 
 `CatalogReadModelProductVerifier` drops rows that are unpublished, out of stock (when `in_stock_only` is set), missing a name, or whose `product_id` / `store_id` do not match the projection payload.
 
+`POST /recommendations/chat` is rate-limited per gateway user id (`RECOMMENDATION_CHAT_RATE_LIMIT_PER_MINUTE`, default 20).
+
+Gemini calls use configurable timeout and retries (`GEMINI_TIMEOUT_SECONDS`, `GEMINI_RETRY_TIMES`). Chat prompts include capped prior turns (`RECOMMENDATION_PROMPT_MAX_HISTORY_*`), user text is wrapped in `<<<USER>>>` markers with `user_boundary_rules.txt`. If filter extraction or embed fails, the API falls back to safe search text or a short degraded answer without invented products.
+
 ## Local run
 
 Prerequisites: `microservices-net`, Kafka (`notification` compose).

@@ -6,6 +6,9 @@ return [
         'api_key' => env('GEMINI_API_KEY'),
         'model' => env('GEMINI_MODEL', 'gemini-2.0-flash'),
         'embedding_model' => env('GEMINI_EMBEDDING_MODEL', 'gemini-embedding-001'),
+        'timeout_seconds' => (int) env('GEMINI_TIMEOUT_SECONDS', 25),
+        'retry_times' => (int) env('GEMINI_RETRY_TIMES', 2),
+        'retry_sleep_ms' => (int) env('GEMINI_RETRY_SLEEP_MS', 300),
     ],
     'embedding_dimensions' => (int) env('RECOMMENDATION_EMBEDDING_DIMENSIONS', 1536),
     'qdrant' => [
@@ -21,5 +24,8 @@ return [
         'similarity_threshold' => (float) env('RECOMMENDATION_SIMILARITY_THRESHOLD', 0.55),
         'conversation_idle_minutes' => (int) env('RECOMMENDATION_CONVERSATION_IDLE_MINUTES', 30),
         'conversation_max_hours' => (int) env('RECOMMENDATION_CONVERSATION_MAX_HOURS', 24),
+        'rate_limit_per_minute' => (int) env('RECOMMENDATION_CHAT_RATE_LIMIT_PER_MINUTE', 20),
+        'prompt_max_history_messages' => (int) env('RECOMMENDATION_PROMPT_MAX_HISTORY_MESSAGES', 10),
+        'prompt_max_history_chars' => (int) env('RECOMMENDATION_PROMPT_MAX_HISTORY_CHARS', 4000),
     ],
 ];

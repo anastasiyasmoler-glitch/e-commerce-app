@@ -24,10 +24,15 @@ class ChatFilterExtractionService
      *     attributes: array<string, mixed>
      * }
      */
-    public function extract(string $userMessage): array
+    /**
+     * @param  list<array{role: string, content: string}>  $priorHistory
+     */
+    public function extract(string $userMessage, array $priorHistory = []): array
     {
         try {
-            $raw = $this->llm->generate($this->prompts->buildFilterExtractionPrompt($userMessage));
+            $raw = $this->llm->generate(
+                $this->prompts->buildFilterExtractionPrompt($userMessage, $priorHistory),
+            );
             $decoded = json_decode(trim($raw), true, 512, JSON_THROW_ON_ERROR);
             if (! is_array($decoded)) {
                 return $this->fallback($userMessage);
