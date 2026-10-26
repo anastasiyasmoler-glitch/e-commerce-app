@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Products\Schemas;
 
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Toggle;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -34,6 +35,10 @@ class ProductForm
                     ->default(0)
                     ->required()
                     ->helperText('Price in the smallest currency unit (cents).'),
+                Toggle::make('is_published')
+                    ->label('Published on storefront')
+                    ->default(false)
+                    ->helperText('Unpublished products are hidden from the public catalog and recommendation index events.'),
                 Repeater::make('attributeValues')
                     ->relationship('attributeValues')
                     ->schema([

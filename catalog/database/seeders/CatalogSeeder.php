@@ -171,6 +171,7 @@ class CatalogSeeder extends Seeder
                 'description' => $item['desc'],
                 'sku' => $item['sku'],
                 'price' => $item['price'] ?? 12900,
+                'is_published' => true,
             ]);
 
             $attributeMap = $item['attributes'] ?? [

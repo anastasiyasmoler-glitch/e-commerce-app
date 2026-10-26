@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 /**
  * @property-read Stock|null $stock
  */
-#[Fillable(['store_id', 'category_id', 'name', 'slug', 'description', 'sku', 'price', 'image'])]
+#[Fillable(['store_id', 'category_id', 'name', 'slug', 'description', 'sku', 'price', 'image', 'is_published'])]
 class Product extends Model
 {
     /**
@@ -21,6 +21,7 @@ class Product extends Model
     {
         return [
             'price' => 'integer',
+            'is_published' => 'boolean',
         ];
     }
 
@@ -83,6 +84,19 @@ class Product extends Model
             'price' => $this->price,
             'attributes' => $this->attributesMap(),
             'image' => $this->image,
+            'is_published' => (bool) $this->is_published,
+            'in_stock' => $this->isInStock(),
         ];
+    }
+
+    public function isInStock(): bool
+    {
+        $this->loadMissing('stock');
+        $stock = $this->stock;
+        if ($stock === null) {
+            return false;
+        }
+
+        return max(0, (int) $stock->quantity - (int) $stock->reserved) > 0;
     }
 }

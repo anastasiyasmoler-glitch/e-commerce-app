@@ -17,11 +17,24 @@ class ProductObserver
     {
         $this->cache->invalidateProduct($product->store_id, $product->id);
         $this->kafka->publish('product.created', $this->body($product));
+
+        if ($product->is_published) {
+            $this->kafka->publish('product.published', $this->body($product));
+        }
     }
 
     public function updated(Product $product): void
     {
         $this->cache->invalidateProduct($product->store_id, $product->id);
+
+        if ($product->wasChanged('is_published')) {
+            if ($product->is_published) {
+                $this->kafka->publish('product.published', $this->body($product));
+            } else {
+                $this->kafka->publish('product.unpublished', $this->unpublishBody($product));
+            }
+        }
+
         $this->kafka->publish('product.updated', $this->body($product));
     }
 
@@ -40,5 +53,17 @@ class ProductObserver
     private function body(Product $product): array
     {
         return $product->toEventPayload();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function unpublishBody(Product $product): array
+    {
+        return [
+            'id' => $product->id,
+            'store_id' => $product->store_id,
+            'is_published' => false,
+        ];
     }
 }

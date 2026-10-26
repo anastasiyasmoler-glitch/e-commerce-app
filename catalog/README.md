@@ -36,7 +36,9 @@ Full-text and facets belong in Search, not here.
 
 Group: `catalog-service-group`. Consumer: `php artisan kafka:consume-catalog`.
 
-Publishes: `product.created`, `product.updated`, `product.deleted`, `category.created`, `category.updated`, `category.deleted`, `stock.changed`, `stock.reserved`, `stock.reservation_failed`.
+Publishes: `product.created`, `product.updated`, `product.deleted`, `product.published`, `product.unpublished`, `category.created`, `category.updated`, `category.deleted`, `stock.changed`, `stock.reserved`, `stock.reservation_failed`.
+
+Product events include `is_published` and `in_stock` (from available stock). New products default to unpublished until Filament toggle is on.
 
 Consumes: `order.created`, `stock.release_requested`.
 

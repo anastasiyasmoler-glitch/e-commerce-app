@@ -38,6 +38,7 @@ class CatalogReadTest extends TestCase
             'slug' => 'linen-sofa',
             'sku' => 'SOFA-1',
             'price' => 45900,
+            'is_published' => true,
         ]);
         $color = Attribute::query()->create([
             'store_id' => $store->id,
@@ -88,6 +89,32 @@ class CatalogReadTest extends TestCase
             ->assertNotFound();
     }
 
+    public function test_unpublished_products_are_hidden_from_public_api(): void
+    {
+        $store = Store::query()->create(['name' => 'Nordic Home', 'slug' => 'nordic-home']);
+        $sofas = Category::query()->create([
+            'store_id' => $store->id,
+            'name' => 'Sofas',
+            'slug' => 'sofas',
+        ]);
+
+        $draft = Product::query()->create([
+            'store_id' => $store->id,
+            'category_id' => $sofas->id,
+            'name' => 'Draft Sofa',
+            'slug' => 'draft-sofa',
+            'price' => 1000,
+            'is_published' => false,
+        ]);
+
+        $this->getJson('/products?store_id='.$store->id)
+            ->assertOk()
+            ->assertJsonCount(0, 'data');
+
+        $this->getJson('/products/'.$draft->id.'?store_id='.$store->id)
+            ->assertNotFound();
+    }
+
     public function test_stock_change_invalidates_cached_product_and_listing(): void
     {
         $store = Store::query()->create(['name' => 'Nordic Home', 'slug' => 'nordic-home']);
@@ -103,6 +130,7 @@ class CatalogReadTest extends TestCase
             'slug' => 'linen-sofa',
             'sku' => 'SOFA-1',
             'price' => 45900,
+            'is_published' => true,
         ]);
         $stock = Stock::query()->create([
             'product_id' => $product->id,

@@ -27,6 +27,7 @@ class EloquentCatalogReadRepository implements CatalogReadRepositoryInterface
         return Product::query()
             ->with(['stock', 'attributeValues.attribute'])
             ->where('store_id', $storeId)
+            ->where('is_published', true)
             ->when($categoryId !== null, fn ($q) => $q->where('category_id', $categoryId))
             ->orderBy('name')
             ->forPage($page, $perPage)
@@ -38,6 +39,7 @@ class EloquentCatalogReadRepository implements CatalogReadRepositoryInterface
         return Product::query()
             ->with(['stock', 'attributeValues.attribute'])
             ->where('store_id', $storeId)
+            ->where('is_published', true)
             ->whereKey($productId)
             ->first();
     }
