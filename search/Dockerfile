@@ -22,7 +22,7 @@ WORKDIR /app
 
 COPY --from=build /out/search-server /app/search-server
 COPY --from=build /out/search-consumer /app/search-consumer
-COPY openapi.yaml /app/openapi.yaml
+COPY docs/openapi.yaml /app/docs/openapi.yaml
 
 RUN adduser -D -H -u 10001 appuser \
     && chown -R appuser:appuser /app

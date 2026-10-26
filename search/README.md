@@ -87,7 +87,7 @@ OpenSearch (direct): `http://localhost:9200/_cluster/health` — `GET http://loc
 
 ## API contract
 
-OpenAPI 3: [`openapi.yaml`](openapi.yaml) (`GET /search`, health probes).
+OpenAPI 3: [`docs/openapi.yaml`](docs/openapi.yaml) (`GET /search`, health probes).
 
 Swagger UI (after `docker compose up --build back`):
 
@@ -96,7 +96,7 @@ https://localhost:8446/docs
 https://localhost/api/search/docs
 ```
 
-OpenAPI YAML is served next to the UI (`.../docs/openapi.yaml`). Rebuild Search `back` after changing `search/openapi.yaml`.
+OpenAPI YAML is served next to the UI (`.../docs/openapi.yaml`). Rebuild Search `back` after changing `search/docs/openapi.yaml`.
 
 ## Tests
 

@@ -55,7 +55,7 @@ func TestSwaggerUI(t *testing.T) {
 }
 
 func TestOpenAPISpec(t *testing.T) {
-	t.Setenv("OPENAPI_PATH", "../../openapi.yaml")
+	t.Setenv("OPENAPI_PATH", "../../docs/openapi.yaml")
 
 	req := httptest.NewRequest(http.MethodGet, "/docs/openapi.yaml", nil)
 	rec := httptest.NewRecorder()
@@ -64,6 +64,7 @@ func TestOpenAPISpec(t *testing.T) {
 
 	require.Equal(t, http.StatusOK, rec.Code)
 	require.Contains(t, rec.Body.String(), "openapi: 3.0.3")
+	require.Contains(t, rec.Body.String(), "/search:")
 }
 
 func TestReadyzFailsWhenOpenSearchDown(t *testing.T) {

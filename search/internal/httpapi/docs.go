@@ -38,8 +38,8 @@ func serveOpenAPISpec(w http.ResponseWriter, r *http.Request) {
 func loadOpenAPISpec() ([]byte, error) {
 	candidates := []string{
 		os.Getenv("OPENAPI_PATH"),
-		"/app/openapi.yaml",
-		"openapi.yaml",
+		"/app/docs/openapi.yaml",
+		"docs/openapi.yaml",
 	}
 
 	for _, path := range candidates {
