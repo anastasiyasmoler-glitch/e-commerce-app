@@ -1,0 +1,398 @@
+openapi: 3.0.3
+info:
+  title: Recommendation Service API
+  version: 1.0.0
+  description: |
+    AI-assisted product recommendations from the local Catalog read model only.
+
+    All routes are served under the `/recommendations` prefix with no `/api` prefix.
+    Closed routes are authenticated by the Auth gateway: send `Authorization: Bearer`
+    with a customer access JWT; the gateway validates the token and forwards
+    `X-Auth-User-*` identity headers to this service.
+
+    Conversation context is separate from the auth session: idle timeout and max lifetime
+    apply per `conversation_id` (see service config).
+servers:
+  - url: https://localhost
+    description: Auth gateway (customer SPA uses `/api/recommendations/*`)
+  - url: https://localhost:8448
+    description: Recommendation nginx (paths `/recommendations/*`, no `/api` prefix)
+
+tags:
+  - name: Chat
+    description: Natural-language product matching
+  - name: Conversations
+    description: Dialog context history and teardown
+  - name: Health
+    description: Dependency checks
+
+paths:
+  /recommendations/chat:
+    post:
+      tags: [Chat]
+      summary: Send a chat message and receive recommendations
+      operationId: postRecommendationChat
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatRequest'
+            examples:
+              newConversation:
+                summary: First message in a store
+                value:
+                  message: I want a pink sofa under 50000
+                  store_id: 1
+              continueConversation:
+                summary: Follow-up in an existing context
+                value:
+                  message: Something smaller please
+                  store_id: 1
+                  conversation_id: 550e8400-e29b-41d4-a716-446655440000
+      responses:
+        '200':
+          description: Assistant reply with optional product picks
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatResponse'
+              examples:
+                withProducts:
+                  summary: Verified catalog matches
+                  value:
+                    conversation_id: 550e8400-e29b-41d4-a716-446655440000
+                    answer: The Rose Sofa is a close match for a pink sofa in your budget.
+                    extracted_filters:
+                      needs_clarification: false
+                      clarification_question: null
+                      search_query: pink sofa
+                      in_stock_only: false
+                      max_price_cents: 50000
+                      min_price_cents: null
+                      attributes: {}
+                      store_id: 1
+                    products:
+                      - product_id: 9
+                        store_id: 1
+                        name: Rose Sofa
+                        slug: rose-sofa
+                        price_cents: 45000
+                        score: 0.91
+                        url: /products/rose-sofa?store_id=1
+                clarification:
+                  summary: LLM needs more detail
+                  value:
+                    conversation_id: 550e8400-e29b-41d4-a716-446655440000
+                    answer: What product type are you looking for, and do you have a budget in mind?
+                    extracted_filters:
+                      needs_clarification: true
+                      clarification_question: What product type are you looking for, and do you have a budget in mind?
+                      search_query: null
+                      in_stock_only: false
+                      max_price_cents: null
+                      min_price_cents: null
+                      attributes: {}
+                      store_id: 1
+                    products: []
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Authenticated user is not a customer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageError'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          description: Chat rate limit exceeded (per gateway user id)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageError'
+
+  /recommendations/conversations/{id}:
+    parameters:
+      - $ref: '#/components/parameters/ConversationId'
+    get:
+      tags: [Conversations]
+      summary: Load conversation history for the current user
+      operationId: getRecommendationConversation
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Conversation metadata and messages
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConversationHistory'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Authenticated user is not a customer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageError'
+        '404':
+          description: Unknown conversation or not owned by user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageError'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+    delete:
+      tags: [Conversations]
+      summary: End conversation and delete stored messages
+      operationId: deleteRecommendationConversation
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Authenticated user is not a customer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageError'
+        '404':
+          description: Unknown conversation or not owned by user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageError'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /recommendations/health:
+    get:
+      tags: [Health]
+      summary: Service and dependency health
+      operationId: getRecommendationHealth
+      security: []
+      responses:
+        '200':
+          description: All checks ok or skipped (testing)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        '503':
+          description: Degraded (e.g. database or Qdrant unavailable)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Customer access JWT (`token_use=access`) validated by the Auth gateway.
+
+  parameters:
+    ConversationId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+  responses:
+    Unauthorized:
+      description: Missing or invalid authentication
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/MessageError'
+    ValidationError:
+      description: Request validation failed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ValidationError'
+
+  schemas:
+    MessageError:
+      type: object
+      properties:
+        message:
+          type: string
+
+    ValidationError:
+      type: object
+      properties:
+        message:
+          type: string
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+
+    ChatRequest:
+      type: object
+      required: [message, store_id]
+      properties:
+        message:
+          type: string
+          minLength: 1
+          maxLength: 2000
+          description: Customer message (max length from `RECOMMENDATION_MESSAGE_MAX_LENGTH`).
+        store_id:
+          type: integer
+          minimum: 1
+          description: Catalog store scope; recommendations never cross stores.
+        conversation_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: Omit to start a new dialog context; send returned id on follow-ups.
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 20
+          description: Max product hits (default from config, cap `RECOMMENDATION_MAX_RESULT_LIMIT`).
+
+    ExtractedFilters:
+      type: object
+      description: LLM-extracted search constraints for this turn (`store_id` set by the service).
+      required:
+        - needs_clarification
+        - in_stock_only
+        - attributes
+      properties:
+        needs_clarification:
+          type: boolean
+        clarification_question:
+          type: string
+          nullable: true
+        search_query:
+          type: string
+          nullable: true
+        in_stock_only:
+          type: boolean
+        max_price_cents:
+          type: integer
+          nullable: true
+          minimum: 1
+        min_price_cents:
+          type: integer
+          nullable: true
+          minimum: 1
+        attributes:
+          type: object
+          additionalProperties: true
+        store_id:
+          type: integer
+          minimum: 1
+
+    RecommendedProduct:
+      type: object
+      description: Verified catalog row; prices and names come from projection, not free-form LLM text.
+      required: [product_id, store_id, name, slug]
+      properties:
+        product_id:
+          type: integer
+        store_id:
+          type: integer
+        name:
+          type: string
+        slug:
+          type: string
+        price_cents:
+          type: integer
+          nullable: true
+        score:
+          type: number
+          format: float
+          nullable: true
+          description: Vector similarity score when search ran.
+        url:
+          type: string
+          nullable: true
+          description: Relative product path for the storefront (may include `store_id` query).
+
+    ChatResponse:
+      type: object
+      required: [conversation_id, answer, extracted_filters, products]
+      properties:
+        conversation_id:
+          type: string
+          format: uuid
+        answer:
+          type: string
+          description: Assistant text stored for this turn (clarification, match summary, or fallback).
+        extracted_filters:
+          $ref: '#/components/schemas/ExtractedFilters'
+        products:
+          type: array
+          items:
+            $ref: '#/components/schemas/RecommendedProduct'
+
+    ConversationMessage:
+      type: object
+      required: [role, content, created_at]
+      properties:
+        role:
+          type: string
+          enum: [user, assistant]
+        content:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    ConversationHistory:
+      type: object
+      required:
+        - conversation_id
+        - store_id
+        - expires_at
+        - last_activity_at
+        - messages
+      properties:
+        conversation_id:
+          type: string
+          format: uuid
+        store_id:
+          type: integer
+        expires_at:
+          type: string
+          format: date-time
+        last_activity_at:
+          type: string
+          format: date-time
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/ConversationMessage'
+
+    HealthResponse:
+      type: object
+      required: [status, checks]
+      properties:
+        status:
+          type: string
+          enum: [ok, degraded]
+        checks:
+          type: object
+          additionalProperties:
+            type: string
+            description: e.g. `ok`, `pending`, `unavailable`, `skipped`
+        message:
+          type: string
+        error:
+          type: string
