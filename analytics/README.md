@@ -72,7 +72,7 @@ php artisan kafka:consume-analytics
 
 ## API contract
 
-OpenAPI: [`openapi.yaml`](openapi.yaml) (gateway base `https://localhost/api/analytics`).
+OpenAPI: [`docs/openapi.yaml`](docs/openapi.yaml) (Swagger UI at `/docs`, gateway base `https://localhost/api/analytics`).
 
 ## Report APIs (staff JWT via gateway)
 

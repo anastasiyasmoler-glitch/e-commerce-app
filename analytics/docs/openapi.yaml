@@ -55,6 +55,8 @@ paths:
         - $ref: '#/components/parameters/FromDate'
         - $ref: '#/components/parameters/ToDate'
       responses:
+        '400':
+          $ref: '#/components/responses/ValidationError'
         '200':
           description: Registration totals and daily breakdown
           content:
@@ -74,6 +76,8 @@ paths:
         - $ref: '#/components/parameters/FromDate'
         - $ref: '#/components/parameters/ToDate'
       responses:
+        '400':
+          $ref: '#/components/responses/ValidationError'
         '200':
           description: Funnel counts, revenue, and daily revenue
           content:
@@ -93,6 +97,8 @@ paths:
         - $ref: '#/components/parameters/FromDate'
         - $ref: '#/components/parameters/ToDate'
       responses:
+        '400':
+          $ref: '#/components/responses/ValidationError'
         '200':
           description: Search volume, top queries, zero-result stats
           content:
@@ -124,7 +130,7 @@ components:
     ToDate:
       name: to
       in: query
-      description: Inclusive end date (UTC). Defaults to today.
+      description: Inclusive end date (UTC). Must be after or equal to `from`. Defaults to today.
       schema:
         type: string
         format: date
@@ -139,6 +145,12 @@ components:
             $ref: '#/components/schemas/Error'
     Forbidden:
       description: Authenticated but not Analyst/Admin
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    ValidationError:
+      description: Invalid query parameters (bad date format or `to` before `from`)
       content:
         application/json:
           schema:
