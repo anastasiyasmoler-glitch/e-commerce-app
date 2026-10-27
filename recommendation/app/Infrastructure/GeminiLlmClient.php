@@ -70,10 +70,16 @@ class GeminiLlmClient implements LlmClient
 
         for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
             try {
-                $response = Http::timeout($timeout)
+                $http = Http::timeout($timeout)
                     ->acceptJson()
-                    ->withHeaders(['x-goog-api-key' => $apiKey])
-                    ->post('https://generativelanguage.googleapis.com/v1beta/'.$path, $body);
+                    ->withHeaders(['x-goog-api-key' => $apiKey]);
+
+                $proxy = (string) config('recommendation.gemini.http_proxy', '');
+                if ($proxy !== '') {
+                    $http = $http->withOptions(['proxy' => $proxy]);
+                }
+
+                $response = $http->post('https://generativelanguage.googleapis.com/v1beta/'.$path, $body);
 
                 if ($response->successful()) {
                     $decoded = $response->json();

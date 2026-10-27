@@ -5,7 +5,6 @@ namespace App\Services;
 use App\Contracts\LlmClient;
 use App\Repositories\Contracts\CatalogProductProjectionRepositoryInterface;
 use App\Repositories\Contracts\ProductVectorIndexInterface;
-use Illuminate\Support\Facades\DB;
 use Throwable;
 
 class RecommendationChatService
@@ -37,12 +36,7 @@ class RecommendationChatService
     ): array {
         $conversation = $this->conversations->resolveForChat($userId, $storeId, $conversationId);
 
-        DB::table('recommendation_messages')->insert([
-            'conversation_id' => $conversation['id'],
-            'role' => 'user',
-            'content' => $message,
-            'created_at' => now(),
-        ]);
+        $this->conversations->appendMessage($conversation['id'], 'user', $message);
 
         $priorHistory = $this->conversations->priorMessagesForPrompt($conversation['id']);
 
@@ -111,12 +105,7 @@ class RecommendationChatService
         array $filters,
         array $products,
     ): array {
-        DB::table('recommendation_messages')->insert([
-            'conversation_id' => $conversationId,
-            'role' => 'assistant',
-            'content' => $answer,
-            'created_at' => now(),
-        ]);
+        $this->conversations->appendMessage($conversationId, 'assistant', $answer);
 
         $this->conversations->touchActivity($conversationId);
 
@@ -170,6 +159,9 @@ class RecommendationChatService
             }
 
             $slug = isset($payload['slug']) ? (string) $payload['slug'] : '';
+            $imagePath = isset($payload['image']) && is_string($payload['image'])
+                ? trim($payload['image'])
+                : '';
             $products[] = [
                 'product_id' => $row['product_id'],
                 'store_id' => $storeId,
@@ -177,7 +169,10 @@ class RecommendationChatService
                 'slug' => $slug,
                 'price_cents' => $priceCents,
                 'score' => $scores[$row['product_id']] ?? null,
-                'url' => $slug !== '' ? '/products/'.$slug.'?store_id='.$storeId : null,
+                'url' => '/products/'.$row['product_id'],
+                'image_url' => $imagePath !== ''
+                    ? rtrim((string) config('recommendation.product_images_public_url'), '/').'/'.ltrim($imagePath, '/')
+                    : null,
             ];
         }
 
@@ -188,9 +183,6 @@ class RecommendationChatService
         return $products;
     }
 
-    /**
-     * @param  list<array<string, mixed>>  $products
-     */
     /**
      * @param  list<array<string, mixed>>  $products
      * @param  list<array{role: string, content: string}>  $priorHistory

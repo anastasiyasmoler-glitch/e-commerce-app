@@ -81,7 +81,7 @@ paths:
                         slug: rose-sofa
                         price_cents: 45000
                         score: 0.91
-                        url: /products/rose-sofa?store_id=1
+                        url: /products/9
                 clarification:
                   summary: LLM needs more detail
                   value:

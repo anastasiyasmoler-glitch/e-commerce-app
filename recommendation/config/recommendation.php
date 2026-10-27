@@ -2,6 +2,7 @@
 
 return [
     'catalog_base_url' => env('CATALOG_BASE_URL', 'https://catalog-nginx'),
+    'product_images_public_url' => env('PRODUCT_IMAGES_PUBLIC_URL', 'https://localhost/product-images'),
     'gemini' => [
         'api_key' => env('GEMINI_API_KEY'),
         'model' => env('GEMINI_MODEL', 'gemini-2.0-flash'),
@@ -9,6 +10,7 @@ return [
         'timeout_seconds' => (int) env('GEMINI_TIMEOUT_SECONDS', 25),
         'retry_times' => (int) env('GEMINI_RETRY_TIMES', 2),
         'retry_sleep_ms' => (int) env('GEMINI_RETRY_SLEEP_MS', 300),
+        'http_proxy' => env('GEMINI_HTTP_PROXY', env('HTTPS_PROXY')),
     ],
     'embedding_dimensions' => (int) env('RECOMMENDATION_EMBEDDING_DIMENSIONS', 1536),
     'qdrant' => [

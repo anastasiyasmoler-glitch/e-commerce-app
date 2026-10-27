@@ -64,6 +64,16 @@ class PgsqlConversationRepository implements ConversationRepositoryInterface
         return $messages;
     }
 
+    public function appendMessage(string $conversationId, string $role, string $content): void
+    {
+        DB::table('recommendation_messages')->insert([
+            'conversation_id' => $conversationId,
+            'role' => $role,
+            'content' => $content,
+            'created_at' => now(),
+        ]);
+    }
+
     public function deleteOwned(string $conversationId, int $userId): bool
     {
         $deleted = DB::table('recommendation_conversations')

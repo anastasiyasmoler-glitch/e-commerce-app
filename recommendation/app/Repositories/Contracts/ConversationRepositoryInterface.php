@@ -25,6 +25,8 @@ interface ConversationRepositoryInterface
      */
     public function listMessages(string $conversationId): array;
 
+    public function appendMessage(string $conversationId, string $role, string $content): void;
+
     public function deleteOwned(string $conversationId, int $userId): bool;
 
     public function purgeExpiredAndIdle(): int;

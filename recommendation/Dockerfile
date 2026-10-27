@@ -9,8 +9,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         ca-certificates \
         libzip-dev \
         libpq-dev \
+        libcurl4-openssl-dev \
         $PHPIZE_DEPS \
-    && docker-php-ext-install zip bcmath pdo_pgsql \
+    && docker-php-ext-install zip bcmath pdo_pgsql curl \
     && apt-get purge -y --auto-remove $PHPIZE_DEPS \
     && rm -rf /var/lib/apt/lists/*
 

@@ -32,6 +32,10 @@ Before the LLM answer, candidate products are verified against the **local** `ca
 
 Gemini calls use configurable timeout and retries (`GEMINI_TIMEOUT_SECONDS`, `GEMINI_RETRY_TIMES`). Chat prompts include capped prior turns (`RECOMMENDATION_PROMPT_MAX_HISTORY_*`), user text is wrapped in `<<<USER>>>` markers with `user_boundary_rules.txt`. If filter extraction or embed fails, the API falls back to safe search text or a short degraded answer without invented products.
 
+## API contract
+
+OpenAPI 3.0: [`openapi.yaml`](openapi.yaml) — chat, conversations, and health (gateway paths under `/api/recommendations/*`).
+
 ## Local run
 
 Prerequisites: `microservices-net`, Kafka (`notification` compose).
@@ -40,12 +44,13 @@ Prerequisites: `microservices-net`, Kafka (`notification` compose).
 cd recommendation
 cp .env.example .env
 # Set GEMINI_API_KEY in .env (not committed)
+sh docker/nginx/generate-certs.sh
 docker compose up -d --build
 ```
 
 - Health: `curl -k https://localhost:8448/recommendations/health` (`database`, `qdrant`, `catalog_projection_table`)
 - Qdrant UI/API: `http://localhost:6333`
-- Postgres: host port **5433**
+- Postgres: host port **5435** (Catalog uses **5433** on the host)
 
 If you previously used pgvector in Postgres, run migrations after pull; for a clean slate: `docker compose down -v` in `recommendation/`.
 

@@ -59,21 +59,17 @@ class ConversationService
     {
         if ($conversationId !== null && $conversationId !== '') {
             $row = $this->conversations->findOwnedByUser($conversationId, $userId);
-            if ($row === null) {
-                abort(404, 'Conversation not found.');
+            if ($row !== null && (int) $row->store_id === $storeId && ! $this->isExpired($row)) {
+                return [
+                    'id' => (string) $row->id,
+                    'user_id' => (int) $row->user_id,
+                    'store_id' => (int) $row->store_id,
+                ];
             }
 
-            if ((int) $row->store_id !== $storeId) {
+            if ($row !== null && (int) $row->store_id !== $storeId) {
                 abort(403, 'Conversation store mismatch.');
             }
-
-            $this->assertNotExpired($row);
-
-            return [
-                'id' => (string) $row->id,
-                'user_id' => (int) $row->user_id,
-                'store_id' => (int) $row->store_id,
-            ];
         }
 
         $id = (string) Str::uuid();
@@ -89,6 +85,11 @@ class ConversationService
     public function touchActivity(string $conversationId): void
     {
         $this->conversations->touchActivity($conversationId);
+    }
+
+    public function appendMessage(string $conversationId, string $role, string $content): void
+    {
+        $this->conversations->appendMessage($conversationId, $role, $content);
     }
 
     /**
@@ -144,6 +145,13 @@ class ConversationService
 
     private function assertNotExpired(object $row): void
     {
+        if ($this->isExpired($row)) {
+            abort(410, 'Conversation expired.');
+        }
+    }
+
+    private function isExpired(object $row): bool
+    {
         $idleMinutes = (int) config('recommendation.chat.conversation_idle_minutes', 30);
         $now = now();
 
@@ -152,7 +160,7 @@ class ConversationService
             : Carbon::parse((string) $row->expires_at);
 
         if ($now->greaterThan($expiresAt)) {
-            abort(410, 'Conversation expired.');
+            return true;
         }
 
         $lastActivity = $row->last_activity_at ?? $row->created_at;
@@ -160,8 +168,6 @@ class ConversationService
             ? $lastActivity
             : Carbon::parse((string) $lastActivity);
 
-        if ($now->diffInMinutes($last) > $idleMinutes) {
-            abort(410, 'Conversation idle timeout exceeded.');
-        }
+        return $now->diffInMinutes($last) > $idleMinutes;
     }
 }

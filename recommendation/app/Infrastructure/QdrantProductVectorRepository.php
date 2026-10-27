@@ -97,6 +97,8 @@ class QdrantProductVectorRepository implements ProductVectorIndexInterface
             return [];
         }
 
+        $this->ensureCollection();
+
         $must = [
             [
                 'key' => 'store_id',
