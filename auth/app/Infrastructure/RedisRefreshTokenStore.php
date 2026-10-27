@@ -3,6 +3,7 @@
 namespace App\Infrastructure;
 
 use App\Contracts\Auth\RefreshTokenStore;
+use Illuminate\Redis\Connections\PhpRedisConnection;
 use Illuminate\Support\Facades\Redis;
 
 class RedisRefreshTokenStore implements RefreshTokenStore
@@ -55,14 +56,12 @@ class RedisRefreshTokenStore implements RefreshTokenStore
             return userId
         LUA;
 
-        $result = Redis::eval(
+        $result = $this->redis()->eval(
             $script,
-            [
-                $this->lookupKey($hash),
-                $this->tokenPrefix(),
-                $hash,
-            ],
             2,
+            $this->lookupKey($hash),
+            $this->tokenPrefix(),
+            $hash,
         );
 
         return is_numeric($result) ? (int) $result : null;
@@ -93,15 +92,24 @@ class RedisRefreshTokenStore implements RefreshTokenStore
             until cursor == "0"
         LUA;
 
-        Redis::eval(
+        $this->redis()->eval(
             $script,
-            [
-                $pattern,
-                $this->tokenPrefix().$userId.':',
-                $this->lookupPrefix(),
-            ],
             3,
+            $pattern,
+            $this->tokenPrefix().$userId.':',
+            $this->lookupPrefix(),
         );
+    }
+
+    private function redis(): PhpRedisConnection
+    {
+        $connection = Redis::connection();
+
+        if (! $connection instanceof PhpRedisConnection) {
+            throw new \RuntimeException('Redis connection must use the PhpRedis driver.');
+        }
+
+        return $connection;
     }
 
     private function hash(string $plainToken): string

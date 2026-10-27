@@ -70,6 +70,39 @@ class RedisJwtAuthTest extends TestCase
         $this->assertSame((string) $user->id, Redis::get('auth:refresh:lookup:'.$hash));
     }
 
+    public function test_refresh_rotates_hashed_refresh_keys_via_lua_claim(): void
+    {
+        $login = $this->registerUser();
+        $user = User::query()->where('email', 'redis@example.com')->first();
+        $this->assertNotNull($user);
+
+        $oldRefresh = $this->refreshCookieValue($login);
+        $oldHash = hash('sha256', $oldRefresh);
+
+        $this->assertGreaterThan(0, Redis::exists('auth:refresh:'.$user->id.':'.$oldHash));
+        $this->assertSame((string) $user->id, Redis::get('auth:refresh:lookup:'.$oldHash));
+
+        $rotated = $this->withUnencryptedCookie((string) config('auth.refresh_cookie.name'), $oldRefresh)
+            ->postJson('/refresh');
+
+        $rotated->assertOk()
+            ->assertJsonStructure(['access_token', 'token_type', 'expires_in'])
+            ->assertCookie((string) config('auth.refresh_cookie.name'));
+
+        $newRefresh = $this->refreshCookieValue($rotated);
+        $this->assertNotSame($oldRefresh, $newRefresh);
+
+        $newHash = hash('sha256', $newRefresh);
+        $this->assertSame(0, Redis::exists('auth:refresh:'.$user->id.':'.$oldHash));
+        $this->assertNull(Redis::get('auth:refresh:lookup:'.$oldHash));
+        $this->assertGreaterThan(0, Redis::exists('auth:refresh:'.$user->id.':'.$newHash));
+        $this->assertSame((string) $user->id, Redis::get('auth:refresh:lookup:'.$newHash));
+
+        $this->withUnencryptedCookie((string) config('auth.refresh_cookie.name'), $oldRefresh)
+            ->postJson('/refresh')
+            ->assertUnauthorized();
+    }
+
     public function test_logout_drops_refresh_keys_and_blacklists_access_in_redis(): void
     {
         $response = $this->registerUser();

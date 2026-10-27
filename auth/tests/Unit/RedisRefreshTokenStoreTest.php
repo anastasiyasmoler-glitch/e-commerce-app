@@ -3,6 +3,7 @@
 namespace Tests\Unit;
 
 use App\Infrastructure\RedisRefreshTokenStore;
+use Illuminate\Redis\Connections\PhpRedisConnection;
 use Illuminate\Support\Facades\Redis;
 use Mockery;
 use Tests\TestCase;
@@ -61,43 +62,53 @@ class RedisRefreshTokenStoreTest extends TestCase
         $token = 'plain-refresh-token';
         $hash = hash('sha256', $token);
 
-        Redis::shouldReceive('eval')
+        $connection = Mockery::mock(PhpRedisConnection::class);
+        $connection->shouldReceive('command')
             ->once()
             ->with(
-                Mockery::type('string'),
-                [
-                    'auth:refresh:lookup:'.$hash,
-                    'auth:refresh:',
-                    $hash,
-                ],
-                2,
+                'eval',
+                Mockery::on(function (array $parameters) use ($hash): bool {
+                    return ($parameters[2] ?? null) === 2
+                        && ($parameters[1] ?? null) === [
+                            'auth:refresh:lookup:'.$hash,
+                            'auth:refresh:',
+                            $hash,
+                        ];
+                }),
             )
             ->andReturn('7');
+        Redis::shouldReceive('connection')->once()->andReturn($connection);
 
         $this->assertSame(7, (new RedisRefreshTokenStore)->claim($token));
     }
 
     public function test_claim_returns_null_for_unknown_token(): void
     {
-        Redis::shouldReceive('eval')->once()->andReturn(false);
+        $connection = Mockery::mock(PhpRedisConnection::class);
+        $connection->shouldReceive('command')->once()->andReturn(false);
+        Redis::shouldReceive('connection')->once()->andReturn($connection);
 
         $this->assertNull((new RedisRefreshTokenStore)->claim('unknown-token'));
     }
 
     public function test_forget_all_deletes_every_token_of_a_user(): void
     {
-        Redis::shouldReceive('eval')
+        $connection = Mockery::mock(PhpRedisConnection::class);
+        $connection->shouldReceive('command')
             ->once()
             ->with(
-                Mockery::type('string'),
-                [
-                    'auth:refresh:7:*',
-                    'auth:refresh:7:',
-                    'auth:refresh:lookup:',
-                ],
-                3,
+                'eval',
+                Mockery::on(function (array $parameters): bool {
+                    return ($parameters[2] ?? null) === 3
+                        && ($parameters[1] ?? null) === [
+                            'auth:refresh:7:*',
+                            'auth:refresh:7:',
+                            'auth:refresh:lookup:',
+                        ];
+                }),
             )
             ->andReturnNull();
+        Redis::shouldReceive('connection')->once()->andReturn($connection);
 
         (new RedisRefreshTokenStore)->forgetAll(7);
     }
