@@ -1,6 +1,4 @@
-import { useMemo, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
-import { useSelectedStore } from '@/catalog/useSelectedStore'
+import { Link } from 'react-router-dom'
 import { ProductCard } from '@/components/catalog/ProductCard'
 import {
   Breadcrumb,
@@ -12,35 +10,17 @@ import {
 } from '@/components/ui/breadcrumb'
 import { Container } from '@/components/ui/container'
 import { PageLoading } from '@/components/ui/loading-screen'
-import { useCategoryListing } from '@/hooks/useProducts'
+import { useCategoryPage } from '@/hooks/useCategoryPage'
 import { categoryPath, paths } from '@/paths'
 
 export function CategoryPage() {
-  const { slug } = useParams()
-  const { selectedStore } = useSelectedStore()
-  const [page, setPage] = useState(1)
-  const { roots, current, products, pageSize } = useCategoryListing(selectedStore?.id, slug, page)
+  const catalog = useCategoryPage()
 
-  const title = current?.name ?? 'Catalog'
-  const rows = products.data ?? []
-  const storeName = selectedStore?.name ?? ''
-  const catalogReady = selectedStore?.id !== undefined
-  const loading =
-    catalogReady && (roots.isLoading || products.isLoading || products.isFetching)
-
-  const facetLinks = useMemo(
-    () => [
-      { slug: null as string | null, name: 'All' },
-      ...(roots.data ?? []).map((category) => ({ slug: category.slug, name: category.name })),
-    ],
-    [roots.data],
-  )
-
-  if (loading) {
+  if (catalog.status === 'loading') {
     return <PageLoading />
   }
 
-  if (!catalogReady) {
+  if (catalog.status === 'no-store') {
     return (
       <Container className="py-20 text-center">
         <h2 className="font-display text-[28px] font-medium">No stores in the catalog yet</h2>
@@ -49,7 +29,7 @@ export function CategoryPage() {
     )
   }
 
-  if (products.isError) {
+  if (catalog.status === 'error') {
     return (
       <Container className="py-20 text-center">
         <h2 className="font-display text-[28px] font-medium">Products could not be loaded</h2>
@@ -69,7 +49,7 @@ export function CategoryPage() {
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            {current ? (
+            {catalog.current ? (
               <BreadcrumbLink asChild>
                 <Link to={paths.catalog}>Catalog</Link>
               </BreadcrumbLink>
@@ -77,11 +57,11 @@ export function CategoryPage() {
               <BreadcrumbPage>Catalog</BreadcrumbPage>
             )}
           </BreadcrumbItem>
-          {current ? (
+          {catalog.current ? (
             <>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
-                <BreadcrumbPage>{current.name}</BreadcrumbPage>
+                <BreadcrumbPage>{catalog.current.name}</BreadcrumbPage>
               </BreadcrumbItem>
             </>
           ) : null}
@@ -96,13 +76,13 @@ export function CategoryPage() {
           <div className="border-b border-line py-5">
             <h3 className="mb-3 text-[13px] font-semibold tracking-[0.08em] uppercase">Category</h3>
             <div className="flex flex-col">
-              {facetLinks.map((item) => {
-                const isActive = (item.slug ?? undefined) === slug
+              {catalog.facetLinks.map((item) => {
+                const isActive = (item.slug ?? undefined) === catalog.slug
                 return (
                   <Link
                     key={item.slug ?? 'all'}
                     to={item.slug ? categoryPath(item.slug) : paths.catalog}
-                    onClick={() => setPage(1)}
+                    onClick={() => catalog.setPage(1)}
                     className={`py-[5px] text-[15px] transition-colors ${
                       isActive ? 'font-semibold text-ink' : 'text-muted hover:text-ink'
                     }`}
@@ -118,14 +98,14 @@ export function CategoryPage() {
         <div>
           <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
             <h1 className="font-display text-[28px] font-medium tracking-[-0.02em]">
-              {title}{' '}
+              {catalog.title}{' '}
               <small className="font-sans text-[15px] font-normal text-muted">
-                {selectedStore?.name}
+                {catalog.selectedStore?.name}
               </small>
             </h1>
           </div>
 
-          {rows.length === 0 ? (
+          {catalog.rows.length === 0 ? (
             <div className="mx-auto max-w-[480px] px-4 py-20 text-center">
               <h2 className="mb-2 font-display text-[28px] font-medium">No products found</h2>
               <p className="text-muted">Try another category or store.</p>
@@ -133,26 +113,26 @@ export function CategoryPage() {
           ) : (
             <>
               <div className="grid grid-cols-2 gap-x-3 gap-y-6 sm:gap-x-5 sm:gap-y-8 xl:grid-cols-3">
-                {rows.map((product) => (
-                  <ProductCard key={product.id} product={product} storeName={storeName} />
+                {catalog.rows.map((product) => (
+                  <ProductCard key={product.id} product={product} storeName={catalog.storeName} />
                 ))}
               </div>
               <div className="mt-12 flex justify-center gap-1">
                 <button
                   type="button"
-                  disabled={page === 1}
-                  onClick={() => setPage((value) => value - 1)}
+                  disabled={catalog.page === 1}
+                  onClick={() => catalog.setPage((value) => value - 1)}
                   className="grid h-10 min-w-10 place-items-center rounded-[6px] px-2 text-[13px] font-medium transition-colors hover:bg-subtle disabled:pointer-events-none disabled:opacity-40"
                 >
                   Prev
                 </button>
                 <span className="grid h-10 min-w-10 place-items-center rounded-[6px] bg-ink px-2 text-[13px] font-medium text-white">
-                  {page}
+                  {catalog.page}
                 </span>
                 <button
                   type="button"
-                  disabled={rows.length < pageSize}
-                  onClick={() => setPage((value) => value + 1)}
+                  disabled={catalog.rows.length < catalog.pageSize}
+                  onClick={() => catalog.setPage((value) => value + 1)}
                   className="grid h-10 min-w-10 place-items-center rounded-[6px] px-2 text-[13px] font-medium transition-colors hover:bg-subtle disabled:pointer-events-none disabled:opacity-40"
                 >
                   Next

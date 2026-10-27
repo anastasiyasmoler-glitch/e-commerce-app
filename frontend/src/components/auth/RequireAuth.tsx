@@ -1,21 +1,24 @@
-import { Outlet, useNavigate } from 'react-router-dom'
+import { Navigate, Outlet, useLocation } from 'react-router-dom'
+import { PageLoading } from '@/components/ui/loading-screen'
 import { useSession } from '@/hooks/useSession'
 import { paths } from '@/paths'
-import { AuthModal } from './AuthModal'
 
 export function RequireAuth() {
   const session = useSession()
-  const navigate = useNavigate()
+  const location = useLocation()
 
   if (!session.isFetched) {
-    return null
+    return <PageLoading />
   }
 
   if (!session.data) {
+    const from = `${location.pathname}${location.search}${location.hash}`
+
     return (
-      <AuthModal
-        onClose={() => navigate(paths.home, { replace: true })}
-        onSuccess={() => undefined}
+      <Navigate
+        to={paths.home}
+        replace
+        state={{ auth: 'login', from }}
       />
     )
   }

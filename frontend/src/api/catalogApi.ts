@@ -27,6 +27,10 @@ export type CatalogProduct = {
   slug: string
   description: string | null
   sku: string
+  price: number
+  attributes?: Record<string, string>
+  image?: string | null
+  image_url?: string | null
   stock: CatalogStock
 }
 

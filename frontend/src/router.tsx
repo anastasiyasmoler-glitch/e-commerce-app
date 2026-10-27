@@ -5,6 +5,7 @@ import { CategoryPage } from './pages/CategoryPage'
 import { HomePage } from './pages/HomePage'
 import { ProductPage } from './pages/ProductPage'
 import { paths } from './paths'
+import { ChatPage } from './pages/ChatPage'
 import { ProfilePage } from './pages/ProfilePage'
 import { SearchPage } from './pages/SearchPage'
 
@@ -20,7 +21,10 @@ export const router = createBrowserRouter([
       { path: 'search', element: <SearchPage /> },
       {
         element: <RequireAuth />,
-        children: [{ path: 'profile', element: <ProfilePage /> }],
+        children: [
+          { path: 'profile', element: <ProfilePage /> },
+          { path: 'assistant', element: <ChatPage /> },
+        ],
       },
     ],
   },

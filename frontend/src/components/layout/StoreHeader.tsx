@@ -77,13 +77,13 @@ export function StoreHeader({ onSignIn, onRegister }: StoreHeaderProps) {
             className="flex shrink-0 items-center gap-4 text-[13px] font-medium sm:gap-6"
             aria-label="Account"
           >
-            <button
-              type="button"
+            <Link
+              to={paths.assistant}
               className="inline-flex items-center gap-2 text-ink transition-colors hover:text-brand"
             >
               <Sparkles className="size-5" />
               <span className="hidden lg:inline">AI Assistant</span>
-            </button>
+            </Link>
             {signedOut ? (
               <>
                 <button

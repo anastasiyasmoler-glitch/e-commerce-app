@@ -1,6 +1,7 @@
 export const paths = {
   home: '/',
   profile: '/profile',
+  assistant: '/assistant',
   catalog: '/categories',
   category: '/categories/:slug',
   product: '/products/:id',

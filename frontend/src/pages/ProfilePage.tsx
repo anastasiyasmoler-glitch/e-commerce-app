@@ -1,19 +1,9 @@
-import { zodResolver } from '@hookform/resolvers/zod'
 import { LogOut, Package, Sparkles, Trash2, User } from 'lucide-react'
-import { Controller, useForm } from 'react-hook-form'
-import { Link, useNavigate } from 'react-router-dom'
+import { Controller } from 'react-hook-form'
+import { Link } from 'react-router-dom'
 import { firstFormError } from '@/lib/form'
-import { useLogout } from '@/hooks/useLogout'
-import { useDeleteProfile, useProfile, useUpdatePassword, useUpdateProfile } from '@/hooks/useProfile'
+import { useProfilePage } from '@/hooks/useProfilePage'
 import { paths } from '@/paths'
-import {
-  deleteProfileSchema,
-  updatePasswordSchema,
-  updateProfileSchema,
-  type DeleteProfileValues,
-  type UpdatePasswordValues,
-  type UpdateProfileValues,
-} from '@/lib/validators/auth'
 import { Badge } from '@/components/ui/badge'
 import {
   Breadcrumb,
@@ -33,69 +23,7 @@ import { FieldSkeleton, Skeleton } from '@/components/ui/skeleton'
 import { Separator } from '@/components/ui/separator'
 
 export function ProfilePage() {
-  const profile = useProfile()
-  const me = profile.data
-  const logout = useLogout()
-  const updateProfile = useUpdateProfile()
-  const changePassword = useUpdatePassword()
-  const removeAccount = useDeleteProfile()
-  const navigate = useNavigate()
-
-  const detailsForm = useForm<UpdateProfileValues>({
-    resolver: zodResolver(updateProfileSchema),
-    values: {
-      name: me?.name ?? '',
-      phone: me?.phone ?? '',
-      email: me?.email ?? '',
-    },
-  })
-
-  const passwordForm = useForm<UpdatePasswordValues>({
-    resolver: zodResolver(updatePasswordSchema),
-    defaultValues: { current_password: '', password: '', password_confirmation: '' },
-  })
-
-  const deleteForm = useForm<DeleteProfileValues>({
-    resolver: zodResolver(deleteProfileSchema),
-    defaultValues: { password: '' },
-  })
-
-  function onSignOut() {
-    logout.mutate(undefined, {
-      onSettled: () => {
-        navigate(paths.home)
-      },
-    })
-  }
-
-  async function onSaveDetails(values: UpdateProfileValues) {
-    try {
-      await updateProfile.mutateAsync(values)
-    } catch {
-      /* mutation.error */
-    }
-  }
-
-  async function onChangePassword(values: UpdatePasswordValues) {
-    try {
-      await changePassword.mutateAsync(values)
-      passwordForm.reset()
-    } catch {
-      /* mutation.error */
-    }
-  }
-
-  async function onDelete(values: DeleteProfileValues) {
-    try {
-      await removeAccount.mutateAsync(values)
-      navigate(paths.home)
-    } catch {
-      /* mutation.error */
-    }
-  }
-
-  const detailsLoading = profile.isPending && !me
-  const role = me?.roles[0] ?? 'Customer'
+  const profile = useProfilePage()
 
   return (
     <Container className="py-8">
@@ -114,9 +42,15 @@ export function ProfilePage() {
       </Breadcrumb>
       <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
         <h1 className="font-display text-[36px] font-medium">Profile</h1>
-        <Button type="button" variant="outline" className="h-11 rounded-sm" onClick={onSignOut} disabled={logout.isPending}>
+        <Button
+          type="button"
+          variant="outline"
+          className="h-11 rounded-sm"
+          onClick={profile.onSignOut}
+          disabled={profile.logout.isPending}
+        >
           <LogOut />
-          {logout.isPending ? 'Signing out…' : 'Sign out'}
+          {profile.logout.isPending ? 'Signing out…' : 'Sign out'}
         </Button>
       </div>
       <div className="grid gap-10 lg:grid-cols-[240px_1fr]">
@@ -127,16 +61,18 @@ export function ProfilePage() {
           <Button variant="ghost" className="justify-start" type="button">
             <Package /> My orders
           </Button>
-          <Button variant="ghost" className="justify-start" type="button">
-            <Sparkles /> AI Assistant
+          <Button variant="ghost" className="justify-start" type="button" asChild>
+            <Link to={paths.assistant}>
+              <Sparkles /> AI Assistant
+            </Link>
           </Button>
           <Separator className="my-2" />
           <Button
             type="button"
             variant="ghost"
             className="justify-start"
-            onClick={onSignOut}
-            disabled={logout.isPending}
+            onClick={profile.onSignOut}
+            disabled={profile.logout.isPending}
           >
             <LogOut /> Sign out
           </Button>
@@ -147,15 +83,15 @@ export function ProfilePage() {
               <CardTitle>Personal details</CardTitle>
               <CardDescription className="flex items-center gap-2">
                 Role:{' '}
-                {detailsLoading ? (
+                {profile.detailsLoading ? (
                   <Skeleton className="inline-block h-5 w-20 rounded-4xl" />
                 ) : (
-                  <Badge variant="secondary">{role}</Badge>
+                  <Badge variant="secondary">{profile.role}</Badge>
                 )}
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {detailsLoading ? (
+              {profile.detailsLoading ? (
                 <>
                   <div className="mt-4 grid gap-4 sm:grid-cols-2">
                     <FieldSkeleton label="Full name" />
@@ -165,44 +101,48 @@ export function ProfilePage() {
                   <Skeleton className="h-11 w-36" />
                 </>
               ) : (
-              <form onSubmit={detailsForm.handleSubmit(onSaveDetails)}>
-                <FormError message={firstFormError(detailsForm.formState.errors)} />
-                <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                <form onSubmit={profile.detailsForm.handleSubmit(profile.onSaveDetails)}>
+                  <FormError message={firstFormError(profile.detailsForm.formState.errors)} />
+                  <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                    <Field
+                      id="profile-name"
+                      label="Full name"
+                      autoComplete="name"
+                      error={profile.detailsForm.formState.errors.name?.message}
+                      {...profile.detailsForm.register('name')}
+                    />
+                    <Controller
+                      control={profile.detailsForm.control}
+                      name="phone"
+                      render={({ field, fieldState }) => (
+                        <PhoneField
+                          id="profile-phone"
+                          label="Phone"
+                          value={field.value}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          name={field.name}
+                          error={fieldState.error?.message}
+                        />
+                      )}
+                    />
+                  </div>
                   <Field
-                    id="profile-name"
-                    label="Full name"
-                    autoComplete="name"
-                    error={detailsForm.formState.errors.name?.message}
-                    {...detailsForm.register('name')}
+                    id="profile-email"
+                    label="Email"
+                    type="email"
+                    autoComplete="email"
+                    error={profile.detailsForm.formState.errors.email?.message}
+                    {...profile.detailsForm.register('email')}
                   />
-                  <Controller
-                    control={detailsForm.control}
-                    name="phone"
-                    render={({ field, fieldState }) => (
-                      <PhoneField
-                        id="profile-phone"
-                        label="Phone"
-                        value={field.value}
-                        onChange={field.onChange}
-                        onBlur={field.onBlur}
-                        name={field.name}
-                        error={fieldState.error?.message}
-                      />
-                    )}
-                  />
-                </div>
-                <Field
-                  id="profile-email"
-                  label="Email"
-                  type="email"
-                  autoComplete="email"
-                  error={detailsForm.formState.errors.email?.message}
-                  {...detailsForm.register('email')}
-                />
-                <Button type="submit" className="h-11 rounded-sm" disabled={updateProfile.isPending}>
-                  {updateProfile.isPending ? 'Saving…' : 'Save changes'}
-                </Button>
-              </form>
+                  <Button
+                    type="submit"
+                    className="h-11 rounded-sm"
+                    disabled={profile.updateProfile.isPending}
+                  >
+                    {profile.updateProfile.isPending ? 'Saving…' : 'Save changes'}
+                  </Button>
+                </form>
               )}
             </CardContent>
           </Card>
@@ -212,16 +152,16 @@ export function ProfilePage() {
               <CardDescription>Use at least 8 characters.</CardDescription>
             </CardHeader>
             <CardContent>
-              <form onSubmit={passwordForm.handleSubmit(onChangePassword)}>
-                <FormError message={firstFormError(passwordForm.formState.errors)} />
+              <form onSubmit={profile.passwordForm.handleSubmit(profile.onChangePassword)}>
+                <FormError message={firstFormError(profile.passwordForm.formState.errors)} />
                 <Field
                   id="profile-current-password"
                   label="Current password"
                   type="password"
                   autoComplete="current-password"
                   placeholder="••••••••"
-                  error={passwordForm.formState.errors.current_password?.message}
-                  {...passwordForm.register('current_password')}
+                  error={profile.passwordForm.formState.errors.current_password?.message}
+                  {...profile.passwordForm.register('current_password')}
                 />
                 <Field
                   id="profile-new-password"
@@ -229,8 +169,8 @@ export function ProfilePage() {
                   type="password"
                   autoComplete="new-password"
                   placeholder="••••••••"
-                  error={passwordForm.formState.errors.password?.message}
-                  {...passwordForm.register('password')}
+                  error={profile.passwordForm.formState.errors.password?.message}
+                  {...profile.passwordForm.register('password')}
                 />
                 <Field
                   id="profile-confirm-password"
@@ -238,11 +178,16 @@ export function ProfilePage() {
                   type="password"
                   autoComplete="new-password"
                   placeholder="••••••••"
-                  error={passwordForm.formState.errors.password_confirmation?.message}
-                  {...passwordForm.register('password_confirmation')}
+                  error={profile.passwordForm.formState.errors.password_confirmation?.message}
+                  {...profile.passwordForm.register('password_confirmation')}
                 />
-                <Button type="submit" variant="outline" className="h-11 rounded-sm" disabled={changePassword.isPending}>
-                  {changePassword.isPending ? 'Updating…' : 'Change password'}
+                <Button
+                  type="submit"
+                  variant="outline"
+                  className="h-11 rounded-sm"
+                  disabled={profile.changePassword.isPending}
+                >
+                  {profile.changePassword.isPending ? 'Updating…' : 'Change password'}
                 </Button>
               </form>
             </CardContent>
@@ -250,23 +195,30 @@ export function ProfilePage() {
           <Card className="ring-destructive/30">
             <CardHeader>
               <CardTitle>Delete account</CardTitle>
-              <CardDescription>Your profile will be deactivated. You will be signed out immediately.</CardDescription>
+              <CardDescription>
+                Your profile will be deactivated. You will be signed out immediately.
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <form onSubmit={deleteForm.handleSubmit(onDelete)}>
-                <FormError message={firstFormError(deleteForm.formState.errors)} />
+              <form onSubmit={profile.deleteForm.handleSubmit(profile.onDelete)}>
+                <FormError message={firstFormError(profile.deleteForm.formState.errors)} />
                 <Field
                   id="profile-delete-password"
                   label="Password"
                   type="password"
                   autoComplete="current-password"
                   placeholder="••••••••"
-                  error={deleteForm.formState.errors.password?.message}
-                  {...deleteForm.register('password')}
+                  error={profile.deleteForm.formState.errors.password?.message}
+                  {...profile.deleteForm.register('password')}
                 />
-                <Button type="submit" variant="destructive" className="h-11 rounded-sm" disabled={removeAccount.isPending}>
+                <Button
+                  type="submit"
+                  variant="destructive"
+                  className="h-11 rounded-sm"
+                  disabled={profile.removeAccount.isPending}
+                >
                   <Trash2 />
-                  {removeAccount.isPending ? 'Deleting…' : 'Delete account'}
+                  {profile.removeAccount.isPending ? 'Deleting…' : 'Delete account'}
                 </Button>
               </form>
             </CardContent>

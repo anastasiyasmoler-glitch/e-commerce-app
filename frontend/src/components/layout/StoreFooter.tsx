@@ -23,7 +23,9 @@ export function StoreFooter() {
               Catalog
             </Link>
             <span>Stores</span>
-            <span>AI Assistant</span>
+            <Link to={paths.assistant} className="hover:text-brand">
+              AI Assistant
+            </Link>
             <span>My orders</span>
           </nav>
         </div>

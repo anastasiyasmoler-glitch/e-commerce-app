@@ -1,7 +1,5 @@
-import { Link, useParams } from 'react-router-dom'
-import { artForProductSlug } from '@/catalog/art'
-import { useSelectedStore } from '@/catalog/useSelectedStore'
-import { FurnitureArt } from '@/components/catalog/FurnitureArt'
+import { Link } from 'react-router-dom'
+import { ProductImage } from '@/components/catalog/ProductImage'
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -13,26 +11,17 @@ import {
 import { Button } from '@/components/ui/button'
 import { Container } from '@/components/ui/container'
 import { PageLoading } from '@/components/ui/loading-screen'
-import { useCategories } from '@/hooks/useCategories'
-import { useProduct } from '@/hooks/useProduct'
+import { useProductPage } from '@/hooks/useProductPage'
 import { categoryPath, paths } from '@/paths'
 
 export function ProductPage() {
-  const { id } = useParams()
-  const productId = Number(id)
-  const { selectedStore } = useSelectedStore()
-  const storeId = selectedStore?.id
+  const productPage = useProductPage()
 
-  const productQuery = useProduct(storeId, Number.isFinite(productId) ? productId : undefined)
-  const categoriesQuery = useCategories(storeId)
-
-  const product = productQuery.data
-  const category = (categoriesQuery.data ?? []).find((item) => item.id === product?.category_id)
-  const inStock = (product?.stock.quantity ?? 0) > 0
-
-  if (productQuery.isPending) {
+  if (productPage.status === 'loading') {
     return <PageLoading />
   }
+
+  const { product, category, selectedStore, inStock } = productPage
 
   return (
     <Container className="pb-4">
@@ -70,7 +59,7 @@ export function ProductPage() {
         </BreadcrumbList>
       </Breadcrumb>
 
-      {productQuery.isError || !product ? (
+      {productPage.status === 'not-found' || !product ? (
         <div className="mx-auto max-w-[480px] px-4 py-20 text-center">
           <h2 className="mb-2 font-display text-[28px] font-medium">Product not found</h2>
           <p className="text-muted">This item is not in the selected store.</p>
@@ -78,8 +67,8 @@ export function ProductPage() {
       ) : (
         <div className="mt-6 grid grid-cols-1 items-start gap-8 lg:grid-cols-[1.15fr_1fr] lg:gap-16">
           <div>
-            <div className="relative aspect-square overflow-hidden rounded-[12px] bg-subtle [&_svg]:block [&_svg]:size-full">
-              <FurnitureArt kind={artForProductSlug(product.slug)} label={product.name} />
+            <div className="relative aspect-square overflow-hidden rounded-[12px] bg-subtle [&_img]:size-full [&_img]:object-cover [&_svg]:block [&_svg]:size-full">
+              <ProductImage name={product.name} slug={product.slug} imageUrl={product.image_url} />
             </div>
           </div>
 
@@ -90,7 +79,16 @@ export function ProductPage() {
             <h1 className="mt-2 mb-4 font-display text-[28px] leading-[1.15] font-medium tracking-[-0.02em] sm:text-[36px]">
               {product.name}
             </h1>
-            <div className="flex items-baseline gap-4 border-b border-line pb-6">
+            <div className="flex flex-wrap items-baseline gap-4 border-b border-line pb-6">
+              {product.price > 0 ? (
+                <span className="text-[22px] font-semibold text-ink">
+                  $
+                  {(product.price / 100).toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </span>
+              ) : null}
               <span
                 className={`inline-flex items-center gap-1.5 text-[13px] ${
                   inStock ? 'text-success' : 'text-danger'
@@ -100,9 +98,7 @@ export function ProductPage() {
                 {inStock ? 'In stock' : 'Out of stock'}
               </span>
             </div>
-            {product.description ? (
-              <p className="py-6 text-muted">{product.description}</p>
-            ) : null}
+            {product.description ? <p className="py-6 text-muted">{product.description}</p> : null}
             <div className="mb-8 grid grid-cols-1 gap-3">
               <Button
                 type="button"

@@ -1,38 +1,22 @@
 import { ArrowRight, Sparkles } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { artForCategory } from '@/catalog/art'
-import { useSelectedStore } from '@/catalog/useSelectedStore'
 import { FurnitureArt } from '@/components/catalog/FurnitureArt'
 import { ProductCard } from '@/components/catalog/ProductCard'
 import { Button } from '@/components/ui/button'
 import { Container } from '@/components/ui/container'
 import { PageLoading } from '@/components/ui/loading-screen'
-import { useCategories } from '@/hooks/useCategories'
-import { useProducts } from '@/hooks/useProducts'
+import { useHomePage } from '@/hooks/useHomePage'
 import { categoryPath, paths } from '@/paths'
 
 export function HomePage() {
-  const { stores, selectedStore, selectStore, isPending: storesPending } = useSelectedStore()
-  const storeId = selectedStore?.id
+  const home = useHomePage()
 
-  const categoriesQuery = useCategories(storeId)
-  const latestQuery = useProducts(storeId, { section: 'latest', per_page: 4, page: 1 })
-  const moreQuery = useProducts(storeId, { section: 'more', per_page: 4, page: 2 })
-
-  const categories = (categoriesQuery.data ?? []).filter((category) => category.parent_id === null)
-  const storeName = selectedStore?.name ?? ''
-  const firstCategory = categories[0]
-  const catalogReady = storeId !== undefined
-  const loading =
-    storesPending ||
-    (catalogReady &&
-      (categoriesQuery.isLoading || latestQuery.isLoading || moreQuery.isLoading))
-
-  if (loading) {
+  if (home.status === 'loading') {
     return <PageLoading />
   }
 
-  if (!catalogReady) {
+  if (home.status === 'no-store') {
     return (
       <Container className="py-20 text-center">
         <h2 className="font-display text-[28px] font-medium">No stores in the catalog yet</h2>
@@ -43,7 +27,7 @@ export function HomePage() {
     )
   }
 
-  if (categoriesQuery.isError || latestQuery.isError || moreQuery.isError) {
+  if (home.status === 'error') {
     return (
       <Container className="py-20 text-center">
         <h2 className="font-display text-[28px] font-medium">Catalog could not be loaded</h2>
@@ -70,17 +54,19 @@ export function HomePage() {
               className="h-[52px] rounded-[6px] bg-brand px-8 text-[16px] font-semibold text-white hover:bg-brand-dark"
               asChild
             >
-              <Link to={firstCategory ? categoryPath(firstCategory.slug) : paths.catalog}>
+              <Link to={home.firstCategory ? categoryPath(home.firstCategory.slug) : paths.catalog}>
                 Browse catalog
               </Link>
             </Button>
             <Button
-              type="button"
               variant="outline"
               className="h-[52px] rounded-[6px] border-ink bg-transparent px-8 text-[16px] font-semibold text-ink hover:bg-ink hover:text-white"
+              asChild
             >
-              <Sparkles className="size-[18px]" />
-              Ask the assistant
+              <Link to={paths.assistant}>
+                <Sparkles className="size-[18px]" />
+                Ask the assistant
+              </Link>
             </Button>
           </div>
         </div>
@@ -102,7 +88,7 @@ export function HomePage() {
           </Link>
         </div>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-5 xl:grid-cols-6">
-          {categories.map((category) => (
+          {home.categories.map((category) => (
             <Link key={category.id} to={categoryPath(category.slug)} className="group block">
               <div className="relative aspect-square overflow-hidden rounded-[8px] bg-subtle transition-shadow duration-250 group-hover:shadow-md [&_svg]:block [&_svg]:size-full">
                 <FurnitureArt kind={artForCategory(category.slug)} label={category.name} />
@@ -126,8 +112,8 @@ export function HomePage() {
           </Link>
         </div>
         <div className="grid grid-cols-2 gap-x-3 gap-y-6 sm:gap-x-5 sm:gap-y-8 lg:grid-cols-3 xl:grid-cols-4">
-          {(latestQuery.data ?? []).map((product) => (
-            <ProductCard key={product.id} product={product} storeName={storeName} />
+          {home.latestProducts.map((product) => (
+            <ProductCard key={product.id} product={product} storeName={home.storeName} />
           ))}
         </div>
       </section>
@@ -142,11 +128,13 @@ export function HomePage() {
               Tell the assistant what you are looking for. It suggests products that exist in the catalog.
             </p>
             <Button
-              type="button"
               variant="light"
               className="h-[52px] rounded-[6px] bg-white px-8 text-[16px] font-semibold text-brand hover:bg-brand-soft"
+              asChild
             >
-              Open AI Assistant <ArrowRight className="size-[18px]" />
+              <Link to={paths.assistant}>
+                Open AI Assistant <ArrowRight className="size-[18px]" />
+              </Link>
             </Button>
           </div>
           <div className="flex items-center gap-3 rounded-[8px] border border-white/25 px-6 py-4 text-[16px] lg:min-w-[340px]">
@@ -163,13 +151,13 @@ export function HomePage() {
           </h2>
         </div>
         <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
-          {stores.map((store) => {
-            const active = store.id === selectedStore?.id
+          {home.stores.map((store) => {
+            const active = store.id === home.selectedStore?.id
             return (
               <button
                 key={store.id}
                 type="button"
-                onClick={() => selectStore(store)}
+                onClick={() => home.selectStore(store)}
                 className={`flex w-full items-center gap-4 rounded-[8px] border bg-surface p-5 text-left transition-colors ${
                   active ? 'border-ink' : 'border-line hover:border-ink'
                 }`}
@@ -196,8 +184,8 @@ export function HomePage() {
           </h2>
         </div>
         <div className="grid grid-cols-2 gap-x-3 gap-y-6 sm:gap-x-5 sm:gap-y-8 lg:grid-cols-3 xl:grid-cols-4">
-          {(moreQuery.data ?? []).map((product) => (
-            <ProductCard key={product.id} product={product} storeName={storeName} />
+          {home.moreProducts.map((product) => (
+            <ProductCard key={product.id} product={product} storeName={home.storeName} />
           ))}
         </div>
       </section>
