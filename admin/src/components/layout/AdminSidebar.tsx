@@ -6,6 +6,7 @@ import {
   Store,
   Users,
   Folder,
+  Sparkles,
 } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 import { useMe } from '@/hooks/useMe'
@@ -31,7 +32,10 @@ const insights: NavItem[] = [
   { to: paths.notifications, label: 'Notifications', icon: Bell, tag: 'Analyst' },
 ]
 
-const access: NavItem[] = [{ to: paths.users, label: 'Users', icon: Users }]
+const access: NavItem[] = [
+  { to: paths.users, label: 'Users', icon: Users },
+  { to: paths.recommendations, label: 'AI index', icon: Sparkles },
+]
 
 function NavLinks({ items }: { items: NavItem[] }) {
   return items.map(({ to, label, icon: Icon, tag }) => (

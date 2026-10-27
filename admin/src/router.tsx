@@ -7,6 +7,7 @@ import { LoginPage } from '@/pages/LoginPage'
 import { NotificationsPage } from '@/pages/NotificationsPage'
 import { OrdersPage } from '@/pages/OrdersPage'
 import { PlaceholderPage } from '@/pages/PlaceholderPage'
+import { RecommendationsPage } from '@/pages/RecommendationsPage'
 import { UsersPage } from '@/pages/UsersPage'
 import { paths } from './paths'
 
@@ -31,6 +32,7 @@ export const router = createBrowserRouter([
                 element: <RequireRole role="admin" />,
                 children: [
                   { path: segment(paths.users), element: <UsersPage /> },
+                  { path: segment(paths.recommendations), element: <RecommendationsPage /> },
                 ],
               },
               {
