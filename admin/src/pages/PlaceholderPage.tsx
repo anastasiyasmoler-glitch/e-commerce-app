@@ -1,5 +1,5 @@
 import { ExternalLink } from 'lucide-react'
-import { getAccessToken } from '@/api/http'
+import { usePlaceholderPage } from '@/hooks/usePlaceholderPage'
 import { PageHeader } from '@/components/ui/page-header'
 
 type PlaceholderPageProps = {
@@ -8,17 +8,8 @@ type PlaceholderPageProps = {
   filamentPath?: string
 }
 
-const gatewayUrl = (import.meta.env.VITE_AUTH_URL as string | undefined) ?? 'https://localhost'
-
 export function PlaceholderPage({ title, hint, filamentPath = '/catalog-admin' }: PlaceholderPageProps) {
-  function openFilament() {
-    const token = getAccessToken()
-    const url = new URL(`${gatewayUrl}${filamentPath}`)
-    if (token) {
-      url.searchParams.set('token', token)
-    }
-    window.open(url.toString(), '_blank', 'noopener,noreferrer')
-  }
+  const { openFilament } = usePlaceholderPage(filamentPath)
 
   return (
     <>

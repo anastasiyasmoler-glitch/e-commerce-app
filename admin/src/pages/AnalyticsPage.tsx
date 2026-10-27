@@ -1,18 +1,12 @@
 import { TrendingDown, TrendingUp } from 'lucide-react'
-import { useState } from 'react'
 import { apiErrorMessage } from '@/api/http'
-import { useAnalytics } from '@/hooks/useAnalytics'
+import { useAnalyticsPage } from '@/hooks/useAnalyticsPage'
 import { Notice } from '@/components/ui/notice'
 import { PageHeader } from '@/components/ui/page-header'
 import { Skeleton } from '@/components/ui/skeleton'
 
-const periods = ['Last 7 days', 'Last 30 days', 'Last 90 days']
-
 export function AnalyticsPage() {
-  const [period, setPeriod] = useState(periods[0])
-  const analytics = useAnalytics(period)
-
-  const data = analytics.data
+  const { period, setPeriod, analytics, data, periodOptions } = useAnalyticsPage()
 
   return (
     <>
@@ -25,7 +19,7 @@ export function AnalyticsPage() {
             value={period}
             onChange={(event) => setPeriod(event.target.value)}
           >
-            {periods.map((item) => (
+            {periodOptions.map((item) => (
               <option key={item}>{item}</option>
             ))}
           </select>

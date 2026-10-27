@@ -1,86 +1,13 @@
 import { Eye } from 'lucide-react'
-import { useMemo, useState } from 'react'
 import { apiErrorMessage } from '@/api/http'
-import type { NotificationLog, NotificationStatus } from '@/api/notificationApi'
-import { useNotification, useNotifications } from '@/hooks/useNotifications'
+import { formatNotificationWhen } from '@/lib/notifications/filters'
+import { useNotificationsPage } from '@/hooks/useNotificationsPage'
 import { PageHeader } from '@/components/ui/page-header'
 import { Skeleton } from '@/components/ui/skeleton'
 import { StatusBadge } from '@/components/ui/status-badge'
 
-const STATUS_LABEL: Record<NotificationStatus, string> = {
-  pending: 'Pending',
-  sent: 'Sent',
-  failed: 'Failed',
-}
-
-function formatWhen(value: string | null): string {
-  if (!value) {
-    return '—'
-  }
-
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) {
-    return value
-  }
-
-  return date.toLocaleString()
-}
-
-function matchesFilters(
-  item: NotificationLog,
-  recipient: string,
-  status: string,
-  channel: string,
-  from: string,
-  to: string,
-): boolean {
-  if (recipient && !item.recipient.toLowerCase().includes(recipient.toLowerCase())) {
-    return false
-  }
-
-  if (status !== 'all' && item.status !== status) {
-    return false
-  }
-
-  if (channel !== 'all' && item.channel !== channel) {
-    return false
-  }
-
-  if (from || to) {
-    const created = item.created_at ? new Date(item.created_at).getTime() : NaN
-    if (Number.isNaN(created)) {
-      return false
-    }
-    if (from && created < new Date(`${from}T00:00:00`).getTime()) {
-      return false
-    }
-    if (to && created > new Date(`${to}T23:59:59`).getTime()) {
-      return false
-    }
-  }
-
-  return true
-}
-
 export function NotificationsPage() {
-  const [recipient, setRecipient] = useState('')
-  const [status, setStatus] = useState('all')
-  const [channel, setChannel] = useState('all')
-  const [from, setFrom] = useState('')
-  const [to, setTo] = useState('')
-  const [selectedId, setSelectedId] = useState<string | null>(null)
-
-  const list = useNotifications()
-  const detail = useNotification(selectedId)
-
-  const rows = useMemo(
-    () =>
-      (list.data ?? []).filter((item) => matchesFilters(item, recipient, status, channel, from, to)),
-    [list.data, recipient, status, channel, from, to],
-  )
-
-  const selected = detail.data
-  const statusLabel = selected ? STATUS_LABEL[selected.status] : null
+  const page = useNotificationsPage()
 
   return (
     <>
@@ -88,7 +15,18 @@ export function NotificationsPage() {
       <div className="table-container">
         <div className="table-toolbar">
           <div className="input-icon grow">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
               <circle cx="11" cy="11" r="8" />
               <path d="m21 21-4.35-4.35" />
             </svg>
@@ -96,26 +34,48 @@ export function NotificationsPage() {
               className="input"
               placeholder="Recipient"
               aria-label="Recipient"
-              value={recipient}
-              onChange={(event) => setRecipient(event.target.value)}
+              value={page.recipient}
+              onChange={(event) => page.setRecipient(event.target.value)}
             />
           </div>
-          <select className="select" aria-label="Status" value={status} onChange={(event) => setStatus(event.target.value)}>
+          <select
+            className="select"
+            aria-label="Status"
+            value={page.status}
+            onChange={(event) => page.setStatus(event.target.value)}
+          >
             <option value="all">All statuses</option>
             <option value="pending">Pending</option>
             <option value="sent">Sent</option>
             <option value="failed">Failed</option>
           </select>
-          <select className="select" aria-label="Channel" value={channel} onChange={(event) => setChannel(event.target.value)}>
+          <select
+            className="select"
+            aria-label="Channel"
+            value={page.channel}
+            onChange={(event) => page.setChannel(event.target.value)}
+          >
             <option value="all">All channels</option>
             <option value="email">Email</option>
           </select>
-          <input className="input" type="date" aria-label="From" value={from} onChange={(event) => setFrom(event.target.value)} />
-          <input className="input" type="date" aria-label="To" value={to} onChange={(event) => setTo(event.target.value)} />
+          <input
+            className="input"
+            type="date"
+            aria-label="From"
+            value={page.from}
+            onChange={(event) => page.setFrom(event.target.value)}
+          />
+          <input
+            className="input"
+            type="date"
+            aria-label="To"
+            value={page.to}
+            onChange={(event) => page.setTo(event.target.value)}
+          />
         </div>
-        {list.isError ? (
+        {page.list.isError ? (
           <p className="muted" style={{ padding: 'var(--space-6)' }}>
-            {apiErrorMessage(list.error)}
+            {apiErrorMessage(page.list.error)}
           </p>
         ) : null}
         <table className="data-table">
@@ -131,7 +91,7 @@ export function NotificationsPage() {
             </tr>
           </thead>
           <tbody>
-            {list.isPending
+            {page.list.isPending
               ? Array.from({ length: 5 }, (_, index) => (
                   <tr key={index}>
                     <td colSpan={7}>
@@ -140,25 +100,29 @@ export function NotificationsPage() {
                   </tr>
                 ))
               : null}
-            {!list.isPending && rows.length === 0 ? (
+            {!page.list.isPending && page.rows.length === 0 ? (
               <tr>
                 <td colSpan={7} className="muted">
                   No notifications found.
                 </td>
               </tr>
             ) : null}
-            {rows.map((item) => (
+            {page.rows.map((item) => (
               <tr key={item.id}>
                 <td className="mono">{item.event}</td>
                 <td>{item.channel}</td>
                 <td>{item.recipient}</td>
                 <td>
-                  <StatusBadge label={STATUS_LABEL[item.status]} />
+                  <StatusBadge label={page.statusLabels[item.status]} />
                 </td>
                 <td>{item.attempts}</td>
-                <td className="muted">{formatWhen(item.created_at)}</td>
+                <td className="muted">{formatNotificationWhen(item.created_at)}</td>
                 <td>
-                  <button type="button" className="table-action" onClick={() => setSelectedId(item.id)}>
+                  <button
+                    type="button"
+                    className="table-action"
+                    onClick={() => page.setSelectedId(item.id)}
+                  >
                     <Eye size={14} aria-hidden />
                     Details
                   </button>
@@ -168,19 +132,19 @@ export function NotificationsPage() {
           </tbody>
         </table>
       </div>
-      {selectedId ? (
+      {page.selectedId ? (
         <div className="panel">
-          {detail.isPending ? <Skeleton className="h-24 w-full" /> : null}
-          {detail.isError ? <p className="muted">{apiErrorMessage(detail.error)}</p> : null}
-          {selected ? (
+          {page.detail.isPending ? <Skeleton className="h-24 w-full" /> : null}
+          {page.detail.isError ? <p className="muted">{apiErrorMessage(page.detail.error)}</p> : null}
+          {page.selected ? (
             <>
               <div className="spread" style={{ marginBottom: 'var(--space-4)' }}>
                 <h2 className="panel-title" style={{ margin: 0 }}>
                   Notification details
                 </h2>
                 <div className="spread" style={{ gap: 8, width: 'auto' }}>
-                  <StatusBadge label={statusLabel ?? selected.status} />
-                  {selected.is_dlq ? <span className="muted">Moved to DLQ</span> : null}
+                  <StatusBadge label={page.statusLabel ?? page.selected.status} />
+                  {page.selected.is_dlq ? <span className="muted">Moved to DLQ</span> : null}
                 </div>
               </div>
               <div className="grid-2" style={{ marginBottom: 'var(--space-4)' }}>
@@ -188,28 +152,28 @@ export function NotificationsPage() {
                   <div className="muted" style={{ fontSize: 'var(--text-sm)' }}>
                     Event
                   </div>
-                  <b className="mono">{selected.event}</b>
+                  <b className="mono">{page.selected.event}</b>
                 </div>
                 <div>
                   <div className="muted" style={{ fontSize: 'var(--text-sm)' }}>
                     Attempts
                   </div>
-                  <b>{selected.attempts}</b>
+                  <b>{page.selected.attempts}</b>
                 </div>
               </div>
               <pre className="code mono">
                 {JSON.stringify(
                   {
-                    id: selected.id,
-                    recipient: selected.recipient,
-                    channel: selected.channel,
-                    status: selected.status,
-                    attempts: selected.attempts,
-                    is_dlq: selected.is_dlq,
-                    error_message: selected.error_message,
-                    created_at: selected.created_at,
-                    sent_at: selected.sent_at,
-                    payload: selected.payload,
+                    id: page.selected.id,
+                    recipient: page.selected.recipient,
+                    channel: page.selected.channel,
+                    status: page.selected.status,
+                    attempts: page.selected.attempts,
+                    is_dlq: page.selected.is_dlq,
+                    error_message: page.selected.error_message,
+                    created_at: page.selected.created_at,
+                    sent_at: page.selected.sent_at,
+                    payload: page.selected.payload,
                   },
                   null,
                   2,

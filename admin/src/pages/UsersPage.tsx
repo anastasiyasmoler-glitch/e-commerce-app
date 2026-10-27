@@ -1,7 +1,6 @@
 import { PenLine, Search } from 'lucide-react'
-import { useState } from 'react'
 import { apiErrorMessage } from '@/api/http'
-import { useSetUserRole, useUsers } from '@/hooks/useUsers'
+import { useUsersPage } from '@/hooks/useUsersPage'
 import { Notice } from '@/components/ui/notice'
 import { PageHeader } from '@/components/ui/page-header'
 import { RoleBadge } from '@/components/ui/role-badge'
@@ -9,18 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { StatusBadge } from '@/components/ui/status-badge'
 
 export function UsersPage() {
-  const [search, setSearch] = useState('')
-  const [role, setRole] = useState('All roles')
-  const users = useUsers()
-  const analyst = useSetUserRole()
-
-  const rows = (users.data ?? []).filter((user) => {
-    const matchesSearch =
-      user.name.toLowerCase().includes(search.toLowerCase()) ||
-      user.email.toLowerCase().includes(search.toLowerCase())
-    const matchesRole = role === 'All roles' || user.role === role.toLowerCase()
-    return matchesSearch && matchesRole
-  })
+  const usersPage = useUsersPage()
 
   return (
     <>
@@ -29,7 +17,9 @@ export function UsersPage() {
         You can assign the <b>Analyst</b> role. <b>Admin</b> accounts are created separately and
         cannot be assigned here.
       </Notice>
-      {users.isError ? <Notice tone="danger">{apiErrorMessage(users.error)}</Notice> : null}
+      {usersPage.users.isError ? (
+        <Notice tone="danger">{apiErrorMessage(usersPage.users.error)}</Notice>
+      ) : null}
       <div className="table-container">
         <div className="table-toolbar">
           <div className="input-icon grow">
@@ -38,15 +28,15 @@ export function UsersPage() {
               className="input"
               placeholder="Search users"
               aria-label="Search"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
+              value={usersPage.search}
+              onChange={(event) => usersPage.setSearch(event.target.value)}
             />
           </div>
           <select
             className="select"
             aria-label="Role"
-            value={role}
-            onChange={(event) => setRole(event.target.value)}
+            value={usersPage.role}
+            onChange={(event) => usersPage.setRole(event.target.value)}
           >
             <option>All roles</option>
             <option>Customer</option>
@@ -65,7 +55,7 @@ export function UsersPage() {
             </tr>
           </thead>
           <tbody>
-            {users.isPending
+            {usersPage.users.isPending
               ? Array.from({ length: 6 }, (_, index) => (
                   <tr key={index}>
                     <td colSpan={5}>
@@ -74,14 +64,14 @@ export function UsersPage() {
                   </tr>
                 ))
               : null}
-            {!users.isPending && !users.isError && rows.length === 0 ? (
+            {!usersPage.users.isPending && !usersPage.users.isError && usersPage.rows.length === 0 ? (
               <tr>
                 <td colSpan={5} className="muted">
                   No users found.
                 </td>
               </tr>
             ) : null}
-            {rows.map((user) => (
+            {usersPage.rows.map((user) => (
               <tr key={user.id}>
                 <td>
                   <div className="cell-product">
@@ -120,9 +110,9 @@ export function UsersPage() {
                     <button
                       type="button"
                       className="table-action"
-                      disabled={analyst.isPending}
+                      disabled={usersPage.analyst.isPending}
                       onClick={() =>
-                        analyst.mutate({ id: user.id, next: user.role !== 'analyst' })
+                        usersPage.analyst.mutate({ id: user.id, next: user.role !== 'analyst' })
                       }
                     >
                       <PenLine size={14} aria-hidden />
