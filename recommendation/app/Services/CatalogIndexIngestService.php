@@ -119,22 +119,55 @@ class CatalogIndexIngestService
     }
 
     /**
+     * Rebuild Qdrant vectors from rows already stored in the local catalog projection.
+     *
+     * @return array{processed: int, vectors_indexed: int, vector_failures: int}
+     */
+    public function reindexFromProjections(?int $storeId = null): array
+    {
+        $processed = 0;
+        $vectorsIndexed = 0;
+        $vectorFailures = 0;
+
+        foreach ($this->projections->allForReindex($storeId) as $row) {
+            $processed++;
+            $payload = $row['payload'];
+            $payload['id'] = $row['product_id'];
+            $payload['store_id'] = $row['store_id'];
+            $payload['is_published'] = $row['is_published'];
+            $payload['in_stock'] = $row['in_stock'];
+
+            if ($this->upsertFromCatalogEvent($payload)) {
+                $vectorsIndexed++;
+            } else {
+                $vectorFailures++;
+            }
+        }
+
+        return [
+            'processed' => $processed,
+            'vectors_indexed' => $vectorsIndexed,
+            'vector_failures' => $vectorFailures,
+        ];
+    }
+
+    /**
      * @param  array<string, mixed>  $payload
      */
-    private function upsertFromCatalogEvent(array $payload): void
+    private function upsertFromCatalogEvent(array $payload): bool
     {
         $this->projections->upsertFromCatalogEvent($payload);
 
         $productId = (int) ($payload['id'] ?? 0);
         $storeId = (int) ($payload['store_id'] ?? 0);
         if ($productId < 1 || $storeId < 1) {
-            return;
+            return false;
         }
 
         try {
             $text = $this->embeddingText->fromCatalogPayload($payload);
             if ($text === '') {
-                return;
+                return false;
             }
 
             $embedding = $this->llm->embed($text);
@@ -145,12 +178,16 @@ class CatalogIndexIngestService
                 (bool) ($payload['is_published'] ?? false),
                 (bool) ($payload['in_stock'] ?? true),
             );
+
+            return true;
         } catch (Throwable $exception) {
             Log::warning('catalog_vector_index_failed', [
                 'product_id' => $productId,
                 'store_id' => $storeId,
                 'error' => $exception->getMessage(),
             ]);
+
+            return false;
         }
     }
 

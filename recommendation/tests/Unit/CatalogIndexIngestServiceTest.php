@@ -152,6 +152,65 @@ class CatalogIndexIngestServiceTest extends TestCase
         $service->handle('product.published', $payload);
     }
 
+    public function test_reindex_from_projections_re_embeds_each_row(): void
+    {
+        $rows = [
+            [
+                'product_id' => 10,
+                'store_id' => 2,
+                'is_published' => true,
+                'in_stock' => true,
+                'payload' => [
+                    'name' => 'Dining table',
+                    'description' => 'Oak extendable',
+                ],
+            ],
+            [
+                'product_id' => 11,
+                'store_id' => 2,
+                'is_published' => false,
+                'in_stock' => false,
+                'payload' => [
+                    'name' => 'Stool',
+                    'description' => 'Bar height',
+                ],
+            ],
+        ];
+
+        $projections = Mockery::mock(CatalogProductProjectionRepositoryInterface::class);
+        $projections->shouldReceive('allForReindex')
+            ->once()
+            ->with(2)
+            ->andReturn($rows);
+        $projections->shouldReceive('upsertFromCatalogEvent')->twice();
+
+        $vectors = Mockery::mock(ProductVectorIndexInterface::class);
+        $vectors->shouldReceive('upsertProductVector')
+            ->once()
+            ->with(10, 2, [0.5, 0.6], true, true);
+        $vectors->shouldReceive('upsertProductVector')
+            ->once()
+            ->with(11, 2, [0.1, 0.2], false, false);
+
+        $llm = Mockery::mock(LlmClient::class);
+        $llm->shouldReceive('embed')->twice()->andReturn([0.5, 0.6], [0.1, 0.2]);
+
+        $service = new CatalogIndexIngestService(
+            $projections,
+            $vectors,
+            new ProductEmbeddingTextBuilder,
+            $llm,
+        );
+
+        $stats = $service->reindexFromProjections(2);
+
+        $this->assertSame([
+            'processed' => 2,
+            'vectors_indexed' => 2,
+            'vector_failures' => 0,
+        ], $stats);
+    }
+
     public function test_unknown_topic_is_ignored(): void
     {
         $projections = Mockery::mock(CatalogProductProjectionRepositoryInterface::class);

@@ -23,6 +23,8 @@ tags:
     description: Natural-language product matching
   - name: Conversations
     description: Dialog context history and teardown
+  - name: Admin
+    description: Staff-only maintenance (admin role via gateway staff JWT)
   - name: Health
     description: Dependency checks
 
@@ -171,6 +173,54 @@ paths:
                 $ref: '#/components/schemas/MessageError'
         '422':
           $ref: '#/components/responses/ValidationError'
+
+  /recommendations/reindex:
+    post:
+      tags: [Admin]
+      summary: Rebuild Qdrant vectors from the local catalog projection
+      operationId: postRecommendationReindex
+      description: |
+        Admin SPA calls `POST /api/recommendations/reindex` on the Auth gateway with a staff JWT.
+        Re-embeds every row in `catalog_product_projections` (optional `store_id` filter).
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                store_id:
+                  type: integer
+                  minimum: 1
+      responses:
+        '200':
+          description: Reindex counters
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: object
+                    required: [processed, vectors_indexed, vector_failures]
+                    properties:
+                      processed:
+                        type: integer
+                      vectors_indexed:
+                        type: integer
+                      vector_failures:
+                        type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Caller is not an admin
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageError'
 
   /recommendations/health:
     get:

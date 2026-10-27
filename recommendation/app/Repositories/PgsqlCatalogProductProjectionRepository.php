@@ -174,4 +174,46 @@ class PgsqlCatalogProductProjectionRepository implements CatalogProductProjectio
 
         return $result;
     }
+
+    /**
+     * @return list<array{
+     *     product_id: int,
+     *     store_id: int,
+     *     payload: array<string, mixed>,
+     *     is_published: bool,
+     *     in_stock: bool
+     * }>
+     */
+    public function allForReindex(?int $storeId = null): array
+    {
+        if (DB::connection()->getDriverName() !== 'pgsql') {
+            return [];
+        }
+
+        $query = DB::table('catalog_product_projections')
+            ->orderBy('store_id')
+            ->orderBy('product_id');
+
+        if ($storeId !== null && $storeId > 0) {
+            $query->where('store_id', $storeId);
+        }
+
+        $result = [];
+        foreach ($query->get(['product_id', 'store_id', 'payload', 'is_published', 'in_stock']) as $row) {
+            $payload = json_decode((string) $row->payload, true);
+            if (! is_array($payload)) {
+                continue;
+            }
+
+            $result[] = [
+                'product_id' => (int) $row->product_id,
+                'store_id' => (int) $row->store_id,
+                'payload' => $payload,
+                'is_published' => (bool) $row->is_published,
+                'in_stock' => (bool) $row->in_stock,
+            ];
+        }
+
+        return $result;
+    }
 }

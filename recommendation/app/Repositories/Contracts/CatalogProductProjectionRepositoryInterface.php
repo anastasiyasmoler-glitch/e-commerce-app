@@ -34,4 +34,15 @@ interface CatalogProductProjectionRepositoryInterface
      * }>
      */
     public function findPayloadsByStore(int $storeId, array $productIds): array;
+
+    /**
+     * @return list<array{
+     *     product_id: int,
+     *     store_id: int,
+     *     payload: array<string, mixed>,
+     *     is_published: bool,
+     *     in_stock: bool
+     * }>
+     */
+    public function allForReindex(?int $storeId = null): array;
 }
