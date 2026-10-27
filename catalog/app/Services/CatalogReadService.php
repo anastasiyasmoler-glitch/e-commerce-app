@@ -145,7 +145,7 @@ class CatalogReadService
     }
 
     /**
-     * @param list<array{product: array<string, mixed>, stock: ?array<string, mixed>, attribute_values: list<array{value: array<string, mixed>, attribute: ?array<string, mixed>}>}> $rows
+     * @param  list<array{product: array<string, mixed>, stock: ?array<string, mixed>, attribute_values: list<array{value: array<string, mixed>, attribute: ?array<string, mixed>}>}>  $rows
      * @return Collection<int, Product>
      */
     private function productsFromCacheRows(array $rows): Collection
@@ -154,7 +154,7 @@ class CatalogReadService
     }
 
     /**
-     * @param array{product: array<string, mixed>, stock: ?array<string, mixed>, attribute_values: list<array{value: array<string, mixed>, attribute: ?array<string, mixed>}>} $row
+     * @param  array{product: array<string, mixed>, stock: ?array<string, mixed>, attribute_values: list<array{value: array<string, mixed>, attribute: ?array<string, mixed>}>}  $row
      */
     private function productFromCacheRow(array $row): Product
     {
