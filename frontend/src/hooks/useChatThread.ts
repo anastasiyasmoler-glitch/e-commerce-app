@@ -85,21 +85,24 @@ export function useChatThread(storeId: number, storeName: string) {
   }
 
   async function onClearConversation() {
-    if (!conversationId || endChat.isPending) {
-      setTurns([])
-      setConversationId(null)
-      writeStoredConversationId(storeId, null)
+    if (endChat.isPending) {
       return
     }
 
-    try {
-      await endChat.mutateAsync(conversationId)
-    } catch {
-      // Local reset even if server already purged the context.
+    const idToDelete = conversationId
+
+    if (idToDelete) {
+      try {
+        await endChat.mutateAsync(idToDelete)
+      } catch {
+        // Local reset even if server already purged the context.
+      }
     }
+
     setTurns([])
     setConversationId(null)
     writeStoredConversationId(storeId, null)
+    toast.success('Conversation ended. You can start a new one.')
   }
 
   return {

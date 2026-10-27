@@ -33,7 +33,8 @@ function ChatThreadView({ storeId, storeName }: { storeId: number; storeName: st
         storeName={chat.storeName}
         showNewConversation={chat.showNewConversation}
         busyEnding={chat.busyEnding}
-        onNewConversation={() => void chat.onClearConversation()}
+        messageCount={turns.length}
+        onNewConversation={chat.onClearConversation}
       />
 
       <div
