@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import { Loader2, SendHorizontal, Sparkles } from 'lucide-react'
 import { ChatBotAvatar } from '@/components/chat/ChatBotAvatar'
 import { ChatMessageRow } from '@/components/chat/ChatMessageRow'
@@ -10,6 +11,18 @@ import { useChatThread } from '@/hooks/useChatThread'
 
 function ChatThreadView({ storeId, storeName }: { storeId: number; storeName: string }) {
   const chat = useChatThread(storeId, storeName)
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const { turns, busy, draft, storeName: threadStoreName } = chat
+
+  useEffect(() => {
+    const node = scrollRef.current
+    if (!node) {
+      return
+    }
+    node.scrollTo({ top: node.scrollHeight, behavior: 'smooth' })
+  }, [turns, busy])
+
+  const showEmptyState = turns.length === 0 && !busy
 
   return (
     <section
@@ -24,11 +37,11 @@ function ChatThreadView({ storeId, storeName }: { storeId: number; storeName: st
       />
 
       <div
-        ref={chat.scrollRef}
+        ref={scrollRef}
         className="flex-1 overflow-y-auto bg-bg px-6 py-8 sm:px-10"
       >
         <div className="mx-auto flex min-h-full max-w-[880px] flex-col gap-5">
-          {chat.turns.length === 0 && !chat.busy ? (
+          {showEmptyState ? (
             <div className="m-auto flex max-w-[440px] flex-col items-center py-8 text-center">
               <span className="text-[12px] font-semibold tracking-[0.12em] text-muted uppercase">
                 Catalog assistant
@@ -37,7 +50,7 @@ function ChatThreadView({ storeId, storeName }: { storeId: number; storeName: st
                 Describe it, we&apos;ll find it
               </h2>
               <p className="mt-3 text-[15px] text-muted">
-                Suggestions come only from {chat.storeName} — nothing invented.
+                Suggestions come only from {threadStoreName} — nothing invented.
               </p>
               <div className="mt-8 flex flex-wrap justify-center gap-2">
                 {chat.suggestedPrompts.map((prompt) => (
@@ -55,11 +68,11 @@ function ChatThreadView({ storeId, storeName }: { storeId: number; storeName: st
             </div>
           ) : null}
 
-          {chat.turns.map((turn) => (
-            <ChatMessageRow key={turn.id} turn={turn} storeName={chat.storeName} />
+          {turns.map((turn) => (
+            <ChatMessageRow key={turn.id} turn={turn} storeName={threadStoreName} />
           ))}
 
-          {chat.busy ? (
+          {busy ? (
             <div className="flex gap-2.5">
               <ChatBotAvatar />
               <p className="inline-flex items-center gap-2 rounded-[8px] bg-subtle px-4 py-3 text-[15px] text-muted">
@@ -81,21 +94,21 @@ function ChatThreadView({ storeId, storeName }: { storeId: number; storeName: st
           </label>
           <textarea
             id="chat-message"
-            value={chat.draft}
+            value={draft}
             onChange={(event) => chat.setDraft(event.target.value)}
             onKeyDown={chat.onComposerKeyDown}
             rows={1}
             maxLength={chat.messageMaxLength}
-            disabled={chat.busy}
+            disabled={busy}
             placeholder="Ask about furniture, size, colour, budget…"
             className="max-h-32 min-h-[52px] flex-1 resize-none rounded-[6px] border border-line bg-bg px-4 py-3 text-[15px] text-ink outline-none transition-colors placeholder:text-muted/70 focus:border-brand focus:ring-3 focus:ring-brand/14 disabled:opacity-60"
           />
           <Button
             type="submit"
-            disabled={chat.busy || chat.draft.trim() === ''}
+            disabled={busy || draft.trim() === ''}
             className="h-[52px] shrink-0 rounded-[6px] bg-brand px-5 text-[15px] font-semibold text-white hover:bg-brand-dark disabled:opacity-50"
           >
-            {chat.busy ? (
+            {busy ? (
               <Loader2 className="size-5 animate-spin" />
             ) : (
               <>

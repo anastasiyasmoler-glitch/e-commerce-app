@@ -1,4 +1,4 @@
-import { type FormEvent, type KeyboardEvent, useEffect, useRef, useState } from 'react'
+import { type FormEvent, type KeyboardEvent, useState } from 'react'
 import toast from 'react-hot-toast'
 import type { RecommendedProduct } from '@/api/recommendationApi'
 import { apiErrorMessage } from '@/api/http'
@@ -24,17 +24,8 @@ export function useChatThread(storeId: number, storeName: string) {
 
   const sendChat = useSendChatMessage()
   const endChat = useEndChatConversation()
-  const scrollRef = useRef<HTMLDivElement>(null)
 
   const busy = sendChat.isPending
-
-  useEffect(() => {
-    const node = scrollRef.current
-    if (!node) {
-      return
-    }
-    node.scrollTo({ top: node.scrollHeight, behavior: 'smooth' })
-  }, [turns, busy])
 
   async function submitMessage(rawMessage: string) {
     const message = rawMessage.trim()
@@ -118,7 +109,6 @@ export function useChatThread(storeId: number, storeName: string) {
     setDraft,
     busy,
     busyEnding: endChat.isPending,
-    scrollRef,
     suggestedPrompts: CHAT_SUGGESTED_PROMPTS,
     messageMaxLength: CHAT_MESSAGE_MAX_LENGTH,
     showNewConversation: turns.length > 0 || conversationId !== null,
