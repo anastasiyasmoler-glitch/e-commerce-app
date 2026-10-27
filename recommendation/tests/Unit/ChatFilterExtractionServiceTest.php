@@ -5,6 +5,7 @@ namespace Tests\Unit;
 use App\Contracts\LlmClient;
 use App\Services\ChatFilterExtractionService;
 use App\Services\ChatPromptBuilder;
+use App\Services\UserPromptSanitizer;
 use Mockery;
 use Tests\TestCase;
 
@@ -19,7 +20,7 @@ class ChatFilterExtractionServiceTest extends TestCase
             'search_query' => null,
         ], JSON_THROW_ON_ERROR));
 
-        $service = new ChatFilterExtractionService($llm, new ChatPromptBuilder(new \App\Services\UserPromptSanitizer));
+        $service = new ChatFilterExtractionService($llm, new ChatPromptBuilder(new UserPromptSanitizer));
         $result = $service->extract('something nice');
 
         $this->assertTrue($result['needs_clarification']);
@@ -32,7 +33,7 @@ class ChatFilterExtractionServiceTest extends TestCase
         $llm = Mockery::mock(LlmClient::class);
         $llm->shouldReceive('generate')->once()->andReturn('not json');
 
-        $service = new ChatFilterExtractionService($llm, new ChatPromptBuilder(new \App\Services\UserPromptSanitizer));
+        $service = new ChatFilterExtractionService($llm, new ChatPromptBuilder(new UserPromptSanitizer));
         $result = $service->extract('pink sofa');
 
         $this->assertFalse($result['needs_clarification']);
@@ -44,7 +45,7 @@ class ChatFilterExtractionServiceTest extends TestCase
         $llm = Mockery::mock(LlmClient::class);
         $llm->shouldReceive('generate')->once()->andThrow(new \RuntimeException('Gemini down'));
 
-        $service = new ChatFilterExtractionService($llm, new ChatPromptBuilder(new \App\Services\UserPromptSanitizer));
+        $service = new ChatFilterExtractionService($llm, new ChatPromptBuilder(new UserPromptSanitizer));
         $result = $service->extract('blue chair');
 
         $this->assertFalse($result['needs_clarification']);

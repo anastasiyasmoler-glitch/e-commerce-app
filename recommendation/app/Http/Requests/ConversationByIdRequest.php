@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+
 class ConversationByIdRequest extends FormRequest
 {
     public function authorize(): bool
