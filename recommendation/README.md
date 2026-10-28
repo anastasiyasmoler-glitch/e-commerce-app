@@ -34,7 +34,7 @@ Gemini calls use configurable timeout and retries (`GEMINI_TIMEOUT_SECONDS`, `GE
 
 ## API contract
 
-OpenAPI 3.0: [`openapi.yaml`](openapi.yaml) — chat, conversations, and health (gateway paths under `/api/recommendations/*`).
+OpenAPI 3.0: [`docs/openapi.yaml`](docs/openapi.yaml) — chat, conversations, and health (gateway paths under `/api/recommendations/*`).
 
 ## Local run
 
