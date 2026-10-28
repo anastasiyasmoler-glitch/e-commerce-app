@@ -18,6 +18,10 @@ export function useRecommendationsPage() {
 
   return {
     reindexPending: reindex.isPending,
-    runReindex: (storeId?: number) => reindex.mutate(storeId),
+    runReindex: (storeId?: number) => {
+      void reindex.mutateAsync(storeId).catch(() => {
+        // onError toast; catch avoids unhandled rejection when mutateAsync is used
+      })
+    },
   }
 }

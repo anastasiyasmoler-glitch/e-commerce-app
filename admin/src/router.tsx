@@ -6,7 +6,7 @@ import { AnalyticsPage } from '@/pages/AnalyticsPage'
 import { LoginPage } from '@/pages/LoginPage'
 import { NotificationsPage } from '@/pages/NotificationsPage'
 import { OrdersPage } from '@/pages/OrdersPage'
-import { PlaceholderPage } from '@/pages/PlaceholderPage'
+import { RedirectToCatalogFilament } from '@/pages/RedirectToCatalogFilament'
 import { RecommendationsPage } from '@/pages/RecommendationsPage'
 import { UsersPage } from '@/pages/UsersPage'
 import { paths } from './paths'
@@ -35,36 +35,10 @@ export const router = createBrowserRouter([
                   { path: segment(paths.recommendations), element: <RecommendationsPage /> },
                 ],
               },
-              {
-                path: segment(paths.products),
-                element: (
-                  <PlaceholderPage
-                    title="Products"
-                    hint="Catalog service owns products and stock via its Filament panel."
-                    filamentPath="/catalog-admin/products"
-                  />
-                ),
-              },
-              {
-                path: segment(paths.categories),
-                element: (
-                  <PlaceholderPage
-                    title="Categories"
-                    hint="Catalog service owns categories via its Filament panel."
-                    filamentPath="/catalog-admin/categories"
-                  />
-                ),
-              },
-              {
-                path: segment(paths.stores),
-                element: (
-                  <PlaceholderPage
-                    title="Stores"
-                    hint="Catalog service owns stores via its Filament panel."
-                    filamentPath="/catalog-admin/stores"
-                  />
-                ),
-              },
+              { path: 'catalog', element: <RedirectToCatalogFilament /> },
+              { path: 'products', element: <RedirectToCatalogFilament /> },
+              { path: 'categories', element: <RedirectToCatalogFilament /> },
+              { path: 'stores', element: <RedirectToCatalogFilament /> },
               { path: '*', element: <Navigate to={paths.analytics} replace /> },
             ],
           },

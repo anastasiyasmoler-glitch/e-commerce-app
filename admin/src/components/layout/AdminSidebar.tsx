@@ -1,16 +1,8 @@
-import {
-  BarChart3,
-  Bell,
-  Package,
-  ShoppingCart,
-  Store,
-  Users,
-  Folder,
-  Sparkles,
-} from 'lucide-react'
+import { BarChart3, Bell, Package, ShoppingCart, Users, Sparkles } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 import { useMe } from '@/hooks/useMe'
 import { paths } from '@/paths'
+import { CatalogFilamentLink } from '@/components/layout/CatalogFilamentLink'
 
 type NavItem = {
   to: string
@@ -18,12 +10,6 @@ type NavItem = {
   icon: typeof Package
   tag?: string
 }
-
-const catalog: NavItem[] = [
-  { to: paths.products, label: 'Products', icon: Package },
-  { to: paths.categories, label: 'Categories', icon: Folder },
-  { to: paths.stores, label: 'Stores', icon: Store },
-]
 
 const sales: NavItem[] = [{ to: paths.orders, label: 'Orders', icon: ShoppingCart, tag: 'Analyst' }]
 
@@ -58,7 +44,7 @@ export function AdminSidebar() {
   return (
     <nav className="admin-sidebar" aria-label="Admin navigation">
       <div className="admin-nav-title">Catalog</div>
-      <NavLinks items={catalog} />
+      <CatalogFilamentLink />
       <div className="admin-nav-title">Sales</div>
       <NavLinks items={sales} />
       <div className="admin-nav-title">Insights</div>
