@@ -2,7 +2,7 @@
 
 Source of truth for stores, categories, products, images, and stock. Checkpoint 2. Laravel 13, PHP 8.5.
 
-Kafka stays in the Notification compose (`kafka:9092`). This service joins `microservices-net`. Store admin UI is Filament inside this service (not started). The storefront is `frontend/`. Shared `admin/` SPA does not manage catalog.
+Kafka stays in the Notification compose (`kafka:9092`). This service joins `microservices-net`. Store admin UI is **Filament** at `/catalog-admin` (via gateway). The storefront is `frontend/`. Shared `admin/` SPA links to Filament; it does not manage catalog CRUD.
 
 ## Run
 
@@ -20,12 +20,13 @@ https://localhost:8444 (self-signed). HTTP 8082 redirects to HTTPS.
 
 Postgres user/password/database: `marketplace` / `marketplace` / `catalog`.
 
-Compose services: `sql`, `redis`, `minio` (host 9004/9005), `minio-init`, `back`, `consumer`, `nginx`.
+Compose services: `sql`, `redis`, `minio` (host 9004/9005), `minio-init`, `back`, `consumer`, `outbox`, `nginx`.
 
 Tables: `stores`, `categories` (tree via `parent_id`), `products`, `stocks` (`quantity`, `reserved`). Isolation is `store_id` on rows.
 
 ## Public REST (no JWT)
 
+- `GET /stores`
 - `GET /categories?store_id=&parent_id=`
 - `GET /products?store_id=&category_id=&page=`
 - `GET /products/{id}?store_id=`
