@@ -19,6 +19,8 @@ use App\Repositories\Contracts\StockRepositoryInterface;
 use App\Repositories\EloquentCatalogReadRepository;
 use App\Repositories\EloquentOutboxMessageRepository;
 use App\Repositories\EloquentStockRepository;
+use App\Http\Responses\GatewayLogoutResponse;
+use Filament\Auth\Http\Responses\Contracts\LogoutResponse as LogoutResponseContract;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -45,6 +47,8 @@ class AppServiceProvider extends ServiceProvider
 
             return $app->make(OutboxKafkaPublisher::class);
         });
+
+        $this->app->bind(LogoutResponseContract::class, GatewayLogoutResponse::class);
     }
 
     public function boot(): void

@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Store;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -32,5 +33,16 @@ class FilamentAdminTest extends TestCase
         $this->get('/catalog-admin/stores')
             ->assertOk()
             ->assertSee('Nordic Home');
+    }
+
+    public function test_logout_redirects_to_gateway_admin_analytics(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->get('/catalog-admin');
+
+        $this->actingAs($user)
+            ->post('/catalog-admin/logout', ['_token' => csrf_token()])
+            ->assertRedirect(rtrim((string) config('app.admin_url'), '/').'/analytics');
     }
 }
