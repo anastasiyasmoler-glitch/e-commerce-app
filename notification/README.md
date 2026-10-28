@@ -30,7 +30,7 @@ Auth publishes `user.registered` on register. Kafka runs in this service's compo
 | `order.paid` | Paid |
 | `order.confirmed` | Confirmed |
 | `order.cancelled` | Cancelled (`reason: out_of_stock` in payload) |
-| `notifications.dlq` | After 3 failed SMTP attempts (`is_dlq` in Mongo). No replay. |
+| `notifications.dlq` | After 3 failed SMTP attempts (`is_dlq` in Mongo). Optional `dlq-consumer` reads the DLQ topic for ops; it does not re-run the original SMTP pipeline automatically. |
 
 Payload JSON must include `email` or `recipient`.
 
