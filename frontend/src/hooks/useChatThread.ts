@@ -1,6 +1,6 @@
-import { type FormEvent, type KeyboardEvent, useState } from 'react'
+import { type FormEvent, type KeyboardEvent, useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
-import type { RecommendedProduct } from '@/api/recommendationApi'
+import type { ConversationMessage, RecommendedProduct } from '@/api/recommendationApi'
 import { apiErrorMessage } from '@/api/http'
 import {
   CHAT_MESSAGE_MAX_LENGTH,
@@ -8,7 +8,11 @@ import {
   readStoredConversationId,
   writeStoredConversationId,
 } from '@/lib/chat/conversationStorage'
-import { useEndChatConversation, useSendChatMessage } from '@/hooks/useRecommendationChat'
+import {
+  useConversationHistory,
+  useEndChatConversation,
+  useSendChatMessage,
+} from '@/hooks/useRecommendationChat'
 
 export type ChatTurn = {
   id: string
@@ -17,19 +21,75 @@ export type ChatTurn = {
   products?: RecommendedProduct[]
 }
 
+function messagesToTurns(messages: ConversationMessage[]): ChatTurn[] {
+  return messages.map((message, index) => ({
+    id: `${message.created_at}-${index}-${message.role}`,
+    role: message.role,
+    content: message.content,
+  }))
+}
+
 export function useChatThread(storeId: number, storeName: string) {
   const [conversationId, setConversationId] = useState(() => readStoredConversationId(storeId))
   const [turns, setTurns] = useState<ChatTurn[]>([])
   const [draft, setDraft] = useState('')
+  const [restoringHistory, setRestoringHistory] = useState(
+    () => readStoredConversationId(storeId) !== null,
+  )
+
+  const historyQuery = useConversationHistory(
+    restoringHistory && conversationId ? conversationId : null,
+  )
 
   const sendChat = useSendChatMessage()
   const endChat = useEndChatConversation()
 
   const busy = sendChat.isPending
 
+  useEffect(() => {
+    if (!restoringHistory) {
+      return
+    }
+
+    if (historyQuery.isPending) {
+      return
+    }
+
+    if (historyQuery.isError) {
+      writeStoredConversationId(storeId, null)
+      setConversationId(null)
+      setRestoringHistory(false)
+      return
+    }
+
+    if (!historyQuery.isSuccess || !historyQuery.data) {
+      return
+    }
+
+    const { data } = historyQuery
+
+    if (data.store_id !== storeId) {
+      writeStoredConversationId(storeId, null)
+      setConversationId(null)
+      setTurns([])
+      setRestoringHistory(false)
+      return
+    }
+
+    setTurns(messagesToTurns(data.messages))
+    setRestoringHistory(false)
+  }, [
+    historyQuery.data,
+    historyQuery.isError,
+    historyQuery.isPending,
+    historyQuery.isSuccess,
+    restoringHistory,
+    storeId,
+  ])
+
   async function submitMessage(rawMessage: string) {
     const message = rawMessage.trim()
-    if (!message || busy) {
+    if (!message || busy || restoringHistory) {
       return
     }
     if (message.length > CHAT_MESSAGE_MAX_LENGTH) {
@@ -101,6 +161,7 @@ export function useChatThread(storeId: number, storeName: string) {
 
     setTurns([])
     setConversationId(null)
+    setRestoringHistory(false)
     writeStoredConversationId(storeId, null)
     toast.success('Conversation ended. You can start a new one.')
   }
@@ -111,6 +172,7 @@ export function useChatThread(storeId: number, storeName: string) {
     draft,
     setDraft,
     busy,
+    restoringHistory,
     busyEnding: endChat.isPending,
     suggestedPrompts: CHAT_SUGGESTED_PROMPTS,
     messageMaxLength: CHAT_MESSAGE_MAX_LENGTH,

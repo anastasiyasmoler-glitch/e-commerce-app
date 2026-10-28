@@ -1,5 +1,11 @@
 import { http } from './http'
 
+export const recommendationKeys = {
+  all: ['recommendations'] as const,
+  conversation: (conversationId: string) =>
+    [...recommendationKeys.all, 'conversation', conversationId] as const,
+}
+
 export type RecommendedProduct = {
   product_id: number
   store_id: number

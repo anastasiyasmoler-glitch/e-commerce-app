@@ -1,13 +1,11 @@
 import { ArrowRight, Sparkles } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { artForCategory } from '@/catalog/art'
-import { FurnitureArt } from '@/components/catalog/FurnitureArt'
 import { ProductCard } from '@/components/catalog/ProductCard'
 import { Button } from '@/components/ui/button'
 import { Container } from '@/components/ui/container'
 import { PageLoading } from '@/components/ui/loading-screen'
 import { useHomePage } from '@/hooks/useHomePage'
-import { categoryPath, paths } from '@/paths'
+import { paths } from '@/paths'
 
 export function HomePage() {
   const home = useHomePage()
@@ -38,8 +36,8 @@ export function HomePage() {
 
   return (
     <Container className="pb-4">
-      <section className="mt-6 grid min-h-[520px] grid-cols-1 overflow-hidden rounded-[12px] bg-subtle lg:grid-cols-2">
-        <div className="flex flex-col items-start justify-center p-6 sm:p-8 lg:p-16">
+      <section className="mt-6 overflow-hidden rounded-[12px] bg-subtle">
+        <div className="flex max-w-[720px] flex-col items-start justify-center p-6 sm:p-8 lg:p-16">
           <span className="text-[12px] font-semibold tracking-[0.12em] text-muted uppercase">
             Furniture & home goods
           </span>
@@ -54,9 +52,7 @@ export function HomePage() {
               className="h-[52px] rounded-[6px] bg-brand px-8 text-[16px] font-semibold text-white hover:bg-brand-dark"
               asChild
             >
-              <Link to={home.firstCategory ? categoryPath(home.firstCategory.slug) : paths.catalog}>
-                Browse catalog
-              </Link>
+              <Link to={paths.catalog}>Browse catalog</Link>
             </Button>
             <Button
               variant="outline"
@@ -69,33 +65,6 @@ export function HomePage() {
               </Link>
             </Button>
           </div>
-        </div>
-        <div className="relative grid min-h-[300px] place-items-end justify-center bg-subtle/80 [&_svg]:-mb-[6%] [&_svg]:h-auto [&_svg]:w-[86%]">
-          <FurnitureArt kind="hero" label="sofa" />
-        </div>
-      </section>
-
-      <section className="mt-12 sm:mt-20">
-        <div className="mb-6 flex items-end justify-between gap-4">
-          <h2 className="font-display text-[22px] font-medium tracking-[-0.02em] sm:text-[28px]">
-            Shop by category
-          </h2>
-          <Link
-            to={paths.catalog}
-            className="inline-flex items-center gap-1.5 border-b border-transparent text-[13px] font-semibold text-brand hover:border-current"
-          >
-            All categories <ArrowRight className="size-4" />
-          </Link>
-        </div>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-5 xl:grid-cols-6">
-          {home.categories.map((category) => (
-            <Link key={category.id} to={categoryPath(category.slug)} className="group block">
-              <div className="relative aspect-square overflow-hidden rounded-[8px] bg-subtle transition-shadow duration-250 group-hover:shadow-md [&_svg]:block [&_svg]:size-full">
-                <FurnitureArt kind={artForCategory(category.slug)} label={category.name} />
-              </div>
-              <div className="mt-3 font-semibold text-ink">{category.name}</div>
-            </Link>
-          ))}
         </div>
       </section>
 

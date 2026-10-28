@@ -22,7 +22,7 @@ function ChatThreadView({ storeId, storeName }: { storeId: number; storeName: st
     node.scrollTo({ top: node.scrollHeight, behavior: 'smooth' })
   }, [turns, busy])
 
-  const showEmptyState = turns.length === 0 && !busy
+  const showEmptyState = turns.length === 0 && !busy && !chat.restoringHistory
 
   return (
     <section
@@ -42,6 +42,13 @@ function ChatThreadView({ storeId, storeName }: { storeId: number; storeName: st
         className="flex-1 overflow-y-auto bg-bg px-6 py-8 sm:px-10"
       >
         <div className="mx-auto flex min-h-full max-w-[880px] flex-col gap-5">
+          {chat.restoringHistory ? (
+            <div className="m-auto flex flex-col items-center gap-3 py-16 text-muted">
+              <Loader2 className="size-8 animate-spin text-brand" aria-hidden />
+              <p className="text-[15px]">Loading conversation…</p>
+            </div>
+          ) : null}
+
           {showEmptyState ? (
             <div className="m-auto flex max-w-[440px] flex-col items-center py-8 text-center">
               <span className="text-[12px] font-semibold tracking-[0.12em] text-muted uppercase">
@@ -100,13 +107,13 @@ function ChatThreadView({ storeId, storeName }: { storeId: number; storeName: st
             onKeyDown={chat.onComposerKeyDown}
             rows={1}
             maxLength={chat.messageMaxLength}
-            disabled={busy}
+            disabled={busy || chat.restoringHistory}
             placeholder="Ask about furniture, size, colour, budget…"
             className="max-h-32 min-h-[52px] flex-1 resize-none rounded-[6px] border border-line bg-bg px-4 py-3 text-[15px] text-ink outline-none transition-colors placeholder:text-muted/70 focus:border-brand focus:ring-3 focus:ring-brand/14 disabled:opacity-60"
           />
           <Button
             type="submit"
-            disabled={busy || draft.trim() === ''}
+            disabled={busy || chat.restoringHistory || draft.trim() === ''}
             className="h-[52px] shrink-0 rounded-[6px] bg-brand px-5 text-[15px] font-semibold text-white hover:bg-brand-dark disabled:opacity-50"
           >
             {busy ? (

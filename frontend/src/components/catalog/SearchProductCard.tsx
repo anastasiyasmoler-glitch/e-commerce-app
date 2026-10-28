@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import type { SearchItem } from '@/api/searchApi'
-import { artForProductSlug } from '@/catalog/art'
-import { FurnitureArt } from '@/components/catalog/FurnitureArt'
+import { ProductImage } from '@/components/catalog/ProductImage'
+import { productImagePublicUrl } from '@/lib/catalog/productImageUrl'
 import { Button } from '@/components/ui/button'
 import { productPath } from '@/paths'
 
@@ -10,31 +10,40 @@ export function SearchProductCard({ product, storeName }: { product: SearchItem;
   const inStock = product.available
 
   return (
-    <article className="group flex flex-col">
+    <article className="group flex h-full flex-col">
       <Link
         to={productPath(productId)}
-        className="relative block aspect-square overflow-hidden rounded-[8px] bg-subtle [&_svg]:block [&_svg]:size-full [&_svg]:transition-transform [&_svg]:duration-400 group-hover:[&_svg]:scale-[1.04]"
+        className="relative block aspect-square shrink-0 overflow-hidden rounded-[8px] bg-subtle [&_img]:size-full [&_img]:object-cover [&_img]:transition-transform [&_img]:duration-400 group-hover:[&_img]:scale-[1.04] [&_svg]:block [&_svg]:size-full [&_svg]:transition-transform [&_svg]:duration-400 group-hover:[&_svg]:scale-[1.04]"
       >
-        <FurnitureArt kind={artForProductSlug(product.slug)} label={product.name} />
+        <ProductImage
+          name={product.name}
+          slug={product.slug}
+          imageUrl={productImagePublicUrl(product.image)}
+        />
       </Link>
-      <div className="flex flex-1 flex-col gap-1 pt-4">
-        <div className="text-[12px] font-semibold tracking-[0.08em] text-muted uppercase">
+      <div className="flex flex-1 flex-col pt-4">
+        <div className="line-clamp-1 text-[12px] font-semibold tracking-[0.08em] text-muted uppercase">
           {storeName || product.sku}
         </div>
         <Link
           to={productPath(productId)}
-          className="text-[16px] leading-[1.35] font-medium text-ink underline-offset-[3px] hover:underline"
+          className="mt-1 line-clamp-2 min-h-[2.7em] text-[16px] leading-[1.35] font-medium text-ink underline-offset-[3px] hover:underline"
         >
           {product.name}
         </Link>
-        {product.price > 0 ? (
-          <div className="mt-1 text-[15px] font-semibold text-ink">
-            {product.price.toLocaleString()}
-          </div>
-        ) : null}
-        <div className="mt-2 flex items-baseline justify-between">
+        <div className="mt-2 flex min-h-[22px] items-baseline justify-between gap-2">
+          {product.price > 0 ? (
+            <span className="text-[15px] font-semibold text-ink">
+              ${(product.price / 100).toLocaleString(undefined, {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}
+            </span>
+          ) : (
+            <span aria-hidden className="invisible text-[15px] font-semibold">$0.00</span>
+          )}
           <span
-            className={`inline-flex items-center gap-1.5 text-[13px] ${
+            className={`inline-flex shrink-0 items-center gap-1.5 text-[13px] ${
               inStock ? 'text-success' : 'text-danger'
             }`}
           >
@@ -42,23 +51,25 @@ export function SearchProductCard({ product, storeName }: { product: SearchItem;
             {inStock ? 'In stock' : 'Out of stock'}
           </span>
         </div>
-        {inStock ? (
-          <Button
-            variant="outline"
-            className="mt-4 h-9 w-full rounded-[6px] border-ink bg-transparent px-4 text-[13px] font-semibold text-ink hover:bg-ink hover:text-white"
-            asChild
-          >
-            <Link to={productPath(productId)}>View product</Link>
-          </Button>
-        ) : (
-          <Button
-            type="button"
-            disabled
-            className="mt-4 h-9 w-full rounded-[6px] bg-subtle px-4 text-[13px] font-semibold text-muted"
-          >
-            Out of stock
-          </Button>
-        )}
+        <div className="mt-auto pt-4">
+          {inStock ? (
+            <Button
+              variant="outline"
+              className="h-9 w-full rounded-[6px] border-ink bg-transparent px-4 text-[13px] font-semibold text-ink hover:bg-ink hover:text-white"
+              asChild
+            >
+              <Link to={productPath(productId)}>View product</Link>
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              disabled
+              className="h-9 w-full rounded-[6px] bg-subtle px-4 text-[13px] font-semibold text-muted"
+            >
+              Out of stock
+            </Button>
+          )}
+        </div>
       </div>
     </article>
   )
