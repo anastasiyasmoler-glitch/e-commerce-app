@@ -102,8 +102,9 @@ export function ProductPage() {
             <div className="mb-8 grid grid-cols-1 gap-3">
               <Button
                 type="button"
-                disabled
-                className="h-[52px] w-full rounded-[6px] bg-subtle px-8 text-[16px] font-semibold text-muted"
+                disabled={!inStock}
+                onClick={productPage.addToCart}
+                className="h-[52px] w-full rounded-[6px] bg-ink px-8 text-[16px] font-semibold text-white hover:bg-brand disabled:bg-subtle disabled:text-muted"
               >
                 Add to cart
               </Button>

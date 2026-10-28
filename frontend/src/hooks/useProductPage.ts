@@ -1,5 +1,8 @@
+import toast from 'react-hot-toast'
 import { useParams } from 'react-router-dom'
 import { useSelectedStore } from '@/catalog/useSelectedStore'
+import { useCart } from '@/lib/cart/CartContext'
+import { productImagePublicUrl } from '@/lib/catalog/productImageUrl'
 import { useCategories } from '@/hooks/useCategories'
 import { useProduct } from '@/hooks/useProduct'
 
@@ -14,6 +17,7 @@ export function useProductPage() {
 
   const productQuery = useProduct(storeId, validId)
   const categoriesQuery = useCategories(storeId)
+  const cart = useCart()
 
   const product = productQuery.data
   const category = (categoriesQuery.data ?? []).find((item) => item.id === product?.category_id)
@@ -26,11 +30,31 @@ export function useProductPage() {
     status = 'not-found'
   }
 
+  function addToCart() {
+    if (!product || !selectedStore || !inStock) {
+      return
+    }
+    cart.addLine(
+      {
+        productId: product.id,
+        storeId: selectedStore.id,
+        name: product.name,
+        slug: product.slug,
+        sku: product.sku,
+        priceCents: product.price,
+        imageUrl: productImagePublicUrl(product.image_url),
+      },
+      1,
+    )
+    toast.success('Added to cart')
+  }
+
   return {
     status,
     selectedStore,
     product,
     category,
     inStock,
+    addToCart,
   }
 }

@@ -26,7 +26,9 @@ export function StoreFooter() {
             <Link to={paths.assistant} className="hover:text-brand">
               AI Assistant
             </Link>
-            <span>My orders</span>
+            <Link to={paths.orders} className="hover:text-brand">
+              My orders
+            </Link>
           </nav>
         </div>
         <div className="mt-8 border-t border-line pt-5 text-[12px] text-muted">© 2026 Domo</div>
