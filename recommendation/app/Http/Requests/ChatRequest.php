@@ -2,22 +2,12 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\AuthorizesGatewayIdentity;
 use Illuminate\Foundation\Http\FormRequest;
 
 class ChatRequest extends FormRequest
 {
-    public function authorize(): bool
-    {
-        $roles = $this->attributes->get('auth_user_roles');
-
-        if (! is_string($roles) || trim($roles) === '') {
-            return false;
-        }
-
-        $roleList = array_values(array_filter(array_map('trim', explode(',', $roles))));
-
-        return in_array('customer', $roleList, true);
-    }
+    use AuthorizesGatewayIdentity;
 
     /**
      * @return array<string, mixed>

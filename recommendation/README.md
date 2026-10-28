@@ -63,4 +63,17 @@ touch database/database.sqlite
 php artisan test
 ```
 
-CI uses SQLite; Qdrant health is `skipped` in `testing` env.
+- **Contract** (`tests/Contract`, `tests/Fixtures/CatalogKafka`) — Catalog Kafka payload shape vs `CatalogIndexIngestService`; runs on SQLite in CI.
+- **Integration** (`tests/Integration`) — real PostgreSQL + Qdrant; skipped unless `RECOMMENDATION_INTEGRATION_TESTS=1`.
+
+With Docker stack up:
+
+```bash
+RECOMMENDATION_INTEGRATION_TESTS=1 \
+RECOMMENDATION_TEST_DB_HOST=127.0.0.1 RECOMMENDATION_TEST_DB_PORT=5435 \
+QDRANT_HOST=127.0.0.1 QDRANT_PORT=6333 \
+php artisan test --testsuite=Integration
+```
+
+CI runs unit/feature/contract on SQLite; integration job starts Postgres and Qdrant service containers.
+Default `php artisan test` skips integration tests when the env flag is unset.

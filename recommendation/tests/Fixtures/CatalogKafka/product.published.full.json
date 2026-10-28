@@ -1,0 +1,16 @@
+{
+  "id": 102,
+  "store_id": 1,
+  "category_id": 5,
+  "name": "Mint Armchair",
+  "slug": "mint-armchair",
+  "description": "Compact accent chair",
+  "sku": "CHR-102",
+  "price": 19900,
+  "attributes": {
+    "color": "green"
+  },
+  "image": "mint-chair.jpg",
+  "is_published": true,
+  "in_stock": true
+}

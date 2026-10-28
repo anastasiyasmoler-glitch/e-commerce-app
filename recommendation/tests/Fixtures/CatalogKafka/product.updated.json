@@ -1,0 +1,17 @@
+{
+  "id": 101,
+  "store_id": 1,
+  "category_id": 5,
+  "name": "Rose Sofa Deluxe",
+  "slug": "rose-sofa-deluxe",
+  "description": "Pink velvet three-seater, upgraded cushions",
+  "sku": "SOFA-101",
+  "price": 52900,
+  "attributes": {
+    "color": "pink",
+    "material": "velvet"
+  },
+  "image": "rose-sofa.jpg",
+  "is_published": true,
+  "in_stock": true
+}

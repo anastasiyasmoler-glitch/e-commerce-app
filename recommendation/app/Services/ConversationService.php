@@ -67,9 +67,7 @@ class ConversationService
                 ];
             }
 
-            if ($row !== null && (int) $row->store_id !== $storeId) {
-                abort(403, 'Conversation store mismatch.');
-            }
+            // Stale conversation_id from another store: start a fresh context instead of 403.
         }
 
         $id = (string) Str::uuid();

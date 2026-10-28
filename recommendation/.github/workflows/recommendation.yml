@@ -61,4 +61,58 @@ jobs:
           touch database/database.sqlite
 
       - name: PHPUnit
-        run: php artisan test
+        run: php artisan test --exclude-testsuite=Integration
+
+  integration:
+    name: Integration tests (PostgreSQL + Qdrant)
+    needs: lint
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: recommendation
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: recommendation
+          POSTGRES_USER: recommendation
+          POSTGRES_PASSWORD: recommendation
+        ports:
+          - 5435:5432
+        options: >-
+          --health-cmd "pg_isready -U recommendation -d recommendation"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      qdrant:
+        image: qdrant/qdrant:v1.12.5
+        ports:
+          - 6333:6333
+    env:
+      RECOMMENDATION_INTEGRATION_TESTS: "1"
+      RECOMMENDATION_TEST_DB_HOST: 127.0.0.1
+      RECOMMENDATION_TEST_DB_PORT: "5435"
+      RECOMMENDATION_TEST_DB_DATABASE: recommendation
+      RECOMMENDATION_TEST_DB_USERNAME: recommendation
+      RECOMMENDATION_TEST_DB_PASSWORD: recommendation
+      QDRANT_HOST: 127.0.0.1
+      QDRANT_PORT: "6333"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: mbstring, xml, ctype, iconv, intl, pdo_pgsql, pgsql, bcmath, tokenizer
+          coverage: none
+
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Prepare Laravel env
+        run: |
+          cp .env.example .env
+          php artisan key:generate --force --no-interaction
+
+      - name: PHPUnit integration suite
+        run: php artisan test --testsuite=Integration

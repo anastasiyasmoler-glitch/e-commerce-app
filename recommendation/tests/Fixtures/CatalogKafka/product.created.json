@@ -1,0 +1,17 @@
+{
+  "id": 101,
+  "store_id": 1,
+  "category_id": 5,
+  "name": "Rose Sofa",
+  "slug": "rose-sofa",
+  "description": "Pink velvet three-seater",
+  "sku": "SOFA-101",
+  "price": 49900,
+  "attributes": {
+    "color": "pink",
+    "material": "velvet"
+  },
+  "image": "rose-sofa.jpg",
+  "is_published": true,
+  "in_stock": true
+}
