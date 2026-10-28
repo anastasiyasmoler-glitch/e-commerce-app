@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Contracts\KafkaPublisherInterface;
+use App\Http\Responses\GatewayLogoutResponse;
 use App\Kafka\ArrayKafkaPublisher;
 use App\Kafka\OutboxKafkaPublisher;
 use App\Models\Category;
@@ -19,7 +20,6 @@ use App\Repositories\Contracts\StockRepositoryInterface;
 use App\Repositories\EloquentCatalogReadRepository;
 use App\Repositories\EloquentOutboxMessageRepository;
 use App\Repositories\EloquentStockRepository;
-use App\Http\Responses\GatewayLogoutResponse;
 use Filament\Auth\Http\Responses\Contracts\LogoutResponse as LogoutResponseContract;
 use Illuminate\Support\ServiceProvider;
 
