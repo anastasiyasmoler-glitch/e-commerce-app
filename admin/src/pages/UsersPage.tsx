@@ -20,6 +20,9 @@ export function UsersPage() {
       {usersPage.users.isError ? (
         <Notice tone="danger">{apiErrorMessage(usersPage.users.error)}</Notice>
       ) : null}
+      {usersPage.analyst.isError ? (
+        <Notice tone="danger">{apiErrorMessage(usersPage.analyst.error)}</Notice>
+      ) : null}
       <div className="table-container">
         <div className="table-toolbar">
           <div className="input-icon grow">

@@ -1,3 +1,5 @@
+import { http } from '@/api/http'
+
 export type AdminUser = {
   id: number
   name: string
@@ -20,15 +22,57 @@ export const adminKeys = {
   orders: ['admin', 'orders'] as const,
 }
 
-const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+type AuthAdminUserRow = {
+  id: number
+  name: string
+  email: string
+  phone: string | null
+  roles: string[]
+  is_analyst: boolean
+  created_at: string | null
+}
 
-const users: AdminUser[] = [
-  { id: 1, name: 'John Admin', email: 'john@example.com', role: 'admin', joined: 'Sep 15, 2026', active: true },
-  { id: 2, name: 'Sara Analyst', email: 'sara@example.com', role: 'analyst', joined: 'Sep 20, 2026', active: true },
-  { id: 3, name: 'Anna Smith', email: 'anna@example.com', role: 'customer', joined: 'Oct 1, 2026', active: true },
-  { id: 4, name: 'Mike Brown', email: 'mike@example.com', role: 'customer', joined: 'Oct 5, 2026', active: true },
-  { id: 5, name: 'Old Account', email: 'old@example.com', role: 'customer', joined: 'Aug 2, 2026', active: false },
-]
+function primaryRole(roles: string[]): AdminUser['role'] {
+  if (roles.includes('admin')) {
+    return 'admin'
+  }
+  if (roles.includes('analyst')) {
+    return 'analyst'
+  }
+
+  return 'customer'
+}
+
+function formatJoined(iso: string | null): string {
+  if (!iso) {
+    return '—'
+  }
+
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  }).format(new Date(iso))
+}
+
+export async function fetchUsers(): Promise<AdminUser[]> {
+  const { data } = await http.get<{ data: AuthAdminUserRow[] }>('/admin/users')
+
+  return data.data.map((row) => ({
+    id: row.id,
+    name: row.name,
+    email: row.email,
+    role: primaryRole(row.roles),
+    joined: formatJoined(row.created_at),
+    active: true,
+  }))
+}
+
+export async function setUserAnalyst(id: number, analyst: boolean): Promise<void> {
+  await http.patch(`/admin/users/${id}/analyst`, { analyst })
+}
+
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
 const orders: AdminOrder[] = [
   { id: '#DOM-1042', customer: 'Anna Smith', date: 'Oct 8, 2026', total: '$844.00', status: 'Paid' },
@@ -40,21 +84,7 @@ const orders: AdminOrder[] = [
   { id: '#DOM-1036', customer: 'Eva Green', date: 'Oct 4, 2026', total: '$1,240.00', status: 'Completed' },
 ]
 
-export async function fetchUsers(): Promise<AdminUser[]> {
-  await delay(150)
-  return users.map((user) => ({ ...user }))
-}
-
-export async function setUserRole(id: number, role: 'analyst' | 'customer'): Promise<void> {
-  await delay(150)
-  const user = users.find((item) => item.id === id)
-  if (user) {
-    user.role = role
-  }
-}
-
 export async function fetchOrders(): Promise<AdminOrder[]> {
   await delay(150)
   return orders
 }
-
