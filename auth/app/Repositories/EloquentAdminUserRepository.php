@@ -13,7 +13,8 @@ class EloquentAdminUserRepository implements AdminUserRepositoryInterface
      *     name: string,
      *     email: string,
      *     phone: string|null,
-     *     role_names: list<string>
+     *     role_names: list<string>,
+     *     created_at: string|null
      * }>
      */
     public function listWithRoleNames(): array
