@@ -31,6 +31,40 @@ class NotificationHistoryTest extends TestCase
             ->assertJsonPath('data.event', 'user.registered');
     }
 
+    public function test_can_filter_list_by_query_parameters(): void
+    {
+        $log = $this->log();
+        $logs = Mockery::mock(NotificationLogRepositoryInterface::class);
+        $logs->shouldReceive('listFiltered')
+            ->once()
+            ->with(Mockery::on(function ($filters): bool {
+                return $filters->status === NotificationLog::STATUS_SENT
+                    && $filters->channel === 'email'
+                    && $filters->recipient === 'ada'
+                    && $filters->from === '2026-01-01'
+                    && $filters->to === '2026-01-31';
+            }))
+            ->andReturn(new Collection([$log]));
+        $logs->shouldReceive('findById')->andReturn(null);
+
+        $this->app->instance(NotificationLogRepositoryInterface::class, $logs);
+
+        $this->getJson('/api/notifications?'.http_build_query([
+            'status' => 'sent',
+            'channel' => 'email',
+            'recipient' => 'ada',
+            'from' => '2026-01-01',
+            'to' => '2026-01-31',
+        ]))
+            ->assertOk()
+            ->assertJsonCount(1, 'data');
+    }
+
+    public function test_rejects_invalid_status_filter(): void
+    {
+        $this->getJson('/api/notifications?status=unknown')->assertUnprocessable();
+    }
+
     public function test_receives_not_found_for_an_unknown_id(): void
     {
         $this->bindLogs($this->log());
@@ -61,7 +95,7 @@ class NotificationHistoryTest extends TestCase
     private function bindLogs(NotificationLog $log): void
     {
         $logs = Mockery::mock(NotificationLogRepositoryInterface::class);
-        $logs->shouldReceive('listLatest')->andReturn(new Collection([$log]));
+        $logs->shouldReceive('listFiltered')->andReturn(new Collection([$log]));
         $logs->shouldReceive('findById')->andReturnUsing(
             fn (string $id): ?NotificationLog => $id === (string) $log->getKey() ? $log : null,
         );

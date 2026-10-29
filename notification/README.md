@@ -47,7 +47,7 @@ Staff roles (`admin`, `analyst`) via gateway identity:
 
 | Method | Path | Description |
 | --- | --- | --- |
-| GET | `/api/notifications` | List notification log entries |
+| GET | `/api/notifications` | List logs; optional query `status`, `channel`, `recipient`, `from`, `to` (YYYY-MM-DD) |
 | GET | `/api/notifications/{id}` | Single entry |
 
 Identity is resolved through Auth (`GET /me` pattern); OpenAPI for request/response schemas.

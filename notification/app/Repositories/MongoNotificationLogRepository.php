@@ -2,9 +2,11 @@
 
 namespace App\Repositories;
 
+use App\Data\NotificationHistoryFilters;
 use App\Models\NotificationLog;
 use App\Repositories\Contracts\NotificationLogRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Carbon;
 
 class MongoNotificationLogRepository implements NotificationLogRepositoryInterface
 {
@@ -30,9 +32,35 @@ class MongoNotificationLogRepository implements NotificationLogRepositoryInterfa
 
     public function listLatest(): Collection
     {
-        return NotificationLog::query()
-            ->orderByDesc('created_at')
-            ->get();
+        return $this->listFiltered(new NotificationHistoryFilters);
+    }
+
+    public function listFiltered(NotificationHistoryFilters $filters): Collection
+    {
+        $query = NotificationLog::query()->orderByDesc('created_at');
+
+        if ($filters->status !== null) {
+            $query->where('status', $filters->status);
+        }
+
+        if ($filters->channel !== null && $filters->channel !== '') {
+            $query->where('channel', $filters->channel);
+        }
+
+        if ($filters->recipient !== null && $filters->recipient !== '') {
+            $escaped = addcslashes($filters->recipient, '%_\\');
+            $query->where('recipient', 'like', '%'.$escaped.'%');
+        }
+
+        if ($filters->from !== null && $filters->from !== '') {
+            $query->where('created_at', '>=', Carbon::parse($filters->from)->startOfDay());
+        }
+
+        if ($filters->to !== null && $filters->to !== '') {
+            $query->where('created_at', '<=', Carbon::parse($filters->to)->endOfDay());
+        }
+
+        return $query->get();
     }
 
     public function markSent(NotificationLog $log): NotificationLog

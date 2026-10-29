@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\ListNotificationsRequest;
 use App\Models\NotificationLog;
 use App\Services\NotificationHistoryService;
 use Illuminate\Http\JsonResponse;
@@ -12,9 +13,9 @@ class NotificationHistoryController extends Controller
         private readonly NotificationHistoryService $history,
     ) {}
 
-    public function index(): JsonResponse
+    public function index(ListNotificationsRequest $request): JsonResponse
     {
-        $data = $this->history->listLatest()
+        $data = $this->history->list($request->filters())
             ->map(fn (NotificationLog $log) => $this->present($log))
             ->values();
 

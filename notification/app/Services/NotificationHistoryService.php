@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Data\NotificationHistoryFilters;
 use App\Models\NotificationLog;
 use App\Repositories\Contracts\NotificationLogRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
@@ -15,9 +16,9 @@ class NotificationHistoryService
     /**
      * @return Collection<int, NotificationLog>
      */
-    public function listLatest(): Collection
+    public function list(NotificationHistoryFilters $filters): Collection
     {
-        return $this->logs->listLatest();
+        return $this->logs->listFiltered($filters);
     }
 
     public function find(string $id): ?NotificationLog
