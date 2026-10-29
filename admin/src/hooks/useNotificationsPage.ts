@@ -1,9 +1,6 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { useNotification, useNotifications } from '@/hooks/useNotifications'
-import {
-  matchesNotificationFilters,
-  NOTIFICATION_STATUS_LABEL,
-} from '@/lib/notifications/filters'
+import { NOTIFICATION_STATUS_LABEL } from '@/lib/notifications/filters'
 
 export function useNotificationsPage() {
   const [recipient, setRecipient] = useState('')
@@ -13,17 +10,18 @@ export function useNotificationsPage() {
   const [to, setTo] = useState('')
   const [selectedId, setSelectedId] = useState<string | null>(null)
 
-  const list = useNotifications()
+  const filters = {
+    recipient,
+    status,
+    channel,
+    from,
+    to,
+  }
+
+  const list = useNotifications(filters)
   const detail = useNotification(selectedId)
 
-  const rows = useMemo(
-    () =>
-      (list.data ?? []).filter((item) =>
-        matchesNotificationFilters(item, recipient, status, channel, from, to),
-      ),
-    [list.data, recipient, status, channel, from, to],
-  )
-
+  const rows = list.data ?? []
   const selected = detail.data
   const statusLabel = selected ? NOTIFICATION_STATUS_LABEL[selected.status] : null
 
