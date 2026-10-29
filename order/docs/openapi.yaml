@@ -10,8 +10,8 @@ info:
     this as a bearer JWT for external consumers.
 
 servers:
-  - url: https://localhost/api/orders
-    description: Auth gateway (Admin SPA)
+  - url: https://localhost/api
+    description: Auth gateway (order REST under /api/orders*)
   - url: https://localhost:8445
     description: Order nginx (direct dev)
 
@@ -21,6 +21,9 @@ paths:
       summary: Liveness probe
       operationId: orderHealthz
       security: []
+      servers:
+        - url: https://localhost:8445
+          description: Order nginx (direct dev)
       responses:
         '200':
           description: Service is up
@@ -35,6 +38,11 @@ paths:
     post:
       summary: Stripe payment webhook
       operationId: handleStripeWebhook
+      servers:
+        - url: https://localhost
+          description: Auth gateway
+        - url: https://localhost:8445
+          description: Order nginx (direct dev)
       description: |
         Receives raw Stripe event payloads. Signature is verified against
         the `Stripe-Signature` header by the payment gateway. Always returns

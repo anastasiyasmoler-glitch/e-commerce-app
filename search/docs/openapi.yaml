@@ -5,8 +5,8 @@ info:
   description: Public product search over OpenSearch. No authentication required.
 
 servers:
-  - url: https://localhost/api/search
-    description: Auth gateway (storefront)
+  - url: https://localhost/api
+    description: Auth gateway (GET /api/search)
   - url: https://localhost:8446
     description: Search nginx (direct dev)
 

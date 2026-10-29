@@ -25,5 +25,6 @@ class OpenApiSpecTest extends TestCase
 
         $response->assertOk();
         $this->assertStringContainsString('swagger-ui', $body);
+        $this->assertStringContainsString('openapi.yaml', $body);
     }
 }

@@ -13,8 +13,8 @@ info:
     Conversation context is separate from the auth session: idle timeout and max lifetime
     apply per `conversation_id` (see service config).
 servers:
-  - url: https://localhost
-    description: Auth gateway (customer SPA uses `/api/recommendations/*`)
+  - url: https://localhost/api
+    description: Auth gateway (/api/recommendations/*)
   - url: https://localhost:8448
     description: Recommendation nginx (paths `/recommendations/*`, no `/api` prefix)
 
