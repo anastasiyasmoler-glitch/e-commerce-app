@@ -28,6 +28,7 @@ class EloquentAdminUserRepository implements AdminUserRepositoryInterface
                 'email' => $user->email,
                 'phone' => $user->phone,
                 'role_names' => $user->getRoleNames()->values()->all(),
+                'created_at' => $user->created_at?->toIso8601String(),
             ])
             ->all();
     }
