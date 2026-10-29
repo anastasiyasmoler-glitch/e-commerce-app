@@ -4,8 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\ListNotificationsRequest;
 use App\Models\NotificationLog;
+use App\Services\NotificationDispatchService;
 use App\Services\NotificationHistoryService;
 use Illuminate\Http\JsonResponse;
+use InvalidArgumentException;
+use RuntimeException;
 
 class NotificationHistoryController extends Controller
 {
@@ -31,6 +34,22 @@ class NotificationHistoryController extends Controller
         }
 
         return response()->json(['data' => $this->present($log)]);
+    }
+
+    public function replay(string $id, NotificationDispatchService $dispatch): JsonResponse
+    {
+        try {
+            $log = $dispatch->replayNotificationLog($id);
+        } catch (RuntimeException) {
+            abort(404);
+        } catch (InvalidArgumentException $exception) {
+            return response()->json(['message' => $exception->getMessage()], 422);
+        }
+
+        return response()->json([
+            'message' => 'Notification replay queued.',
+            'data' => $this->present($log),
+        ], 202);
     }
 
     /**

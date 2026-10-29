@@ -93,6 +93,43 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
+  /api/notifications/{id}/replay:
+    post:
+      tags: [History]
+      summary: Re-queue a notification that was moved to DLQ
+      operationId: replayNotification
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: MongoDB ObjectId of the notification log
+          schema:
+            type: string
+      responses:
+        '202':
+          description: Replay job queued
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [message, data]
+                properties:
+                  message:
+                    type: string
+                    example: Notification replay queued.
+                  data:
+                    $ref: '#/components/schemas/NotificationLog'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          description: Notification is not in DLQ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
   /up:
     get:
       tags: [System]

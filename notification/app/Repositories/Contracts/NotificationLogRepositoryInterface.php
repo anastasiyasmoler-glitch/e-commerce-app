@@ -30,4 +30,6 @@ interface NotificationLogRepositoryInterface
     public function markFailed(NotificationLog $log, string $errorMessage): NotificationLog;
 
     public function markDlq(NotificationLog $log): NotificationLog;
+
+    public function resetForReplay(NotificationLog $log): NotificationLog;
 }

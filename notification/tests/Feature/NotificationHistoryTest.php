@@ -73,6 +73,70 @@ class NotificationHistoryTest extends TestCase
             ->assertNotFound();
     }
 
+    public function test_replay_queues_job_for_dlq_notification(): void
+    {
+        \Illuminate\Support\Facades\Bus::fake();
+
+        $log = $this->log();
+        $log->forceFill([
+            'status' => NotificationLog::STATUS_FAILED,
+            'is_dlq' => true,
+            'attempts' => 3,
+            'error_message' => 'smtp down',
+        ]);
+
+        $logs = Mockery::mock(NotificationLogRepositoryInterface::class);
+        $logs->shouldReceive('findById')
+            ->with('507f1f77bcf86cd799439011')
+            ->andReturn($log);
+        $logs->shouldReceive('resetForReplay')
+            ->once()
+            ->with($log)
+            ->andReturnUsing(function (NotificationLog $entry): NotificationLog {
+                $entry->forceFill([
+                    'status' => NotificationLog::STATUS_PENDING,
+                    'is_dlq' => false,
+                    'attempts' => 0,
+                    'error_message' => null,
+                ]);
+
+                return $entry;
+            });
+
+        $this->app->instance(NotificationLogRepositoryInterface::class, $logs);
+
+        $this->postJson('/api/notifications/507f1f77bcf86cd799439011/replay')
+            ->assertAccepted()
+            ->assertJsonPath('message', 'Notification replay queued.')
+            ->assertJsonPath('data.status', NotificationLog::STATUS_PENDING)
+            ->assertJsonPath('data.is_dlq', false);
+
+        \Illuminate\Support\Facades\Bus::assertDispatched(
+            \App\Jobs\SendNotificationEmailJob::class,
+            fn (\App\Jobs\SendNotificationEmailJob $job): bool => $job->notificationLogId === '507f1f77bcf86cd799439011'
+                && $job->skipDlqPublish === true,
+        );
+    }
+
+    public function test_replay_rejects_non_dlq_notification(): void
+    {
+        $log = $this->log();
+        $this->bindLogs($log);
+
+        $this->postJson('/api/notifications/507f1f77bcf86cd799439011/replay')
+            ->assertUnprocessable()
+            ->assertJsonPath('message', 'Only notifications moved to DLQ can be replayed.');
+    }
+
+    public function test_replay_returns_not_found_for_unknown_id(): void
+    {
+        $logs = Mockery::mock(NotificationLogRepositoryInterface::class);
+        $logs->shouldReceive('findById')->andReturn(null);
+        $this->app->instance(NotificationLogRepositoryInterface::class, $logs);
+
+        $this->postJson('/api/notifications/missing/replay')->assertNotFound();
+    }
+
     private function log(): NotificationLog
     {
         $log = new NotificationLog;

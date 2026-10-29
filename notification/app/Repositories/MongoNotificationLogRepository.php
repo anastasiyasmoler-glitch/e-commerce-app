@@ -68,6 +68,7 @@ class MongoNotificationLogRepository implements NotificationLogRepositoryInterfa
         $log->status = NotificationLog::STATUS_SENT;
         $log->sent_at = now();
         $log->error_message = null;
+        $log->is_dlq = false;
         $log->save();
 
         return $log;
@@ -87,6 +88,18 @@ class MongoNotificationLogRepository implements NotificationLogRepositoryInterfa
     {
         $log->status = NotificationLog::STATUS_FAILED;
         $log->is_dlq = true;
+        $log->save();
+
+        return $log;
+    }
+
+    public function resetForReplay(NotificationLog $log): NotificationLog
+    {
+        $log->status = NotificationLog::STATUS_PENDING;
+        $log->is_dlq = false;
+        $log->error_message = null;
+        $log->attempts = 0;
+        $log->sent_at = null;
         $log->save();
 
         return $log;
