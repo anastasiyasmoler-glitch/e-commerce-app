@@ -78,4 +78,16 @@ cp .env.example .env && php artisan key:generate
 php artisan test
 ```
 
-Integration suite: set `RECOMMENDATION_INTEGRATION_TESTS=1` with Postgres and Qdrant reachable. CI: `.github/workflows/recommendation.yml`.
+Integration suite: set `RECOMMENDATION_INTEGRATION_TESTS=1` with PostgreSQL and Qdrant reachable. Kafka ingest test also needs `KAFKA_BROKERS` (CI provides both).
+
+```bash
+export RECOMMENDATION_INTEGRATION_TESTS=1
+export RECOMMENDATION_TEST_DB_HOST=127.0.0.1
+export RECOMMENDATION_TEST_DB_PORT=5435
+export QDRANT_HOST=127.0.0.1
+export QDRANT_PORT=6333
+export KAFKA_BROKERS=127.0.0.1:9092
+php artisan test --testsuite=Integration
+```
+
+CI: `.github/workflows/recommendation.yml`.
