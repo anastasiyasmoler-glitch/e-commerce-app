@@ -2,26 +2,14 @@
 
 namespace Tests\Integration;
 
-use App\Infrastructure\ClickHouseClientFactory;
 use App\Services\AnalyticsEventIngestService;
+use App\Services\OrderMetricsService;
+use App\Services\SearchMetricsService;
 use App\Services\UserMetricsService;
 use Carbon\CarbonImmutable;
-use Tests\TestCase;
 
-class ClickHouseMetricsIntegrationTest extends TestCase
+class ClickHouseMetricsIntegrationTest extends ClickHouseIntegrationTestCase
 {
-    protected function setUp(): void
-    {
-        if (! getenv('ANALYTICS_CLICKHOUSE_TESTS')) {
-            $this->markTestSkipped('Set ANALYTICS_CLICKHOUSE_TESTS=1 to run ClickHouse integration tests.');
-        }
-
-        parent::setUp();
-
-        $this->bootstrapSchema();
-        $this->truncateRollupTables();
-    }
-
     public function test_user_registrations_rollup_after_ingest(): void
     {
         $ingest = $this->app->make(AnalyticsEventIngestService::class);
@@ -49,29 +37,77 @@ class ClickHouseMetricsIntegrationTest extends TestCase
         $this->assertSame(2, $report['by_day'][0]['count']);
     }
 
-    private function bootstrapSchema(): void
+    public function test_order_funnel_and_revenue_after_ingest(): void
     {
-        $client = $this->app->make(ClickHouseClientFactory::class)->make();
-        $initDir = base_path('docker/clickhouse/init');
+        $ingest = $this->app->make(AnalyticsEventIngestService::class);
+        $day = CarbonImmutable::parse('2026-10-16 10:00:00', 'UTC');
+        $iso = $day->toIso8601String();
 
-        foreach (['01_schema.sql', '02_rollups.sql'] as $file) {
-            $sql = file_get_contents($initDir.'/'.$file);
-            $this->assertNotFalse($sql);
-            // ClickHouse HTTP rejects multi-statement bodies; run each statement separately.
-            foreach (explode(';', $sql) as $statement) {
-                $statement = trim($statement);
-                if ($statement !== '') {
-                    $client->write($statement);
-                }
-            }
-        }
+        $ingest->handle('order.created', ['order_id' => 101, 'occurred_at' => $iso]);
+        $ingest->handle('order.created', ['order_id' => 102, 'occurred_at' => $iso]);
+        $ingest->handle('order.paid', [
+            'order_id' => 101,
+            'total_cents' => 5000,
+            'currency' => 'USD',
+            'occurred_at' => $iso,
+        ]);
+        $ingest->handle('order.paid', [
+            'order_id' => 102,
+            'total_cents' => 3000,
+            'currency' => 'USD',
+            'occurred_at' => $iso,
+        ]);
+        $ingest->handle('order.cancelled', ['order_id' => 102, 'occurred_at' => $iso]);
+
+        $report = $this->app->make(OrderMetricsService::class)->report(
+            CarbonImmutable::parse('2026-10-16', 'UTC')->startOfDay(),
+            CarbonImmutable::parse('2026-10-16', 'UTC')->endOfDay(),
+        );
+
+        $this->assertSame(2, $report['created']);
+        $this->assertSame(2, $report['paid']);
+        $this->assertSame(1, $report['cancelled']);
+        $this->assertSame(8000, $report['revenue_cents']);
+        $this->assertSame(1.0, $report['conversion_rate']);
+        $this->assertSame('USD', $report['currency']);
+        $this->assertSame(4000, $report['average_order_value_cents']);
     }
 
-    private function truncateRollupTables(): void
+    public function test_search_metrics_include_zero_result_queries(): void
     {
-        $client = $this->app->make(ClickHouseClientFactory::class)->make();
-        foreach (['events_raw', 'registrations_daily', 'orders_daily', 'search_daily', 'search_query_daily'] as $table) {
-            $client->write("TRUNCATE TABLE IF EXISTS analytics.{$table}");
-        }
+        $ingest = $this->app->make(AnalyticsEventIngestService::class);
+        $day = CarbonImmutable::parse('2026-10-17 14:00:00', 'UTC');
+        $iso = $day->toIso8601String();
+
+        $ingest->handle('search.performed', [
+            'query' => 'sofa',
+            'filters' => ['store_id' => 1],
+            'result_count' => 12,
+            'timestamp' => $iso,
+        ]);
+        $ingest->handle('search.performed', [
+            'query' => 'sofa',
+            'filters' => ['store_id' => 1],
+            'result_count' => 3,
+            'timestamp' => $iso,
+        ]);
+        $ingest->handle('search.performed', [
+            'query' => 'unknown-sku-xyz',
+            'filters' => ['store_id' => 1],
+            'result_count' => 0,
+            'timestamp' => $iso,
+        ]);
+
+        $report = $this->app->make(SearchMetricsService::class)->report(
+            CarbonImmutable::parse('2026-10-17', 'UTC')->startOfDay(),
+            CarbonImmutable::parse('2026-10-17', 'UTC')->endOfDay(),
+        );
+
+        $this->assertSame(3, $report['total']);
+        $this->assertSame(1, $report['zero_result_total']);
+        $this->assertSame('sofa', $report['top_queries'][0]['query']);
+        $this->assertSame(2, $report['top_queries'][0]['count']);
+        $this->assertSame('unknown-sku-xyz', $report['zero_result_queries'][0]['query']);
+        $this->assertSame(1, $report['zero_result_queries'][0]['count']);
     }
 }

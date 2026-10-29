@@ -78,4 +78,16 @@ cp .env.example .env && php artisan key:generate
 php vendor/bin/phpunit
 ```
 
+Integration tests need ClickHouse and Kafka (CI sets `ANALYTICS_CLICKHOUSE_TESTS=1`, `KAFKA_BROKERS`). Locally:
+
+```bash
+export ANALYTICS_CLICKHOUSE_TESTS=1
+export CLICKHOUSE_HOST=127.0.0.1
+export CLICKHOUSE_PORT=8123
+export KAFKA_BROKERS=127.0.0.1:9092
+php artisan test --testsuite=Integration
+```
+
+Coverage: user/order/search rollups in ClickHouse, Kafka publish → consume → `events_raw`.
+
 CI: `.github/workflows/analytics.yml`.
