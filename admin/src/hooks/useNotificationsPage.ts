@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNotification, useNotifications } from '@/hooks/useNotifications'
+import { useNotification, useNotifications, useReplayNotification } from '@/hooks/useNotifications'
 import { NOTIFICATION_STATUS_LABEL } from '@/lib/notifications/filters'
 
 export function useNotificationsPage() {
@@ -20,6 +20,7 @@ export function useNotificationsPage() {
 
   const list = useNotifications(filters)
   const detail = useNotification(selectedId)
+  const replay = useReplayNotification()
 
   const rows = list.data ?? []
   const selected = detail.data
@@ -44,5 +45,6 @@ export function useNotificationsPage() {
     selected,
     statusLabel,
     statusLabels: NOTIFICATION_STATUS_LABEL,
+    replay,
   }
 }

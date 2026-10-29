@@ -61,3 +61,11 @@ export async function getNotification(id: string): Promise<NotificationLog> {
   const { data } = await http.get<{ data: NotificationLog }>(`/api/notifications/${id}`)
   return data.data
 }
+
+export async function replayNotification(id: string): Promise<NotificationLog> {
+  const { data } = await http.post<{ message: string; data: NotificationLog }>(
+    `/api/notifications/${id}/replay`,
+  )
+
+  return data.data
+}

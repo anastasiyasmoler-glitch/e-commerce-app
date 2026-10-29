@@ -145,6 +145,20 @@ export function NotificationsPage() {
                 <div className="spread" style={{ gap: 8, width: 'auto' }}>
                   <StatusBadge label={page.statusLabel ?? page.selected.status} />
                   {page.selected.is_dlq ? <span className="muted">Moved to DLQ</span> : null}
+                  {page.selected.is_dlq ? (
+                    <button
+                      type="button"
+                      className="table-action"
+                      disabled={page.replay.isPending}
+                      onClick={() => {
+                        if (page.selectedId) {
+                          page.replay.mutate(page.selectedId)
+                        }
+                      }}
+                    >
+                      {page.replay.isPending ? 'Replaying…' : 'Replay'}
+                    </button>
+                  ) : null}
                 </div>
               </div>
               <div className="grid-2" style={{ marginBottom: 'var(--space-4)' }}>
@@ -161,6 +175,9 @@ export function NotificationsPage() {
                   <b>{page.selected.attempts}</b>
                 </div>
               </div>
+              {page.replay.isError ? (
+                <p className="muted">{apiErrorMessage(page.replay.error)}</p>
+              ) : null}
               <pre className="code mono">
                 {JSON.stringify(
                   {
