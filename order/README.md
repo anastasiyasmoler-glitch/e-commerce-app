@@ -74,4 +74,22 @@ cp .env.example .env && php artisan key:generate
 php vendor/bin/phpunit
 ```
 
+Default CI runs unit and feature tests on SQLite. **Integration** tests (`tests/Integration`, PHPUnit group `integration`) require PostgreSQL:
+
+```bash
+export RUN_ORDER_INTEGRATION=1
+export DB_CONNECTION=pgsql
+export DB_HOST=127.0.0.1
+export DB_PORT=5432
+export DB_DATABASE=orders
+export DB_USERNAME=marketplace
+export DB_PASSWORD=marketplace
+php artisan migrate --force
+php vendor/bin/phpunit --group integration
+```
+
 CI: `.github/workflows/order.yml`.
+
+## Messaging note
+
+Course specs may mention RabbitMQ; this monorepo uses **Apache Kafka** with the same event names (`order.created`, `stock.reserved`, etc.). Kafka runs in the Notification compose; Order connects via `microservices-net`.
