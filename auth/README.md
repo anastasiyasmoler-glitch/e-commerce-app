@@ -1,75 +1,136 @@
 # Auth Service
 
-JWT authentication for the e-commerce training monorepo.
+Identity, JWT session management, and HTTP gateway for the e-commerce platform.
 
-## Role
+## Overview
 
-Auth is checkpoint 1. Other services ask Auth `GET /me` to validate an access token. After registration Auth publishes `user.registered` (email, name, user_id) to `kafka:9092` on `microservices-net`. Start Notification first so that broker exists. If Kafka is down, publish is logged and registration still succeeds.
+Auth issues and validates JSON Web Tokens, stores users and roles in PostgreSQL, and keeps token state in Redis. Nginx terminates TLS on port 443 and proxies authenticated requests to backend services. New accounts trigger a `user.registered` event on Kafka.
 
-Owns:
-
-- JWT register, login, refresh, logout, profile
-- Google OAuth callback that issues JWT
-- admin user list and analyst role
-- Spatie roles `admin`, `customer`, `analyst`
-
-There is no Breeze/Inertia UI in this service. Customer Frontend and Admin are separate apps. Catalog Filament is not here.
-
-Product email belongs to Notification.
-
-## Layout
-
-Service root: `auth/` (compose, nginx, Laravel, `.github`).
+Customer and admin UIs are separate applications in the monorepo; they call Auth over HTTPS.
 
 ## Stack
 
-- PHP 8.5, Laravel 13, Spatie, tymon/jwt-auth, Socialite
-- PostgreSQL 16, Redis 7 (cache, refresh keys, JWT blacklist)
-- Nginx 443, Mailhog :8025, mock OIDC :8080
+| Component | Technology |
+| --- | --- |
+| Runtime | PHP 8.5, Laravel 13 |
+| API auth | `tymon/jwt-auth`, Spatie Permission |
+| OAuth | Laravel Socialite (Google / mock OIDC in dev) |
+| Database | PostgreSQL 16 |
+| Cache / tokens | Redis 7 (sessions, JWT blacklist, refresh rotation) |
+| Edge | Nginx (HTTP→HTTPS redirect, self-signed TLS) |
+| Mail (dev) | Mailhog |
+| Messaging | Kafka producer (`longlang/phpkafka`) |
 
-## Docker
+## Getting started
 
-| Service | Role |
-|---|---|
-| `sql` | PostgreSQL |
-| `redis` | Cache, JWT blacklist/refresh |
-| `mail` | Mailhog |
-| `oidc` | Mock Google |
-| `back` | php-fpm |
-| `nginx` | 80 → 443 |
+**Prerequisites:** Docker, external network `microservices-net`, Kafka reachable at `kafka:9092` (Notification stack).
 
-```powershell
-cd auth
-docker compose up --build
+```bash
+docker network create microservices-net   # once
+cd notification && docker compose up -d kafka
+cd ../auth
+cp .env.example .env
+docker compose up -d --build
 ```
 
-https://localhost — JSON API. Seed: `admin@example.com` / `password`.
+| Endpoint | URL |
+| --- | --- |
+| API / gateway | `https://localhost` |
+| OpenAPI (Swagger UI) | `https://localhost/docs` |
+| Mailhog | `http://localhost:8025` |
+| Mock OIDC | `http://localhost:8080` |
 
-Swagger UI: https://localhost/docs  
-OpenAPI file: `docs/openapi.yaml`.
+Default admin (seeder): `admin@example.com` / `password`.
 
-## JWT API
+## Documentation
 
-- `POST /register`, `/login`, `/refresh`, `/logout`, `GET /me`
-- `GET|PATCH /profile`, `PUT /profile/password`, `DELETE /profile`
-- `GET /admin/users`, `PATCH /admin/users/{id}/analyst`
-- `GET /auth/google`, `GET /auth/google/callback`
-- Access and refresh are both JWTs (`token_use` claim). Refresh is HttpOnly cookie `refresh_token` plus Redis. Closed routes use `auth:api`.
+| File | Description |
+| --- | --- |
+| [docs/openapi.yaml](docs/openapi.yaml) | REST API specification |
+| [docs/events.md](docs/events.md) | Kafka topics and message payloads |
+| [docs/architecture.md](docs/architecture.md) | Architecture diagrams |
 
-## Roles
+## Authentication
 
-| Role | How |
-|---|---|
-| `admin` | seeder |
-| `customer` | self-register and Google |
-| `analyst` | `PATCH /admin/users/{id}/analyst` |
+### Tokens
 
-## Tests
+- **Access token** — JWT in JSON (`access_token`), ~15 minutes TTL, claim `token_use=access`, includes `roles`.
+- **Refresh token** — JWT in HttpOnly cookie `refresh_token`, ~7 days TTL, claim `token_use=refresh`, stored in Redis for rotation and revocation.
 
-```powershell
+Send access tokens as `Authorization: Bearer <token>` on protected routes.
+
+### Public endpoints
+
+`POST /register`, `POST /login`, `POST /refresh` — rate limited per client IP.
+
+### Protected endpoints
+
+Require valid access JWT (`auth:api`, `auth.access` middleware): `/logout`, `/me`, `/profile/*`, `/admin/*`.
+
+### OAuth
+
+`GET /auth/google` → `GET /auth/google/callback` — same token response as password login.
+
+## Authorization
+
+| Role | Assignment |
+| --- | --- |
+| `customer` | Registration or first OAuth signup |
+| `analyst` | Admin via `PATCH /admin/users/{id}/analyst` |
+| `admin` | Database seeder |
+
+Policies enforce admin-only admin routes and self-service profile updates.
+
+## API summary
+
+| Method | Path | Description |
+| --- | --- | --- |
+| POST | `/register` | Create account |
+| POST | `/login` | Issue tokens |
+| POST | `/refresh` | Rotate tokens (cookie) |
+| POST | `/logout` | Revoke tokens |
+| GET | `/me` | Current user |
+| GET/PATCH | `/profile` | View / update profile |
+| PUT | `/profile/password` | Change password |
+| DELETE | `/profile` | Soft-delete account |
+| GET | `/admin/users` | List users (admin) |
+| PATCH | `/admin/users/{id}/analyst` | Grant or revoke analyst (admin) |
+
+Request and response schemas: OpenAPI.
+
+## Gateway
+
+Nginx validates JWTs via internal subrequests to Laravel (`/_gateway/customer`, `/_gateway/staff`, `/_gateway/admin`) and forwards `X-Auth-User-*` headers to upstream services. Details: [docs/architecture.md](docs/architecture.md).
+
+## Docker services
+
+| Service | Purpose |
+| --- | --- |
+| `nginx` | TLS, routing, CORS |
+| `back` | Laravel application |
+| `sql` | PostgreSQL |
+| `redis` | Token and session storage |
+| `mail` | Mailhog |
+| `oidc` | Mock identity provider |
+
+## Configuration
+
+Environment variables: see `.env.example` (`JWT_*`, `REDIS_*`, `KAFKA_*`, `CORS_ALLOWED_ORIGINS`, database, OAuth).
+
+## Testing
+
+```bash
+cd auth
+composer install
+cp .env.example .env && php artisan key:generate
 php vendor/bin/phpunit
 ```
 
-## Out of scope
+Integration tests against Redis:
 
-- React Frontend / Admin apps
+```bash
+docker compose up -d redis sql
+docker compose run --rm back php vendor/bin/phpunit --filter RedisJwtAuthTest
+```
+
+CI: `.github/workflows/auth.yml`.

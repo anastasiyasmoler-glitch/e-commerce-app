@@ -1,54 +1,79 @@
 # Catalog Service
 
-Source of truth for stores, categories, products, images, and stock. Checkpoint 2. Laravel 13, PHP 8.5.
+Product catalog, inventory, and store administration.
 
-Kafka stays in the Notification compose (`kafka:9092`). This service joins `microservices-net`. Store admin UI is **Filament** at `/catalog-admin` (via gateway). The storefront is `frontend/`. Shared `admin/` SPA links to Filament; it does not manage catalog CRUD.
+## Overview
 
-## Run
+Authoritative data for stores, categories, products, stock, and media. Publishes catalog and inventory facts to Kafka via an outbox relay. Consumes order events for stock reservation. Store administration uses Filament at `/catalog-admin` through the Auth gateway.
 
-Bring Notification up first so Kafka exists, then Catalog.
+## Stack
 
-```powershell
-docker network create microservices-net
-cd notification
-docker compose up -d kafka
+| Component | Technology |
+| --- | --- |
+| Runtime | PHP 8.5, Laravel 13 |
+| Database | PostgreSQL 16 |
+| Cache | Redis |
+| Object storage | MinIO |
+| Admin UI | Filament |
+| Messaging | Kafka (`longlang/phpkafka`), outbox pattern |
+| Edge | Nginx TLS, host port **8444** |
+
+## Getting started
+
+```bash
+docker network create microservices-net   # once
+cd notification && docker compose up -d kafka
 cd ../catalog
-docker compose up --build
+cp .env.example .env
+docker compose up -d --build
 ```
 
-https://localhost:8444 (self-signed). HTTP 8082 redirects to HTTPS.
+| Endpoint | URL |
+| --- | --- |
+| Public API | `https://localhost:8444` or gateway `/api/catalog/*` |
+| Filament admin | Gateway `/catalog-admin` |
+| OpenAPI | `/docs`, [docs/openapi.yaml](docs/openapi.yaml) |
 
-Postgres user/password/database: `marketplace` / `marketplace` / `catalog`.
+Postgres: database `catalog`, user/password `marketplace`.
 
-Compose services: `sql`, `redis`, `minio` (host 9004/9005), `minio-init`, `back`, `consumer`, `outbox`, `nginx`.
+## Documentation
 
-Tables: `stores`, `categories` (tree via `parent_id`), `products`, `stocks` (`quantity`, `reserved`). Isolation is `store_id` on rows.
+| File | Description |
+| --- | --- |
+| [docs/openapi.yaml](docs/openapi.yaml) | Public REST API |
+| [docs/events.md](docs/events.md) | Kafka topics |
+| [docs/architecture.md](docs/architecture.md) | Architecture diagrams |
 
-## Public REST (no JWT)
+## Public REST API
 
-- `GET /stores`
-- `GET /categories?store_id=&parent_id=`
-- `GET /products?store_id=&category_id=&page=`
-- `GET /products/{id}?store_id=`
+No JWT required; `store_id` scopes data.
 
-Full-text and facets belong in Search, not here.
+| Method | Path | Description |
+| --- | --- | --- |
+| GET | `/stores` | List stores |
+| GET | `/categories` | Category tree |
+| GET | `/products` | Product listing |
+| GET | `/products/{id}` | Product detail |
 
-## Kafka
+Search and facets are provided by the Search service.
 
-Group: `catalog-service-group`. Consumer: `php artisan kafka:consume-catalog`.
+## Docker services
 
-Publishes: `product.created`, `product.updated`, `product.deleted`, `product.published`, `product.unpublished`, `category.created`, `category.updated`, `category.deleted`, `stock.changed`, `stock.reserved`, `stock.reservation_failed`.
+| Service | Purpose |
+| --- | --- |
+| `sql`, `redis`, `minio` | Data and assets |
+| `back` | Laravel + Filament |
+| `consumer` | Kafka inventory consumer |
+| `outbox` | Outbox → Kafka relay |
+| `nginx` | TLS |
 
-Product events include `is_published` and `in_stock` (from available stock). New products default to unpublished until Filament toggle is on.
+## Testing
 
-Consumes: `order.created`, `stock.release_requested`.
-
-`order.created` payload: `{ "order_id", "items": [{ "product_id", "store_id", "quantity" }] }`. Available stock is `quantity - reserved`. Tests use `ArrayKafkaPublisher`; they do not need a live broker.
-
-## Tests
-
-```powershell
+```bash
+cd catalog
+composer install
+cp .env.example .env && php artisan key:generate
 php vendor/bin/phpunit
 ```
 
-CI: `.github/workflows/catalog.yml` (Pint, PHPUnit, image publish on `main`).
+CI: `.github/workflows/catalog.yml`.
