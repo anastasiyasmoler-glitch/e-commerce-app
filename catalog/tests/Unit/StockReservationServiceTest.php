@@ -64,6 +64,42 @@ class StockReservationServiceTest extends TestCase
         $this->assertSame('stock.reservation_failed', $kafka->messages[array_key_last($kafka->messages)]['topic']);
     }
 
+    public function test_reserve_publishes_failed_for_invalid_payload(): void
+    {
+        $kafka = new ArrayKafkaPublisher;
+        $this->app->instance(KafkaPublisherInterface::class, $kafka);
+
+        $service = $this->app->make(StockReservationService::class);
+        $service->reserve(['order_id' => 1, 'items' => []]);
+
+        $this->assertSame('stock.reservation_failed', $kafka->messages[0]['topic']);
+        $this->assertSame('invalid_payload', $kafka->messages[0]['body']['reason']);
+    }
+
+    public function test_handle_routes_order_created_and_release_topics(): void
+    {
+        $kafka = new ArrayKafkaPublisher;
+        $this->app->instance(KafkaPublisherInterface::class, $kafka);
+
+        $stock = $this->seedStock(5, 0);
+        $service = $this->app->make(StockReservationService::class);
+
+        $payload = [
+            'order_id' => 20,
+            'items' => [[
+                'product_id' => $stock->product_id,
+                'store_id' => $stock->store_id,
+                'quantity' => 1,
+            ]],
+        ];
+
+        $service->handle('order.created', $payload);
+        $this->assertSame(1, $stock->fresh()->reserved);
+
+        $service->handle('stock.release_requested', $payload);
+        $this->assertSame(0, $stock->fresh()->reserved);
+    }
+
     private function seedStock(int $quantity, int $reserved): Stock
     {
         $store = Store::query()->create(['name' => 'S', 'slug' => 's-'.uniqid()]);
