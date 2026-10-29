@@ -7,6 +7,8 @@ func DefaultKafkaConsumeTopics() []string {
 		"product.created",
 		"product.updated",
 		"product.deleted",
+		"product.published",
+		"product.unpublished",
 		"category.created",
 		"category.updated",
 		"category.deleted",

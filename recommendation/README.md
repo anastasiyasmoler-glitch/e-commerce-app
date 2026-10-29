@@ -1,79 +1,93 @@
 # Recommendation Service
 
-AI-assisted product recommendations from **Catalog** data only.
+AI-assisted product discovery and conversational recommendations.
+
+## Overview
+
+Builds a local catalog projection and vector index from Kafka events, answers natural-language shopping queries using Gemini embeddings and Qdrant similarity search, with conversation history stored in PostgreSQL.
 
 ## Stack
 
-- Laravel (PHP 8.5)
-- **Kafka** — catalog product facts
-- **PostgreSQL** — local product projection (`catalog_product_projections`, JSON metadata)
-- **Qdrant** — vector index (Gemini embeddings)
-- **Google Gemini** — `LlmClient` (`embed` + `generate` for future chat)
-- Nginx HTTPS on **8448** (`recommendation-nginx` on `microservices-net`)
+| Component | Technology |
+| --- | --- |
+| Runtime | PHP 8.5, Laravel 13 |
+| Projection DB | PostgreSQL 16 |
+| Vector index | Qdrant |
+| LLM | Google Gemini API |
+| Messaging | Kafka consumer |
+| Edge | Nginx TLS, host port **8448** |
 
-## Indexing flow
-
-1. `product.created` / `product.updated` → upsert row in Postgres.
-2. Build text from payload → `GeminiLlmClient::embed()`.
-3. Upsert point in Qdrant (cosine, collection `catalog_products`).
-4. `product.deleted` → delete from Postgres and Qdrant.
-
-If Gemini or Qdrant fails, the Postgres row is still saved; check logs for `catalog_vector_index_failed`.
-
-Additional topics: `stock.changed`, `product.published`, `product.unpublished` (metadata-only updates when applicable).
-
-## Chat verification (read-model)
-
-Before the LLM answer, candidate products are verified against the **local** `catalog_product_projections` read model (synced from Catalog Kafka). There is **no** synchronous Catalog HTTP call on the chat path.
-
-`CatalogReadModelProductVerifier` drops rows that are unpublished, out of stock (when `in_stock_only` is set), missing a name, or whose `product_id` / `store_id` do not match the projection payload.
-
-`POST /recommendations/chat` is rate-limited per gateway user id (`RECOMMENDATION_CHAT_RATE_LIMIT_PER_MINUTE`, default 20).
-
-Gemini calls use configurable timeout and retries (`GEMINI_TIMEOUT_SECONDS`, `GEMINI_RETRY_TIMES`). Chat prompts include capped prior turns (`RECOMMENDATION_PROMPT_MAX_HISTORY_*`), user text is wrapped in `<<<USER>>>` markers with `user_boundary_rules.txt`. If filter extraction or embed fails, the API falls back to safe search text or a short degraded answer without invented products.
-
-## API contract
-
-OpenAPI 3.0: [`openapi.yaml`](openapi.yaml) — chat, conversations, and health (gateway paths under `/api/recommendations/*`).
-
-## Local run
-
-Prerequisites: `microservices-net`, Kafka (`notification` compose).
+## Getting started
 
 ```bash
-cd recommendation
+docker network create microservices-net   # once
+cd notification && docker compose up -d kafka
+cd ../recommendation
 cp .env.example .env
-# Set GEMINI_API_KEY in .env (not committed)
+# set GEMINI_API_KEY
 sh docker/nginx/generate-certs.sh
 docker compose up -d --build
 ```
 
-- Health: `curl -k https://localhost:8448/recommendations/health` (`database`, `qdrant`, `catalog_projection_table`)
-- Qdrant UI/API: `http://localhost:6333`
-- Postgres: host port **5435** (Catalog uses **5433** on the host)
+| Endpoint | URL |
+| --- | --- |
+| Health | `https://localhost:8448/recommendations/health` |
+| Gateway | `https://localhost/api/recommendations/*` |
+| OpenAPI | `/docs`, [docs/openapi.yaml](docs/openapi.yaml) |
+| Qdrant | `http://localhost:6333` |
 
-If you previously used pgvector in Postgres, run migrations after pull; for a clean slate: `docker compose down -v` in `recommendation/`.
+## Documentation
 
-## Tests
+| File | Description |
+| --- | --- |
+| [docs/openapi.yaml](docs/openapi.yaml) | Chat and conversation API |
+| [docs/events.md](docs/events.md) | Kafka topics |
+| [docs/architecture.md](docs/architecture.md) | Architecture diagrams |
+
+## REST API
+
+| Method | Path | Description |
+| --- | --- | --- |
+| POST | `/recommendations/chat` | Chat turn with product suggestions |
+| GET | `/recommendations/conversations/{id}` | Conversation history |
+| DELETE | `/recommendations/conversations/{id}` | Delete conversation |
+| POST | `/recommendations/reindex` | Rebuild vectors (admin) |
+
+Rate limits and schemas: OpenAPI.
+
+## Indexing
+
+1. Consume catalog Kafka events → upsert `catalog_product_projections`.
+2. Build embedding text → Gemini `embed` → upsert Qdrant collection `catalog_products`.
+3. Chat: extract filters → vector search → verify against local projection → LLM reply.
+
+## Docker services
+
+| Service | Purpose |
+| --- | --- |
+| `postgres`, `qdrant` | Projection and vectors |
+| `back`, `nginx` | API |
+| `consumer` | `kafka:consume-catalog-index` |
+
+## Testing
 
 ```bash
+cd recommendation
 composer install
 cp .env.example .env && php artisan key:generate
-touch database/database.sqlite
 php artisan test
 ```
 
-- **Contract** (`tests/Contract`, `tests/Fixtures/CatalogKafka`) — Catalog Kafka payload shape vs `CatalogIndexIngestService`; runs on SQLite in CI.
-- **Integration** (`tests/Integration`) — real PostgreSQL + Qdrant; skipped unless `RECOMMENDATION_INTEGRATION_TESTS=1`.
-
-With Docker stack up:
+Integration suite: set `RECOMMENDATION_INTEGRATION_TESTS=1` with PostgreSQL and Qdrant reachable. Kafka ingest test also needs `KAFKA_BROKERS` (CI provides both).
 
 ```bash
-RECOMMENDATION_INTEGRATION_TESTS=1 \
-RECOMMENDATION_TEST_DB_HOST=127.0.0.1 RECOMMENDATION_TEST_DB_PORT=5435 \
-QDRANT_HOST=127.0.0.1 QDRANT_PORT=6333 \
+export RECOMMENDATION_INTEGRATION_TESTS=1
+export RECOMMENDATION_TEST_DB_HOST=127.0.0.1
+export RECOMMENDATION_TEST_DB_PORT=5435
+export QDRANT_HOST=127.0.0.1
+export QDRANT_PORT=6333
+export KAFKA_BROKERS=127.0.0.1:9092
 php artisan test --testsuite=Integration
 ```
 
-CI runs unit/feature/contract on SQLite; integration job starts Postgres and Qdrant service containers.
-Default `php artisan test` skips integration tests when the env flag is unset.
+CI: `.github/workflows/recommendation.yml`.

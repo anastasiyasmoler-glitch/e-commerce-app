@@ -1,71 +1,79 @@
 # Notification Service
 
-Sends email for the e-commerce monorepo and stores history in MongoDB.
-Only this service sends product mail. Auth and Order should publish Kafka events; they must not SMTP.
+Email delivery and notification history for the platform.
 
-Host HTTPS is **8443** (Auth uses 443). Mailhog UI: http://localhost:8026.
+## Overview
 
-## Role
+Consumes Kafka events, sends SMTP mail (Mailhog in development), persists delivery history in MongoDB, and exposes a read API for staff users via the Auth gateway.
 
-- Kafka **consumer** — welcome and order mail (this ticket, NOTIF-2)
-- History in MongoDB `notification_logs`
-- REST list for Admin/Analyst — NOTIF-3
-- UI — NOTIF-4
-
-Auth publishes `user.registered` on register. Kafka runs in this service's compose (`hostname: kafka`) and is attached to the external network `microservices-net`, so Auth can publish to `kafka:9092`. Create that network once: `docker network create microservices-net`.
+Kafka runs in this service’s Docker Compose (`kafka:9092` on `microservices-net`).
 
 ## Stack
 
-- PHP 8.5, Laravel 13, `longlang/phpkafka`, `mongodb/laravel-mongodb`
-- MongoDB 7
-- Apache Kafka 3.9.1 (KRaft), group `notification-service-group`
-- Mailhog
-- Nginx: container 443, host 8443; HTTP 8081 → HTTPS
+| Component | Technology |
+| --- | --- |
+| Runtime | PHP 8.5, Laravel 13 |
+| Messaging | Apache Kafka, `longlang/phpkafka` |
+| History | MongoDB 7 |
+| Mail | SMTP → Mailhog (dev) |
+| Edge | Nginx TLS, host port **8443** |
 
-## Kafka
+## Getting started
 
-| Topic | Mail |
-|---|---|
-| `user.registered` | Welcome |
-| `order.paid` | Paid |
-| `order.confirmed` | Confirmed |
-| `order.cancelled` | Cancelled (`reason: out_of_stock` in payload) |
-| `notifications.dlq` | After 3 failed SMTP attempts (`is_dlq` in Mongo). No replay. |
-
-Payload JSON must include `email` or `recipient`.
-
-`docker compose up` in this directory starts `kafka` and `consumer` (`php artisan kafka:consume-notifications`).
-
-Retry: 3 attempts, backoff 200ms × 2^(n-1). See `config/kafka.php`.
-
-## History document
-
-Fields: `event`, `channel`, `recipient`, `payload`, `status`, `attempts`, `error_message`, `is_dlq`, `sent_at`.
-Statuses: `pending`, `sent`, `failed`.
-
-## Docker
-
-| Service | Role |
-|---|---|
-| `mongo` | History |
-| `mail` | Mailhog |
-| `kafka` | Broker, also on `microservices-net` |
-| `back` | php-fpm |
-| `consumer` | `kafka:consume-notifications` |
-| `front` | Stub SPA |
-| `nginx` | TLS + FastCGI |
-
-```powershell
+```bash
+docker network create microservices-net   # once
 cd notification
-docker compose up --build
+cp .env.example .env
+docker compose up -d --build
 ```
 
-https://localhost:8443 (self-signed). Mailhog UI: http://localhost:8026.
+| Endpoint | URL |
+| --- | --- |
+| HTTPS | `https://localhost:8443` |
+| Mailhog UI | `http://localhost:8026` |
+| Kafka (internal) | `kafka:9092` |
 
-## Tests
+## Documentation
 
-```powershell
+| File | Description |
+| --- | --- |
+| [docs/openapi.yaml](docs/openapi.yaml) | REST API specification |
+| [docs/events.md](docs/events.md) | Kafka topics |
+| [docs/architecture.md](docs/architecture.md) | Architecture diagrams |
+
+## REST API
+
+Staff roles (`admin`, `analyst`) via gateway identity:
+
+| Method | Path | Description |
+| --- | --- | --- |
+| GET | `/api/notifications` | List logs; optional query `status`, `channel`, `recipient`, `from`, `to` (YYYY-MM-DD) |
+| GET | `/api/notifications/{id}` | Single entry |
+
+Identity is resolved through Auth (`GET /me` pattern); OpenAPI for request/response schemas.
+
+## Docker services
+
+| Service | Purpose |
+| --- | --- |
+| `kafka` | Message broker |
+| `consumer` | `kafka:consume-notifications` |
+| `mongo` | Notification history |
+| `back` | Laravel API |
+| `nginx` | TLS |
+| `mail` | Mailhog |
+
+## Configuration
+
+See `.env.example` (`KAFKA_*`, MongoDB, mail, `AUTH_BASE_URL`).
+
+## Testing
+
+```bash
+cd notification
+composer install
+cp .env.example .env && php artisan key:generate
 php vendor/bin/phpunit
 ```
 
-Unit: `NotificationLogTest`, `NotificationDispatchServiceTest` (успех SMTP, 3 фейла → DLQ, неизвестный топик). Живой Kafka/Mongo/Mailhog в PHPUnit нет.
+CI: `.github/workflows/notification.yml`.

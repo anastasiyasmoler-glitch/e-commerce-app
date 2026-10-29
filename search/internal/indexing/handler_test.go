@@ -92,6 +92,27 @@ func TestHandlerPatchesAvailabilityFromStock(t *testing.T) {
 	require.False(t, store.patched["7"])
 }
 
+func TestHandlerProductUpdatedTwiceUpsertsLatestPayload(t *testing.T) {
+	store := &recordingStore{patched: map[string]bool{}}
+	handler := newTestHandler(store)
+
+	require.NoError(t, handler.Handle(context.Background(), "product.updated", []byte(`{
+		"id": 20,
+		"store_id": 1,
+		"name": "Version one",
+		"price": 900
+	}`)))
+	require.NoError(t, handler.Handle(context.Background(), "product.updated", []byte(`{
+		"id": 20,
+		"store_id": 1,
+		"name": "Version two",
+		"price": 1800
+	}`)))
+	require.Len(t, store.upserted, 2)
+	require.Equal(t, "Version two", store.upserted[1].Name)
+	require.Equal(t, 1800, store.upserted[1].Price)
+}
+
 func TestHandlerUpsertsCategoryCreated(t *testing.T) {
 	products := &recordingStore{patched: map[string]bool{}}
 	categories := &recordingCategoryStore{}

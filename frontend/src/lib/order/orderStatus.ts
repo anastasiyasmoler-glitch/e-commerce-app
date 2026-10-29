@@ -1,4 +1,4 @@
-const LABELS: Record<string, string> = {
+const STATUS_LABELS: Record<string, string> = {
   created: 'Created',
   stock_reserved: 'Stock reserved',
   payment_pending: 'Payment pending',
@@ -6,14 +6,22 @@ const LABELS: Record<string, string> = {
   confirmed: 'Confirmed',
   shipped: 'Shipped',
   completed: 'Completed',
-  payment_failed: 'Payment failed',
   cancelled: 'Cancelled',
+  payment_failed: 'Payment failed',
 }
 
 export function orderStatusLabel(status: string): string {
-  return LABELS[status] ?? status.replaceAll('_', ' ')
+  return STATUS_LABELS[status] ?? status
 }
 
-export function canCancelOrder(status: string): boolean {
-  return !['shipped', 'completed', 'cancelled'].includes(status)
+export function formatOrderMoney(cents: number, currency: string): string {
+  const amount = cents / 100
+  try {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: currency || 'USD',
+    }).format(amount)
+  } catch {
+    return `$${amount.toFixed(2)}`
+  }
 }

@@ -13,7 +13,8 @@ class EloquentAdminUserRepository implements AdminUserRepositoryInterface
      *     name: string,
      *     email: string,
      *     phone: string|null,
-     *     role_names: list<string>
+     *     role_names: list<string>,
+     *     created_at: string|null
      * }>
      */
     public function listWithRoleNames(): array
@@ -28,6 +29,7 @@ class EloquentAdminUserRepository implements AdminUserRepositoryInterface
                 'email' => $user->email,
                 'phone' => $user->phone,
                 'role_names' => $user->getRoleNames()->values()->all(),
+                'created_at' => $user->created_at?->toIso8601String(),
             ])
             ->all();
     }

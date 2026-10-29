@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Contracts\LlmClient;
 use App\Repositories\Contracts\CatalogProductProjectionRepositoryInterface;
 use App\Repositories\Contracts\ProductVectorIndexInterface;
+use App\Support\ProductAttributeMatcher;
 use Throwable;
 
 class RecommendationChatService
@@ -142,10 +143,16 @@ class RecommendationChatService
 
         $maxPrice = $filters['max_price_cents'] ?? null;
         $minPrice = $filters['min_price_cents'] ?? null;
+        $attributeFilters = is_array($filters['attributes'] ?? null) ? $filters['attributes'] : [];
 
         $products = [];
         foreach ($rows as $row) {
             $payload = $row['payload'];
+            $productAttributes = is_array($payload['attributes'] ?? null) ? $payload['attributes'] : [];
+            if (! ProductAttributeMatcher::matches($productAttributes, $attributeFilters)) {
+                continue;
+            }
+
             $priceCents = isset($payload['price']) && is_numeric($payload['price'])
                 ? (int) $payload['price']
                 : null;

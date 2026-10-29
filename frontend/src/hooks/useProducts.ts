@@ -1,12 +1,11 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
-import { catalogKeys, fetchProducts, type CatalogProduct } from '@/api/catalogApi'
+import { catalogKeys, fetchProducts, type CatalogProductsParams } from '@/api/catalogApi'
+import { findCategoryBySlug } from '@/lib/catalog/categoryBySlug'
 import { useCategories } from './useCategories'
-
-const PAGE_SIZE = 9
 
 export function useProducts(
   storeId: number | undefined,
-  params?: { category_id?: number; page?: number; per_page?: number; section?: string },
+  params?: CatalogProductsParams & { section?: string },
 ) {
   const { section: _section, ...request } = params ?? {}
 
@@ -17,41 +16,43 @@ export function useProducts(
   })
 }
 
-export function useCategoryListing(storeId: number | undefined, slug: string | undefined, page: number) {
+export function useCategoryListing(
+  storeId: number | undefined,
+  slug: string | undefined,
+  page: number,
+  perPage: number,
+) {
   const roots = useCategories(storeId)
-  const current = slug ? (roots.data ?? []).find((category) => category.slug === slug) ?? null : null
+
+  const categoryBySlug = useQuery({
+    queryKey: ['catalog', 'category-by-slug', storeId, slug ?? ''],
+    queryFn: () => findCategoryBySlug(storeId!, slug!),
+    enabled: storeId !== undefined && Boolean(slug),
+  })
+
+  const current = slug ? (categoryBySlug.data ?? null) : null
   const children = useCategories(storeId, current?.id ?? null)
 
-  const products = useQuery({
-    queryKey: catalogKeys.products(storeId, { listing: slug ?? 'all', page }),
-    queryFn: async () => {
-      if (!current) {
-        return fetchProducts(storeId!, { page, per_page: PAGE_SIZE })
-      }
+  const categoryId = current?.id
 
-      const ids = [current.id, ...(children.data ?? []).map((category) => category.id)]
-      const batches = await Promise.all(
-        ids.map((categoryId) => fetchProducts(storeId!, { category_id: categoryId, per_page: 50 })),
-      )
-      const seen = new Set<number>()
-      const merged: CatalogProduct[] = []
-      for (const batch of batches) {
-        for (const product of batch) {
-          if (!seen.has(product.id)) {
-            seen.add(product.id)
-            merged.push(product)
-          }
-        }
-      }
-      const start = (page - 1) * PAGE_SIZE
-      return merged.slice(start, start + PAGE_SIZE)
-    },
+  const products = useQuery({
+    queryKey: catalogKeys.products(storeId, {
+      category_id: categoryId,
+      page,
+      per_page: perPage,
+    }),
+    queryFn: () =>
+      fetchProducts(storeId!, {
+        category_id: categoryId,
+        page,
+        per_page: perPage,
+      }),
     placeholderData: keepPreviousData,
     enabled:
       storeId !== undefined &&
       roots.isSuccess &&
-      (!slug || current === null || children.isFetched),
+      (!slug || categoryBySlug.isSuccess),
   })
 
-  return { roots, current, products, pageSize: PAGE_SIZE }
+  return { roots, current, children, categoryBySlug, products, pageSize: perPage }
 }

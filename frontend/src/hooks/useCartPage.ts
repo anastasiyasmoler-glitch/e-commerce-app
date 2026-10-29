@@ -1,6 +1,5 @@
 import { useCart } from '@/lib/cart/CartContext'
-import { formatUsd } from '@/lib/money/formatUsd'
-import { paths } from '@/paths'
+import { formatOrderMoney } from '@/lib/order/orderStatus'
 
 export function useCartPage() {
   const cart = useCart()
@@ -8,11 +7,9 @@ export function useCartPage() {
   return {
     lines: cart.lines,
     itemCount: cart.itemCount,
-    subtotalCents: cart.subtotalCents,
-    subtotalLabel: formatUsd(cart.subtotalCents),
-    isEmpty: cart.lines.length === 0,
+    subtotalLabel: formatOrderMoney(cart.subtotalCents, 'USD'),
     setQuantity: cart.setQuantity,
     removeLine: cart.removeLine,
-    checkoutPath: paths.checkout,
+    isEmpty: cart.lines.length === 0,
   }
 }

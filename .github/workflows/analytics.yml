@@ -55,6 +55,23 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 15
+      kafka:
+        image: apache/kafka:3.9.1
+        env:
+          CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+          KAFKA_NODE_ID: "1"
+          KAFKA_PROCESS_ROLES: broker,controller
+          KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+          KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+          KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+          KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+          KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
+          KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "1"
+          KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: "1"
+          KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: "1"
+          KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: "0"
+        ports:
+          - 9092:9092
     env:
       ANALYTICS_CLICKHOUSE_TESTS: '1'
       CLICKHOUSE_HOST: 127.0.0.1
@@ -62,6 +79,7 @@ jobs:
       CLICKHOUSE_DATABASE: analytics
       CLICKHOUSE_USERNAME: default
       CLICKHOUSE_PASSWORD: ''
+      KAFKA_BROKERS: localhost:9092
     steps:
       - uses: actions/checkout@v4
 
@@ -79,6 +97,18 @@ jobs:
           cp .env.example .env
           php artisan key:generate --force --no-interaction
           touch database/database.sqlite
+
+      - name: Wait for Kafka and create topics
+        run: |
+          for i in $(seq 1 30); do
+            if docker run --rm --network host apache/kafka:3.9.1 /opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 >/dev/null 2>&1; then
+              break
+            fi
+            sleep 2
+          done
+          for topic in user.registered order.created order.paid order.shipped order.completed order.cancelled search.performed; do
+            docker run --rm --network host apache/kafka:3.9.1 /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --if-not-exists --topic "$topic"
+          done
 
       - name: PHPUnit
         run: php artisan test

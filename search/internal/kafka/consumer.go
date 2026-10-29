@@ -16,12 +16,18 @@ type Consumer struct {
 }
 
 func NewConsumer(brokers string, groupID string, topics []string) *Consumer {
+	return NewConsumerWithOffset(brokers, groupID, topics, kafka.LastOffset)
+}
+
+// NewConsumerWithOffset sets StartOffset for new consumer groups (integration tests use FirstOffset).
+func NewConsumerWithOffset(brokers string, groupID string, topics []string, startOffset int64) *Consumer {
 	brokerList := splitBrokers(brokers)
 	return &Consumer{
 		reader: kafka.NewReader(kafka.ReaderConfig{
 			Brokers:     brokerList,
 			GroupID:     groupID,
 			GroupTopics: topics,
+			StartOffset: startOffset,
 			MinBytes:    1,
 			MaxBytes:    10e6,
 			MaxWait:     500 * time.Millisecond,

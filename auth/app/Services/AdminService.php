@@ -18,7 +18,8 @@ class AdminService
      *     email: string,
      *     phone: string|null,
      *     roles: list<string>,
-     *     is_analyst: bool
+     *     is_analyst: bool,
+     *     created_at: string|null
      * }>
      */
     public function listUsersForAdmin(): array
@@ -34,6 +35,7 @@ class AdminService
                 'phone' => $row['phone'],
                 'roles' => $roles,
                 'is_analyst' => in_array('analyst', $roles, true),
+                'created_at' => $row['created_at'],
             ];
         }
 

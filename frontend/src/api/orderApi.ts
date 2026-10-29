@@ -1,11 +1,5 @@
 import { http } from './http'
 
-export const orderKeys = {
-  all: ['orders'] as const,
-  list: () => [...orderKeys.all, 'list'] as const,
-  detail: (id: number) => [...orderKeys.all, 'detail', id] as const,
-}
-
 export type OrderItem = {
   product_id: number
   store_id: number
@@ -15,7 +9,7 @@ export type OrderItem = {
   quantity: number
 }
 
-export type Order = {
+export type OrderRecord = {
   id: number
   user_id: number
   status: string
@@ -26,45 +20,49 @@ export type Order = {
   created_at: string | null
 }
 
-type PaginatedOrders = {
-  data: Order[]
-  meta: {
-    current_page: number
-    last_page: number
-    per_page: number
-    total: number
-  }
+export type OrderListMeta = {
+  current_page: number
+  per_page: number
+  total: number
+  last_page: number
 }
 
-export async function fetchOrders(page = 1): Promise<PaginatedOrders> {
-  const { data } = await http.get<PaginatedOrders>('/api/orders', { params: { page } })
+export const orderKeys = {
+  all: ['orders'] as const,
+  list: (page: number) => ['orders', 'list', page] as const,
+  detail: (id: number) => ['orders', 'detail', id] as const,
+}
+
+export async function listOrders(page = 1, perPage = 20): Promise<{
+  data: OrderRecord[]
+  meta: OrderListMeta
+}> {
+  const { data } = await http.get<{ data: OrderRecord[]; meta: OrderListMeta }>('/api/orders', {
+    params: { page, per_page: perPage },
+  })
+
   return data
 }
 
-export async function fetchOrder(orderId: number): Promise<Order> {
-  const { data } = await http.get<{ data: Order }>(`/api/orders/${orderId}`)
+export async function getOrder(id: number): Promise<OrderRecord> {
+  const { data } = await http.get<{ data: OrderRecord }>(`/api/orders/${id}`)
   return data.data
-}
-
-export type CreateOrderPayload = {
-  items: Array<{ product_id: number; quantity: number }>
-  shipping_address?: Record<string, string>
-  currency?: string
 }
 
 export async function createOrder(
-  payload: CreateOrderPayload,
+  items: { product_id: number; quantity: number }[],
   idempotencyKey: string,
-): Promise<Order> {
-  const { data } = await http.post<{ data: Order }>('/api/orders', payload, {
-    headers: { 'Idempotency-Key': idempotencyKey },
-  })
+): Promise<OrderRecord> {
+  const { data } = await http.post<{ data: OrderRecord }>(
+    '/api/orders',
+    { items },
+    { headers: { 'Idempotency-Key': idempotencyKey } },
+  )
+
   return data.data
 }
 
-export async function cancelOrder(orderId: number, reason?: string): Promise<Order> {
-  const { data } = await http.post<{ data: Order }>(`/api/orders/${orderId}/cancel`, {
-    reason: reason ?? '',
-  })
+export async function cancelOrder(id: number): Promise<OrderRecord> {
+  const { data } = await http.post<{ data: OrderRecord }>(`/api/orders/${id}/cancel`, {})
   return data.data
 }

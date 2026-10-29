@@ -1,16 +1,24 @@
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { fetchOrders, orderKeys } from '@/api/orderApi'
+import { listOrders, orderKeys } from '@/api/orderApi'
+import { useSession } from '@/hooks/useSession'
 
 export function useOrdersPage() {
-  const ordersQuery = useQuery({
-    queryKey: orderKeys.list(),
-    queryFn: () => fetchOrders(1),
+  const [page, setPage] = useState(1)
+  const session = useSession()
+
+  const query = useQuery({
+    queryKey: orderKeys.list(page),
+    queryFn: () => listOrders(page),
+    enabled: session.data === true,
   })
 
   return {
-    orders: ordersQuery.data?.data ?? [],
-    isPending: ordersQuery.isPending,
-    isSuccess: ordersQuery.isSuccess,
-    isError: ordersQuery.isError,
+    page,
+    setPage,
+    query,
+    orders: query.data?.data ?? [],
+    meta: query.data?.meta,
+    needsAuth: session.isFetched && session.data === false,
   }
 }

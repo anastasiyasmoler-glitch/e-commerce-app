@@ -30,6 +30,7 @@ func TestParseParams(t *testing.T) {
 	require.NotNil(t, params.Available)
 	require.True(t, *params.Available)
 	require.Equal(t, 1000, *params.PriceMin)
+	require.Equal(t, 50000, *params.PriceMax)
 	require.Equal(t, "black", params.Attributes["color"])
 	require.Equal(t, 2, params.Page)
 	require.Equal(t, SortPriceAsc, params.Sort)

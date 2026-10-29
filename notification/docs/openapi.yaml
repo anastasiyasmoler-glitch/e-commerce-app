@@ -5,8 +5,7 @@ info:
   description: |
     Notification history of sent emails (events consumed from Kafka, dispatched via mail, logged in MongoDB).
     Routes have the `/api` prefix (Laravel api routes). Read-only history; sending happens via Kafka consumers.
-    History endpoints are protected by the auth gateway (`/_auth_check`) with a customer JWT
-    (`Authorization: Bearer`); the service itself performs no JWT validation.
+    History endpoints are protected by the auth gateway (staff JWT: admin or analyst).
 servers:
   - url: https://localhost
     description: Auth gateway (notification paths proxied under /api/notifications)
@@ -20,13 +19,41 @@ paths:
   /api/notifications:
     get:
       tags: [History]
-      summary: List latest notification logs
+      summary: List notification logs
       operationId: listNotifications
       security:
         - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, sent, failed]
+        - name: channel
+          in: query
+          schema:
+            type: string
+            example: email
+        - name: recipient
+          in: query
+          description: Case-sensitive substring match on recipient email
+          schema:
+            type: string
+        - name: from
+          in: query
+          description: Created on or after (YYYY-MM-DD)
+          schema:
+            type: string
+            format: date
+        - name: to
+          in: query
+          description: Created on or before (YYYY-MM-DD)
+          schema:
+            type: string
+            format: date
       responses:
         '200':
-          description: Latest notification logs (no pagination)
+          description: Matching notification logs (newest first)
           content:
             application/json:
               schema:
@@ -66,6 +93,43 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
+  /api/notifications/{id}/replay:
+    post:
+      tags: [History]
+      summary: Re-queue a notification that was moved to DLQ
+      operationId: replayNotification
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: MongoDB ObjectId of the notification log
+          schema:
+            type: string
+      responses:
+        '202':
+          description: Replay job queued
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [message, data]
+                properties:
+                  message:
+                    type: string
+                    example: Notification replay queued.
+                  data:
+                    $ref: '#/components/schemas/NotificationLog'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          description: Notification is not in DLQ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
   /up:
     get:
       tags: [System]
@@ -82,7 +146,7 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
-      description: Customer JWT enforced by the auth gateway; the service trusts the gateway.
+      description: Staff JWT enforced by the auth gateway (admin or analyst).
   schemas:
     NotificationLog:
       type: object

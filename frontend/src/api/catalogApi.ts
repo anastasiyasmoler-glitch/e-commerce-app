@@ -57,9 +57,15 @@ export async function fetchCategories(storeId: number, parentId?: number | null)
   return data.data
 }
 
+export type CatalogProductsParams = {
+  category_id?: number
+  page?: number
+  per_page?: number
+}
+
 export async function fetchProducts(
   storeId: number,
-  params?: { category_id?: number; page?: number; per_page?: number },
+  params?: CatalogProductsParams,
 ): Promise<CatalogProduct[]> {
   const { data } = await http.get<{ data: CatalogProduct[] }>('/api/catalog/products', {
     params: { store_id: storeId, ...params },

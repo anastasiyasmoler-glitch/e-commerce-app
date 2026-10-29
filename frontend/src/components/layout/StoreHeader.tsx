@@ -3,13 +3,13 @@ import { type FormEvent, useState } from 'react'
 import { Link, NavLink, useNavigate, useSearchParams } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Container } from '@/components/ui/container'
-import { useCart } from '@/lib/cart/CartContext'
 import { readDisplayName } from '@/auth/displayName'
 import { StoreSelector } from '@/components/catalog/StoreSelector'
 import { useSelectedStore } from '@/catalog/useSelectedStore'
 import { useCategories } from '@/hooks/useCategories'
 import { useMe } from '@/hooks/useMe'
 import { useSession } from '@/hooks/useSession'
+import { useCart } from '@/lib/cart/CartContext'
 import { categoryPath, paths, searchPath } from '@/paths'
 
 type StoreHeaderProps = {
@@ -25,9 +25,9 @@ export function StoreHeader({ onSignIn, onRegister }: StoreHeaderProps) {
   const { selectedStore, isPending: storesPending } = useSelectedStore()
   const [searchInput, setSearchInput] = useState(() => urlSearchParams.get('q') ?? '')
   const categoriesQuery = useCategories(selectedStore?.id)
+  const cart = useCart()
   const categories = (categoriesQuery.data ?? []).filter((category) => category.parent_id === null)
   const categoriesLoading = storesPending || categoriesQuery.isPending || !categoriesQuery.isSuccess
-  const cart = useCart()
   const signedOut = session.isFetched && session.data === false
   const name = me.data?.name ?? (signedOut ? null : readDisplayName())
 
@@ -121,7 +121,7 @@ export function StoreHeader({ onSignIn, onRegister }: StoreHeaderProps) {
               <span className="hidden lg:inline">Cart</span>
               {cart.itemCount > 0 ? (
                 <span className="absolute -top-2 left-3 grid h-[18px] min-w-[18px] place-items-center rounded-[9px] bg-brand px-[5px] text-[11px] font-bold text-white">
-                  {cart.itemCount}
+                  {cart.itemCount > 99 ? '99+' : cart.itemCount}
                 </span>
               ) : null}
             </Link>

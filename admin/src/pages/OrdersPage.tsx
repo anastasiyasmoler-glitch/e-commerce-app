@@ -20,7 +20,9 @@ export function OrdersPage() {
             onChange={(event) => ordersPage.setStatus(event.target.value)}
           >
             {ordersPage.statusOptions.map((item) => (
-              <option key={item}>{item}</option>
+              <option key={item.value} value={item.value}>
+                {item.label}
+              </option>
             ))}
           </select>
         }
@@ -83,7 +85,9 @@ export function OrdersPage() {
           </tbody>
         </table>
         <div className="table-footer">
-          <span>Showing {ordersPage.rows.length} of 1,248 orders</span>
+          <span>
+            Showing {ordersPage.rows.length} order{ordersPage.rows.length === 1 ? '' : 's'}
+          </span>
           <nav className="pagination" aria-label="Pagination">
             <a href="#" aria-label="Previous" onClick={(event) => event.preventDefault()}>
               <ChevronLeft size={16} aria-hidden />

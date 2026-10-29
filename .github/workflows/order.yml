@@ -81,13 +81,74 @@ jobs:
           php artisan key:generate
 
       - name: PHPUnit
-        run: php vendor/bin/phpunit
+        run: php vendor/bin/phpunit --exclude-group integration
         env:
           APP_ENV: testing
 
+  integration:
+    name: PostgreSQL integration tests
+    needs: test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: order
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: marketplace
+          POSTGRES_PASSWORD: marketplace
+          POSTGRES_DB: orders
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U marketplace -d orders"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: mbstring, xml, ctype, iconv, intl, pdo_pgsql, bcmath, tokenizer
+          coverage: none
+
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Prepare Laravel env
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: Migrate PostgreSQL
+        run: php artisan migrate --force
+        env:
+          APP_ENV: testing
+          DB_CONNECTION: pgsql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 5432
+          DB_DATABASE: orders
+          DB_USERNAME: marketplace
+          DB_PASSWORD: marketplace
+
+      - name: Integration PHPUnit
+        run: php vendor/bin/phpunit --group integration
+        env:
+          APP_ENV: testing
+          RUN_ORDER_INTEGRATION: '1'
+          DB_CONNECTION: pgsql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 5432
+          DB_DATABASE: orders
+          DB_USERNAME: marketplace
+          DB_PASSWORD: marketplace
+
   docker:
     name: Build and publish image
-    needs: test
+    needs: integration
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:

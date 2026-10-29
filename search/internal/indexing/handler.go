@@ -31,12 +31,18 @@ func NewHandler(products ProductStore, categories CategoryStore) *Handler {
 
 func (h *Handler) Handle(ctx context.Context, topic string, payload []byte) error {
 	switch topic {
-	case "product.created", "product.updated":
+	case "product.created", "product.updated", "product.published":
 		doc, err := productDocumentFromPayload(payload)
 		if err != nil {
 			return err
 		}
 		return h.products.UpsertProduct(ctx, doc)
+	case "product.unpublished":
+		id, err := productIDFromDeletePayload(payload)
+		if err != nil {
+			return err
+		}
+		return h.products.DeleteProduct(ctx, id)
 	case "product.deleted":
 		id, err := productIDFromDeletePayload(payload)
 		if err != nil {
@@ -102,7 +108,7 @@ func productDocumentFromPayload(payload []byte) (opensearch.ProductDocument, err
 		Image:       image,
 		Description: description,
 		Price:       optionalInt(raw, "price"),
-		Available:   true,
+		Available:   productAvailableFromPayload(raw),
 	}
 
 	if attrs, ok := raw["attributes"]; ok && len(attrs) > 0 && string(attrs) != "null" {
@@ -114,6 +120,21 @@ func productDocumentFromPayload(payload []byte) (opensearch.ProductDocument, err
 	}
 
 	return doc, nil
+}
+
+func productAvailableFromPayload(raw map[string]json.RawMessage) bool {
+	if inStock, ok := raw["in_stock"]; ok && len(inStock) > 0 && string(inStock) != "null" {
+		var parsed bool
+		if err := json.Unmarshal(inStock, &parsed); err == nil {
+			return parsed
+		}
+	}
+	quantity := optionalInt(raw, "quantity")
+	reserved := optionalInt(raw, "reserved")
+	if quantity > 0 || reserved > 0 {
+		return quantity-reserved > 0
+	}
+	return true
 }
 
 func productIDFromDeletePayload(payload []byte) (string, error) {

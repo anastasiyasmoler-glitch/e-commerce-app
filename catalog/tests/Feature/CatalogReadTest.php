@@ -149,4 +149,79 @@ class CatalogReadTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.stock.quantity', 9);
     }
+
+    public function test_categories_can_be_filtered_by_parent_id(): void
+    {
+        $store = Store::query()->create(['name' => 'Nordic Home', 'slug' => 'nordic-home']);
+        $root = Category::query()->create([
+            'store_id' => $store->id,
+            'name' => 'Furniture',
+            'slug' => 'furniture',
+        ]);
+        Category::query()->create([
+            'store_id' => $store->id,
+            'parent_id' => $root->id,
+            'name' => 'Sofas',
+            'slug' => 'sofas',
+        ]);
+
+        $this->getJson('/categories?store_id='.$store->id)
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.slug', 'furniture');
+
+        $this->getJson('/categories?store_id='.$store->id.'&parent_id='.$root->id)
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.slug', 'sofas');
+    }
+
+    public function test_products_can_be_filtered_by_category_and_pagination(): void
+    {
+        $store = Store::query()->create(['name' => 'Nordic Home', 'slug' => 'nordic-home']);
+        $sofas = Category::query()->create([
+            'store_id' => $store->id,
+            'name' => 'Sofas',
+            'slug' => 'sofas',
+        ]);
+        $tables = Category::query()->create([
+            'store_id' => $store->id,
+            'name' => 'Tables',
+            'slug' => 'tables',
+        ]);
+
+        foreach (['alpha', 'beta', 'gamma'] as $index => $slug) {
+            Product::query()->create([
+                'store_id' => $store->id,
+                'category_id' => $sofas->id,
+                'name' => 'Sofa '.$slug,
+                'slug' => 'sofa-'.$slug,
+                'price' => 1000 + $index,
+                'is_published' => true,
+            ]);
+        }
+
+        Product::query()->create([
+            'store_id' => $store->id,
+            'category_id' => $tables->id,
+            'name' => 'Table One',
+            'slug' => 'table-one',
+            'price' => 2000,
+            'is_published' => true,
+        ]);
+
+        $this->getJson('/products?store_id='.$store->id.'&category_id='.$sofas->id.'&page=1&per_page=2')
+            ->assertOk()
+            ->assertJsonCount(2, 'data');
+
+        $this->getJson('/products?store_id='.$store->id.'&category_id='.$sofas->id.'&page=2&per_page=2')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.slug', 'sofa-gamma');
+    }
+
+    public function test_products_list_requires_store_id(): void
+    {
+        $this->getJson('/products')->assertUnprocessable();
+    }
 }

@@ -1,87 +1,93 @@
-# Analytics service
+# Analytics Service
 
-Laravel service that ingests platform facts from **Kafka** into **ClickHouse** for reporting APIs (later cards: Analyst/Admin REST).
+Event ingestion and reporting APIs.
+
+## Overview
+
+Consumes platform Kafka topics, stores raw events in ClickHouse, maintains daily rollups via materialized views, and exposes aggregated REST endpoints for staff users through the Auth gateway.
 
 ## Stack
 
-- PHP 8.5, Laravel 13
-- ClickHouse: `events_raw` (staging) + daily rollups maintained by **materialized views**
-- Kafka consumer on `microservices-net` (`kafka:9092` from Notification compose)
-- Nginx HTTPS on host port **8447**
-
-## Consumed topics
-
-| Topic | Source (typical) |
+| Component | Technology |
 | --- | --- |
-| `user.registered` | Auth |
-| `order.created` | Order |
-| `order.paid` | Order |
-| `order.shipped` | Order (staff ship) |
-| `order.completed` | Order (staff complete) |
-| `order.cancelled` | Order |
-| `search.performed` | Search |
+| Runtime | PHP 8.5, Laravel 13 |
+| Analytics store | ClickHouse |
+| Messaging | Kafka consumer |
+| Framework DB | SQLite (Laravel system tables only) |
+| Edge | Nginx TLS, host port **8447** |
 
-## Local run
-
-1. Ensure external network and Kafka are up (Notification `docker compose up -d`).
-2. From this directory:
+## Getting started
 
 ```bash
+docker network create microservices-net   # once
+cd notification && docker compose up -d kafka
+cd ../analytics
+cp .env.example .env
 docker compose up -d --build
 ```
 
-3. Health (direct to service nginx):
-   - `https://localhost:8447/api/healthz` — process up
-   - `https://localhost:8447/api/readyz` — ClickHouse ping
-
-   Through **Auth gateway** (same paths under `/api/analytics`, CORS handled by Auth nginx):
-   - `https://localhost/api/analytics/healthz`
-   - `https://localhost/api/analytics/readyz`
-
-4. Consumer logs: `docker compose logs -f consumer`
-
-Laravel SQLite is only for framework tables; analytics data lives in ClickHouse.
-
-## ClickHouse schema
-
-| Table | Role |
+| Endpoint | URL |
 | --- | --- |
-| `events_raw` | One row per Kafka message (`topic`, JSON `payload`, `occurred_at`) |
-| `registrations_daily` | MV `mv_registrations_daily` — registrations per day |
-| `orders_daily` | MV `mv_orders_daily` — created / paid / cancelled / `revenue_cents` per day |
-| `search_daily` | MV `mv_search_daily` — searches and zero-result counts per day |
-| `search_query_daily` | MV `mv_search_query_daily` — per query per day (top / zero lists) |
+| Health | `https://localhost:8447/api/healthz`, `/api/readyz` |
+| Gateway | `https://localhost/api/analytics/*` |
+| OpenAPI | `/docs`, [docs/openapi.yaml](docs/openapi.yaml) |
 
-SQL: `docker/clickhouse/init/01_schema.sql`, `02_rollups.sql`.
+## Documentation
 
-**Existing data before rollups:** MVs only apply to new inserts. Backfill once:
+| File | Description |
+| --- | --- |
+| [docs/openapi.yaml](docs/openapi.yaml) | Report APIs |
+| [docs/events.md](docs/events.md) | Kafka topics |
+| [docs/architecture.md](docs/architecture.md) | Architecture diagrams |
+
+## Report APIs
+
+Staff JWT via gateway (`admin`, `analyst`):
+
+| Method | Path | Metrics |
+| --- | --- | --- |
+| GET | `/analytics/users` | Registrations by day |
+| GET | `/analytics/orders` | Order funnel and revenue |
+| GET | `/analytics/search` | Search volume and zero-result queries |
+
+Query parameters: `from`, `to` (date range). Schemas in OpenAPI.
+
+## ClickHouse
+
+| Object | Role |
+| --- | --- |
+| `events_raw` | Staging table (one row per Kafka message) |
+| `*_daily` tables | Rollups via materialized views |
+
+SQL initialization: `docker/clickhouse/init/`.
+
+## Docker services
+
+| Service | Purpose |
+| --- | --- |
+| `clickhouse` | Analytics storage |
+| `consumer` | `kafka:consume-analytics` |
+| `back`, `nginx` | API |
+
+## Testing
 
 ```bash
-docker compose exec clickhouse clickhouse-client --multiquery < docker/clickhouse/init/03_backfill_rollups.sql
+cd analytics
+composer install
+cp .env.example .env && php artisan key:generate
+php vendor/bin/phpunit
 ```
 
-(or run that file from the `analytics/` directory on the host with `clickhouse-client`).
-
-Report APIs read rollup tables (`sum(...)` by day range). `currency` on orders still uses a lightweight lookup on `events_raw`.
-
-## Artisan
+Integration tests need ClickHouse and Kafka (CI sets `ANALYTICS_CLICKHOUSE_TESTS=1`, `KAFKA_BROKERS`). Locally:
 
 ```bash
-php artisan kafka:consume-analytics
+export ANALYTICS_CLICKHOUSE_TESTS=1
+export CLICKHOUSE_HOST=127.0.0.1
+export CLICKHOUSE_PORT=8123
+export KAFKA_BROKERS=127.0.0.1:9092
+php artisan test --testsuite=Integration
 ```
 
-## API contract
+Coverage: user/order/search rollups in ClickHouse, Kafka publish → consume → `events_raw`.
 
-OpenAPI: [`docs/openapi.yaml`](docs/openapi.yaml) (Swagger UI at `/docs`, gateway base `https://localhost/api/analytics`).
-
-## Report APIs (staff JWT via gateway)
-
-| Gateway path | Metrics in `data` |
-| --- | --- |
-| `GET /api/analytics/users?from=&to=` | `total`, `by_day[]` from `user.registered` |
-| `GET /api/analytics/orders?from=&to=` | funnel `created` / `paid` / `shipped` / `completed` / `cancelled`, `conversion_rate`, `completion_rate`, revenue fields from `order.*` |
-| `GET /api/analytics/search?from=&to=` | `total`, `top_queries[]`, `zero_result_total`, `zero_result_queries[]` from `search.performed` (`result_count`) |
-
-## Environment
-
-See `.env.example` for `KAFKA_*` and `CLICKHOUSE_*`.
+CI: `.github/workflows/analytics.yml`.

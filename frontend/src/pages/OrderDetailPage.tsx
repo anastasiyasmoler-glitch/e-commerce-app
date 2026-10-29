@@ -1,24 +1,54 @@
 import { Link } from 'react-router-dom'
-import { OrderStatusBadge } from '@/components/order/OrderStatusBadge'
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from '@/components/ui/breadcrumb'
 import { Button } from '@/components/ui/button'
 import { Container } from '@/components/ui/container'
 import { PageLoading } from '@/components/ui/loading-screen'
+import { OrderStatusBadge } from '@/components/order/OrderStatusBadge'
 import { useOrderDetailPage } from '@/hooks/useOrderDetailPage'
-import { formatUsd } from '@/lib/money/formatUsd'
+import { formatOrderMoney } from '@/lib/order/orderStatus'
 import { paths } from '@/paths'
+import { apiErrorMessage } from '@/api/http'
 
 export function OrderDetailPage() {
   const detail = useOrderDetailPage()
 
-  if (detail.isPending) {
+  if (detail.needsAuth) {
+    return (
+      <Container className="py-16 text-center">
+        <p className="text-muted">Sign in to view this order.</p>
+      </Container>
+    )
+  }
+
+  if (detail.invalidId) {
+    return (
+      <Container className="py-16 text-center">
+        <p className="text-muted">Invalid order.</p>
+        <Button asChild variant="link" className="mt-4">
+          <Link to={paths.orders}>Back to orders</Link>
+        </Button>
+      </Container>
+    )
+  }
+
+  if (detail.query.isPending) {
     return <PageLoading />
   }
 
-  if (detail.isNotFound || !detail.order) {
+  if (detail.query.isError || !detail.order) {
     return (
-      <Container className="py-20 text-center">
-        <h1 className="font-display text-[28px] font-medium">Order not found</h1>
-        <Button asChild className="mt-6 h-11 rounded-sm">
+      <Container className="py-16 text-center">
+        <p className="text-danger">
+          {detail.query.isError ? apiErrorMessage(detail.query.error) : 'Order not found.'}
+        </p>
+        <Button asChild variant="link" className="mt-4">
           <Link to={paths.orders}>Back to orders</Link>
         </Button>
       </Container>
@@ -26,75 +56,62 @@ export function OrderDetailPage() {
   }
 
   const order = detail.order
-  const isCancelled = order.status === 'cancelled'
-  const isPaymentFailed = order.status === 'payment_failed'
 
   return (
     <Container className="py-8">
+      <Breadcrumb className="mb-4">
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink asChild>
+              <Link to={paths.home}>Home</Link>
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbLink asChild>
+              <Link to={paths.orders}>My orders</Link>
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>Order #{order.id}</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
+
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <p className="text-[13px] font-semibold tracking-[0.08em] text-brand uppercase">Order</p>
-          <h1 className="font-display text-[36px] font-medium">#{order.id}</h1>
-        </div>
+        <h1 className="font-display text-[36px] font-medium">Order #{order.id}</h1>
         <OrderStatusBadge status={order.status} />
       </div>
-      {(isCancelled || isPaymentFailed) && (
-        <div className="mb-6 rounded-[8px] border border-line bg-subtle px-4 py-3 text-[14px] text-muted">
-          {isCancelled
-            ? 'This order was cancelled. Items are no longer reserved.'
-            : 'Payment could not be completed. Stock may have been released.'}
-        </div>
-      )}
-      <div className="grid gap-8 lg:grid-cols-[1fr_280px]">
-        <section className="rounded-[8px] border border-line bg-surface p-6">
-          <h2 className="text-[13px] font-semibold tracking-[0.08em] uppercase">Items</h2>
-          <ul className="mt-4 divide-y divide-line">
-            {order.items.map((item) => (
-              <li
-                key={`${item.store_id}:${item.product_id}`}
-                className="flex justify-between gap-4 py-3 text-[15px]"
-              >
-                <div>
-                  <p className="font-medium">{item.product_name}</p>
-                  <p className="text-[13px] text-muted">
-                    Qty {item.quantity}
-                    {item.sku ? ` · ${item.sku}` : ''}
-                  </p>
-                </div>
-                <span className="font-semibold">
-                  {formatUsd(item.price_cents * item.quantity, order.currency)}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </section>
-        <aside className="space-y-4">
-          <div className="rounded-[8px] border border-line bg-surface p-6">
-            <h2 className="text-[13px] font-semibold tracking-[0.08em] uppercase">Total</h2>
-            <p className="mt-2 text-[22px] font-semibold">
-              {formatUsd(order.total_cents, order.currency)}
-            </p>
-            {order.created_at ? (
-              <p className="mt-2 text-[13px] text-muted">
-                Placed {new Date(order.created_at).toLocaleString()}
-              </p>
-            ) : null}
-          </div>
-          {detail.canCancel ? (
-            <Button
-              type="button"
-              variant="outline"
-              className="h-11 w-full rounded-sm"
-              disabled={detail.cancel.isPending}
-              onClick={() => detail.cancel.mutate()}
-            >
-              {detail.cancel.isPending ? 'Cancelling…' : 'Cancel order'}
-            </Button>
-          ) : null}
-          <Button variant="ghost" className="h-11 w-full rounded-sm" asChild>
-            <Link to={paths.orders}>All orders</Link>
-          </Button>
-        </aside>
+
+      <p className="mb-8 text-[15px] text-muted">
+        Placed{' '}
+        {order.created_at ? new Date(order.created_at).toLocaleString() : '—'}
+      </p>
+
+      <table className="mb-8 w-full border-collapse rounded-[12px] border border-line">
+        <thead>
+          <tr className="border-b border-line text-left text-[13px] font-semibold tracking-[0.06em] uppercase">
+            <th className="p-4">Item</th>
+            <th className="p-4">Qty</th>
+            <th className="p-4 text-right">Price</th>
+          </tr>
+        </thead>
+        <tbody>
+          {order.items.map((item) => (
+            <tr key={`${item.product_id}-${item.sku}`} className="border-t border-line text-[15px]">
+              <td className="p-4">{item.product_name}</td>
+              <td className="p-4">{item.quantity}</td>
+              <td className="p-4 text-right">
+                {formatOrderMoney(item.price_cents * item.quantity, order.currency)}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      <div className="flex justify-end text-[18px] font-semibold">
+        Total {formatOrderMoney(order.total_cents, order.currency)}
       </div>
     </Container>
   )

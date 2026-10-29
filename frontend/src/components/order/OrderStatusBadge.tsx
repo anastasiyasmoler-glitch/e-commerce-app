@@ -1,4 +1,3 @@
-import { Badge } from '@/components/ui/badge'
 import { orderStatusLabel } from '@/lib/order/orderStatus'
 
 type OrderStatusBadgeProps = {
@@ -6,12 +5,9 @@ type OrderStatusBadgeProps = {
 }
 
 export function OrderStatusBadge({ status }: OrderStatusBadgeProps) {
-  const variant =
-    status === 'cancelled' || status === 'payment_failed'
-      ? 'destructive'
-      : status === 'completed' || status === 'paid' || status === 'confirmed'
-        ? 'secondary'
-        : 'outline'
-
-  return <Badge variant={variant}>{orderStatusLabel(status)}</Badge>
+  return (
+    <span className="inline-flex rounded-[6px] border border-line bg-subtle px-2 py-0.5 text-[12px] font-medium text-ink">
+      {orderStatusLabel(status)}
+    </span>
+  )
 }

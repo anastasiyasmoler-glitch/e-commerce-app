@@ -4,7 +4,6 @@ package integration
 
 import (
 	"context"
-	"os"
 	"testing"
 	"time"
 
@@ -15,18 +14,6 @@ import (
 	"github.com/segmentio/kafka-go"
 	"github.com/stretchr/testify/require"
 )
-
-func openSearchURL() string {
-	if v := os.Getenv("OPENSEARCH_URL"); v != "" {
-		return v
-	}
-
-	return "http://127.0.0.1:9200"
-}
-
-func kafkaBrokers() string {
-	return os.Getenv("KAFKA_BROKERS")
-}
 
 func TestProductIndexingAndSearch(t *testing.T) {
 	ctx := context.Background()
@@ -73,10 +60,7 @@ func TestProductIndexingAndSearch(t *testing.T) {
 }
 
 func TestPublishSearchPerformed(t *testing.T) {
-	brokers := kafkaBrokers()
-	if brokers == "" {
-		t.Skip("KAFKA_BROKERS not set")
-	}
+	brokers := requireKafka(t)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
@@ -103,4 +87,38 @@ func TestPublishSearchPerformed(t *testing.T) {
 
 	_, err = reader.ReadMessage(ctx)
 	require.NoError(t, err)
+}
+
+func TestRepeatedProductUpdatedKeepsSingleIndexedDocument(t *testing.T) {
+	ctx := context.Background()
+	client := opensearch.NewClient(openSearchURL())
+	require.NoError(t, client.EnsureProductsIndex(ctx))
+
+	productID := "99002"
+	require.NoError(t, client.DeleteProduct(ctx, productID))
+
+	handler := indexing.NewHandler(client, client)
+	first := []byte(`{
+		"id": 99002,
+		"store_id": 10,
+		"category_id": 501,
+		"name": "First title",
+		"price": 1000
+	}`)
+	second := []byte(`{
+		"id": 99002,
+		"store_id": 10,
+		"category_id": 501,
+		"name": "Second title",
+		"price": 2500
+	}`)
+
+	require.NoError(t, handler.Handle(ctx, "product.updated", first))
+	require.NoError(t, handler.Handle(ctx, "product.updated", second))
+	require.NoError(t, client.Refresh(ctx))
+
+	doc, err := client.GetProduct(ctx, productID)
+	require.NoError(t, err)
+	require.Equal(t, "Second title", doc.Name)
+	require.Equal(t, 2500, doc.Price)
 }

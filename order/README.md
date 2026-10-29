@@ -1,51 +1,95 @@
-# Catalog Service
+# Order Service
 
-Source of truth for stores, categories, products, images, and stock. Checkpoint 2. Laravel 13, PHP 8.5.
+Order lifecycle, payments, and checkout orchestration.
 
-Kafka stays in the Notification compose (`kafka:9092`). This service joins `microservices-net`. Store admin UI is Filament inside this service (not started). The storefront is `frontend/`. Shared `admin/` SPA does not manage catalog.
+## Overview
 
-## Run
+Manages customer orders, local product snapshots, Stripe payments, and saga steps over Kafka. Uses PostgreSQL with an outbox for reliable event publishing. Checkout UI is in the monorepo Frontend application.
 
-Bring Notification up first so Kafka exists, then Catalog.
+## Stack
 
-```powershell
-docker network create microservices-net
-cd notification
-docker compose up -d kafka
-cd ../catalog
-docker compose up --build
+| Component | Technology |
+| --- | --- |
+| Runtime | PHP 8.5, Laravel 13 |
+| Database | PostgreSQL 16 |
+| Cache | Redis (idempotency keys) |
+| Payments | Stripe (test mode) |
+| Messaging | Kafka, outbox relay |
+| Edge | Nginx TLS, host port **8445** |
+
+## Getting started
+
+```bash
+docker network create microservices-net   # once
+cd notification && docker compose up -d kafka
+cd ../order
+cp .env.example .env
+docker compose up -d --build
 ```
 
-https://localhost:8444 (self-signed). HTTP 8082 redirects to HTTPS.
+| Endpoint | URL |
+| --- | --- |
+| API (direct) | `https://localhost:8445` |
+| Gateway | `https://localhost/api/orders` |
+| OpenAPI | `/docs`, [docs/openapi.yaml](docs/openapi.yaml) |
+| Webhook | `POST /webhooks/stripe` (signature verified, no JWT) |
 
-Postgres user/password/database: `marketplace` / `marketplace` / `catalog`.
+Optional: `docker compose --profile stripe up` for Stripe CLI forwarding.
 
-Compose services: `sql`, `redis`, `minio` (host 9004/9005), `minio-init`, `back`, `consumer`, `nginx`.
+## Documentation
 
-Tables: `stores`, `categories` (tree via `parent_id`), `products`, `stocks` (`quantity`, `reserved`). Isolation is `store_id` on rows.
+| File | Description |
+| --- | --- |
+| [docs/openapi.yaml](docs/openapi.yaml) | REST API |
+| [docs/events.md](docs/events.md) | Kafka topics |
+| [docs/architecture.md](docs/architecture.md) | Architecture diagrams |
 
-## Public REST (no JWT)
+## REST API
 
-- `GET /categories?store_id=&parent_id=`
-- `GET /products?store_id=&category_id=&page=`
-- `GET /products/{id}?store_id=`
+| Method | Path | Description |
+| --- | --- | --- |
+| POST | `/orders` | Create order (`Idempotency-Key` header) |
+| GET | `/orders` | List orders (own or all for staff) |
+| GET | `/orders/{id}` | Order detail |
+| POST | `/orders/{id}/cancel` | Cancel before shipment |
+| POST | `/orders/{id}/ship` | Mark shipped (staff) |
+| POST | `/orders/{id}/complete` | Mark completed (staff) |
 
-Full-text and facets belong in Search, not here.
+## Docker services
 
-## Kafka
+| Service | Purpose |
+| --- | --- |
+| `sql`, `redis` | State and idempotency |
+| `back` | Laravel API |
+| `consumer` | Kafka consumer |
+| `outbox-relay` | Publish outbox to Kafka |
+| `nginx` | TLS |
 
-Group: `catalog-service-group`. Consumer: `php artisan kafka:consume-catalog`.
+## Testing
 
-Publishes: `product.created`, `product.updated`, `product.deleted`, `category.created`, `category.updated`, `category.deleted`, `stock.changed`, `stock.reserved`, `stock.reservation_failed`.
-
-Consumes: `order.created`, `stock.release_requested`.
-
-`order.created` payload: `{ "order_id", "items": [{ "product_id", "store_id", "quantity" }] }`. Available stock is `quantity - reserved`. Tests use `ArrayKafkaPublisher`; they do not need a live broker.
-
-## Tests
-
-```powershell
+```bash
+cd order
+composer install
+cp .env.example .env && php artisan key:generate
 php vendor/bin/phpunit
 ```
 
-CI: `.github/workflows/catalog.yml` (Pint, PHPUnit, image publish on `main`).
+Default CI runs unit and feature tests on SQLite. **Integration** tests (`tests/Integration`, PHPUnit group `integration`) require PostgreSQL:
+
+```bash
+export RUN_ORDER_INTEGRATION=1
+export DB_CONNECTION=pgsql
+export DB_HOST=127.0.0.1
+export DB_PORT=5432
+export DB_DATABASE=orders
+export DB_USERNAME=marketplace
+export DB_PASSWORD=marketplace
+php artisan migrate --force
+php vendor/bin/phpunit --group integration
+```
+
+CI: `.github/workflows/order.yml`.
+
+## Messaging note
+
+Course specs may mention RabbitMQ; this monorepo uses **Apache Kafka** with the same event names (`order.created`, `stock.reserved`, etc.). Kafka runs in the Notification compose; Order connects via `microservices-net`.

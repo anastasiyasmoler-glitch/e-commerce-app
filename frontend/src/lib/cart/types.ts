@@ -3,7 +3,6 @@ export type CartLine = {
   storeId: number
   name: string
   slug: string
-  sku: string
   priceCents: number
   quantity: number
   imageUrl?: string | null

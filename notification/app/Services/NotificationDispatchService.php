@@ -116,6 +116,24 @@ class NotificationDispatchService
         $this->logs->markDlq($log);
     }
 
+    public function replayNotificationLog(string $notificationLogId): NotificationLog
+    {
+        $log = $this->logs->findById($notificationLogId);
+
+        if ($log === null) {
+            throw new RuntimeException("Notification log [{$notificationLogId}] not found.");
+        }
+
+        if (! $log->is_dlq) {
+            throw new InvalidArgumentException('Only notifications moved to DLQ can be replayed.');
+        }
+
+        $this->logs->resetForReplay($log);
+        SendNotificationEmailJob::dispatch($notificationLogId, skipDlqPublish: true);
+
+        return $log->fresh() ?? $log;
+    }
+
     /**
      * @param  array<string, mixed>  $body
      */
@@ -133,7 +151,7 @@ class NotificationDispatchService
         if ($logId !== '') {
             $existing = $this->logs->findById($logId);
             if ($existing !== null) {
-                SendNotificationEmailJob::dispatch($logId, skipDlqPublish: true);
+                $this->replayNotificationLog($logId);
 
                 return;
             }

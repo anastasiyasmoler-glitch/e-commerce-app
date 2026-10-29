@@ -2,6 +2,7 @@
 
 namespace App\Repositories\Contracts;
 
+use App\Data\NotificationHistoryFilters;
 use App\Models\NotificationLog;
 use Illuminate\Database\Eloquent\Collection;
 
@@ -19,9 +20,16 @@ interface NotificationLogRepositoryInterface
      */
     public function listLatest(): Collection;
 
+    /**
+     * @return Collection<int, NotificationLog>
+     */
+    public function listFiltered(NotificationHistoryFilters $filters): Collection;
+
     public function markSent(NotificationLog $log): NotificationLog;
 
     public function markFailed(NotificationLog $log, string $errorMessage): NotificationLog;
 
     public function markDlq(NotificationLog $log): NotificationLog;
+
+    public function resetForReplay(NotificationLog $log): NotificationLog;
 }
