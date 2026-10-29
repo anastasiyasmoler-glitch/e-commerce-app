@@ -140,8 +140,7 @@ class KafkaCatalogIngestIntegrationTest extends TestCase
         $config->setInterval(0.2);
         $config->setAutoCommit(true);
 
-        $consumer = new Consumer($config, static function (): void {
-        });
+        $consumer = new Consumer($config, static function (): void {});
 
         $deadline = microtime(true) + 30.0;
         while (microtime(true) < $deadline) {

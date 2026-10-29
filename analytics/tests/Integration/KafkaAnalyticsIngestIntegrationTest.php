@@ -6,9 +6,9 @@ use App\Infrastructure\ClickHouseClientFactory;
 use App\Services\AnalyticsEventIngestService;
 use App\Services\UserMetricsService;
 use Carbon\CarbonImmutable;
+use longlang\phpkafka\Consumer\ConsumeMessage;
 use longlang\phpkafka\Consumer\Consumer;
 use longlang\phpkafka\Consumer\ConsumerConfig;
-use longlang\phpkafka\Consumer\ConsumeMessage;
 use longlang\phpkafka\Producer\Producer;
 use longlang\phpkafka\Producer\ProducerConfig;
 
@@ -96,8 +96,7 @@ class KafkaAnalyticsIngestIntegrationTest extends ClickHouseIntegrationTestCase
         $config->setInterval(0.2);
         $config->setAutoCommit(true);
 
-        $consumer = new Consumer($config, static function (): void {
-        });
+        $consumer = new Consumer($config, static function (): void {});
 
         $deadline = microtime(true) + 30.0;
         while (microtime(true) < $deadline) {
