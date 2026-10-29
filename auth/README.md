@@ -2,8 +2,6 @@
 
 JWT authentication for the e-commerce training monorepo.
 
-Start here. `docs/auth-stack.md` is a short run sheet.
-
 ## Role
 
 Auth is checkpoint 1. Other services ask Auth `GET /me` to validate an access token. After registration Auth publishes `user.registered` (email, name, user_id) to `kafka:9092` on `microservices-net`. Start Notification first so that broker exists. If Kafka is down, publish is logged and registration still succeeds.
