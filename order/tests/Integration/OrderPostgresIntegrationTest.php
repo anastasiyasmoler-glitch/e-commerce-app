@@ -19,11 +19,11 @@ class OrderPostgresIntegrationTest extends TestCase
             $this->markTestSkipped('Set RUN_ORDER_INTEGRATION=1 with PostgreSQL (see order README).');
         }
 
+        parent::setUp();
+
         if (config('database.default') !== 'pgsql') {
             $this->markTestSkipped('Integration tests require DB_CONNECTION=pgsql.');
         }
-
-        parent::setUp();
     }
 
     public function test_create_order_persists_relational_rows_and_outbox_on_postgres(): void

@@ -75,11 +75,17 @@ class KafkaAnalyticsIngestIntegrationTest extends ClickHouseIntegrationTestCase
     private function publishKafkaMessage(string $brokers, string $topic, string $payload): void
     {
         $config = new ProducerConfig;
-        $config->setBroker($brokers);
+        $config->setBootstrapServer($brokers);
         $config->setUpdateBrokers(true);
+        $config->setAcks(-1);
 
         $producer = new Producer($config);
-        $producer->send($topic, $payload, 'analytics-it-'.uniqid());
+
+        try {
+            $producer->send($topic, $payload, 'analytics-it-'.uniqid());
+        } finally {
+            $producer->close();
+        }
     }
 
     /**
