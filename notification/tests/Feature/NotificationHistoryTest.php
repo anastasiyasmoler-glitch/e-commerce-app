@@ -2,10 +2,12 @@
 
 namespace Tests\Feature;
 
+use App\Jobs\SendNotificationEmailJob;
 use App\Models\NotificationLog;
 use App\Repositories\Contracts\NotificationLogRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Bus;
 use Mockery;
 use Tests\TestCase;
 
@@ -75,7 +77,7 @@ class NotificationHistoryTest extends TestCase
 
     public function test_replay_queues_job_for_dlq_notification(): void
     {
-        \Illuminate\Support\Facades\Bus::fake();
+        Bus::fake();
 
         $log = $this->log();
         $log->forceFill([
@@ -111,9 +113,9 @@ class NotificationHistoryTest extends TestCase
             ->assertJsonPath('data.status', NotificationLog::STATUS_PENDING)
             ->assertJsonPath('data.is_dlq', false);
 
-        \Illuminate\Support\Facades\Bus::assertDispatched(
-            \App\Jobs\SendNotificationEmailJob::class,
-            fn (\App\Jobs\SendNotificationEmailJob $job): bool => $job->notificationLogId === '507f1f77bcf86cd799439011'
+        Bus::assertDispatched(
+            SendNotificationEmailJob::class,
+            fn (SendNotificationEmailJob $job): bool => $job->notificationLogId === '507f1f77bcf86cd799439011'
                 && $job->skipDlqPublish === true,
         );
     }
