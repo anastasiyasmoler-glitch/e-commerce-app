@@ -2,7 +2,11 @@ import { useCallback, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useSelectedStore } from '@/catalog/useSelectedStore'
 import { useSearch } from '@/hooks/useSearch'
-import { parseSearchRequest, toggleCategoryId } from '@/lib/search/searchParams'
+import {
+  parseSearchRequest,
+  priceRangeFromFacetKey,
+  toggleCategoryId,
+} from '@/lib/search/searchParams'
 
 export type SearchPageStatus = 'loading' | 'no-store' | 'error' | 'ready'
 
@@ -51,6 +55,88 @@ export function useSearchPage() {
     })
   }, [updateParams])
 
+  const setSort = useCallback(
+    (sort: 'relevance' | 'price_asc' | 'price_desc') => {
+      updateParams((params) => {
+        if (sort === 'relevance') {
+          params.delete('sort')
+        } else {
+          params.set('sort', sort)
+        }
+      })
+    },
+    [updateParams],
+  )
+
+  const setAvailableFilter = useCallback(
+    (value: boolean | undefined) => {
+      updateParams((params) => {
+        params.delete('available')
+        if (value === true) {
+          params.set('available', 'true')
+        } else if (value === false) {
+          params.set('available', 'false')
+        }
+      })
+    },
+    [updateParams],
+  )
+
+  const applyPriceRange = useCallback(
+    (priceMin?: number, priceMax?: number) => {
+      updateParams((params) => {
+        params.delete('price_min')
+        params.delete('price_max')
+        if (priceMin !== undefined && priceMin >= 0) {
+          params.set('price_min', String(priceMin))
+        }
+        if (priceMax !== undefined && priceMax >= 0) {
+          params.set('price_max', String(priceMax))
+        }
+      })
+    },
+    [updateParams],
+  )
+
+  const applyPriceFacet = useCallback(
+    (facetKey: string) => {
+      const range = priceRangeFromFacetKey(facetKey)
+      applyPriceRange(range.price_min, range.price_max)
+    },
+    [applyPriceRange],
+  )
+
+  const clearPriceFilter = useCallback(() => {
+    updateParams((params) => {
+      params.delete('price_min')
+      params.delete('price_max')
+    })
+  }, [updateParams])
+
+  const toggleAttribute = useCallback(
+    (code: string, value: string) => {
+      updateParams((params) => {
+        const key = `attr.${code}`
+        if (params.get(key) === value) {
+          params.delete(key)
+        } else {
+          params.set(key, value)
+        }
+      })
+    },
+    [updateParams],
+  )
+
+  const clearAttributes = useCallback(() => {
+    updateParams((params) => {
+      for (const key of [...params.keys()]) {
+        if (key.startsWith('attr.')) {
+          params.delete(key)
+        }
+      }
+    })
+  }, [updateParams])
+
   const goToPage = useCallback(
     (page: number) => {
       const next = new URLSearchParams(searchParams)
@@ -77,7 +163,11 @@ export function useSearchPage() {
   const total = result?.pagination.total ?? 0
   const queryLabel = request?.q?.trim() ? request.q.trim() : 'All products'
   const categories = result?.facets.category_id ?? []
+  const priceFacets = result?.facets.price ?? []
+  const availableFacets = result?.facets.available ?? []
+  const attributeFacets = result?.facets.attributes ?? {}
   const activeCategoryIds = request?.category_id ?? []
+  const activeAttributes = request?.attributes ?? {}
 
   return {
     status,
@@ -88,9 +178,24 @@ export function useSearchPage() {
     total,
     queryLabel,
     categories,
+    priceFacets,
+    availableFacets,
+    attributeFacets,
     activeCategoryIds,
+    activeAttributes,
+    activeSort: request?.sort ?? 'relevance',
+    activeAvailable: request?.available,
+    activePriceMin: request?.price_min,
+    activePriceMax: request?.price_max,
     toggleCategory,
     clearCategories,
+    setSort,
+    setAvailableFilter,
+    applyPriceRange,
+    applyPriceFacet,
+    clearPriceFilter,
+    toggleAttribute,
+    clearAttributes,
     goToPage,
   }
 }

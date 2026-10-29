@@ -11,11 +11,34 @@ import {
 import { Button } from '@/components/ui/button'
 import { Container } from '@/components/ui/container'
 import { PageLoading } from '@/components/ui/loading-screen'
+import toast from 'react-hot-toast'
+import { useCart } from '@/lib/cart/CartContext'
 import { useProductPage } from '@/hooks/useProductPage'
 import { categoryPath, paths } from '@/paths'
 
 export function ProductPage() {
   const productPage = useProductPage()
+  const cart = useCart()
+
+  function addToCart() {
+    const { product } = productPage
+    if (!product || !productPage.inStock) {
+      return
+    }
+
+    cart.addLine(
+      {
+        productId: product.id,
+        storeId: product.store_id,
+        name: product.name,
+        slug: product.slug,
+        priceCents: product.price,
+        imageUrl: product.image_url,
+      },
+      1,
+    )
+    toast.success('Added to cart')
+  }
 
   if (productPage.status === 'loading') {
     return <PageLoading />
@@ -102,10 +125,11 @@ export function ProductPage() {
             <div className="mb-8 grid grid-cols-1 gap-3">
               <Button
                 type="button"
-                disabled
-                className="h-[52px] w-full rounded-[6px] bg-subtle px-8 text-[16px] font-semibold text-muted"
+                disabled={!inStock}
+                className="h-[52px] w-full rounded-[6px] bg-brand px-8 text-[16px] font-semibold text-white hover:bg-brand-dark disabled:bg-subtle disabled:text-muted"
+                onClick={addToCart}
               >
-                Add to cart
+                {inStock ? 'Add to cart' : 'Out of stock'}
               </Button>
             </div>
             <table className="w-full border-collapse">

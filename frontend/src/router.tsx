@@ -8,6 +8,10 @@ import { paths } from './paths'
 import { ChatPage } from './pages/ChatPage'
 import { ProfilePage } from './pages/ProfilePage'
 import { SearchPage } from './pages/SearchPage'
+import { CartPage } from './pages/CartPage'
+import { CheckoutPage } from './pages/CheckoutPage'
+import { OrdersPage } from './pages/OrdersPage'
+import { OrderDetailPage } from './pages/OrderDetailPage'
 
 export const router = createBrowserRouter([
   {
@@ -19,11 +23,15 @@ export const router = createBrowserRouter([
       { path: 'categories/:slug', element: <CategoryPage /> },
       { path: 'products/:id', element: <ProductPage /> },
       { path: 'search', element: <SearchPage /> },
+      { path: 'cart', element: <CartPage /> },
       {
         element: <RequireAuth />,
         children: [
           { path: 'profile', element: <ProfilePage /> },
           { path: 'assistant', element: <ChatPage /> },
+          { path: 'checkout', element: <CheckoutPage /> },
+          { path: 'orders', element: <OrdersPage /> },
+          { path: 'orders/:id', element: <OrderDetailPage /> },
         ],
       },
     ],

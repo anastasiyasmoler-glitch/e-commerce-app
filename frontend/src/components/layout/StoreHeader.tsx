@@ -9,6 +9,7 @@ import { useSelectedStore } from '@/catalog/useSelectedStore'
 import { useCategories } from '@/hooks/useCategories'
 import { useMe } from '@/hooks/useMe'
 import { useSession } from '@/hooks/useSession'
+import { useCart } from '@/lib/cart/CartContext'
 import { categoryPath, paths, searchPath } from '@/paths'
 
 type StoreHeaderProps = {
@@ -24,6 +25,7 @@ export function StoreHeader({ onSignIn, onRegister }: StoreHeaderProps) {
   const { selectedStore, isPending: storesPending } = useSelectedStore()
   const [searchInput, setSearchInput] = useState(() => urlSearchParams.get('q') ?? '')
   const categoriesQuery = useCategories(selectedStore?.id)
+  const cart = useCart()
   const categories = (categoriesQuery.data ?? []).filter((category) => category.parent_id === null)
   const categoriesLoading = storesPending || categoriesQuery.isPending || !categoriesQuery.isSuccess
   const signedOut = session.isFetched && session.data === false
@@ -111,16 +113,18 @@ export function StoreHeader({ onSignIn, onRegister }: StoreHeaderProps) {
                 <span className="hidden lg:inline">{name}</span>
               </Link>
             )}
-            <button
-              type="button"
+            <Link
+              to={paths.cart}
               className="relative inline-flex items-center gap-2 text-ink transition-colors hover:text-brand"
             >
               <ShoppingCart className="size-5" />
               <span className="hidden lg:inline">Cart</span>
-              <span className="absolute -top-2 left-3 grid h-[18px] min-w-[18px] place-items-center rounded-[9px] bg-brand px-[5px] text-[11px] font-bold text-white">
-                3
-              </span>
-            </button>
+              {cart.itemCount > 0 ? (
+                <span className="absolute -top-2 left-3 grid h-[18px] min-w-[18px] place-items-center rounded-[9px] bg-brand px-[5px] text-[11px] font-bold text-white">
+                  {cart.itemCount > 99 ? '99+' : cart.itemCount}
+                </span>
+              ) : null}
+            </Link>
           </nav>
         </Container>
       </header>

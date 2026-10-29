@@ -58,8 +58,10 @@ export function ProfilePage() {
           <Button variant="secondary" className="justify-start" type="button">
             <User /> Profile
           </Button>
-          <Button variant="ghost" className="justify-start" type="button">
-            <Package /> My orders
+          <Button variant="ghost" className="justify-start" type="button" asChild>
+            <Link to={paths.orders}>
+              <Package /> My orders
+            </Link>
           </Button>
           <Button variant="ghost" className="justify-start" type="button" asChild>
             <Link to={paths.assistant}>

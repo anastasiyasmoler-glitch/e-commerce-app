@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { ProductCard } from '@/components/catalog/ProductCard'
+import { StoreSelector } from '@/components/catalog/StoreSelector'
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -12,9 +13,11 @@ import { Container } from '@/components/ui/container'
 import { PageLoading } from '@/components/ui/loading-screen'
 import { useCategoryPage } from '@/hooks/useCategoryPage'
 import { categoryPath, paths } from '@/paths'
+import { catalogListingQueryString } from '@/lib/catalog/catalogListingParams'
 
 export function CategoryPage() {
   const catalog = useCategoryPage()
+  const listingQuery = catalogListingQueryString(catalog.perPage)
 
   if (catalog.status === 'loading') {
     return <PageLoading />
@@ -34,6 +37,19 @@ export function CategoryPage() {
       <Container className="py-20 text-center">
         <h2 className="font-display text-[28px] font-medium">Products could not be loaded</h2>
         <p className="mt-2 text-[15px] text-muted">Please try again later.</p>
+      </Container>
+    )
+  }
+
+  if (catalog.status === 'unknown-category') {
+    return (
+      <Container className="py-20 text-center">
+        <h2 className="font-display text-[28px] font-medium">Category not found</h2>
+        <p className="mt-2 text-[15px] text-muted">
+          <Link to={paths.catalog} className="text-brand hover:underline">
+            Back to catalog
+          </Link>
+        </p>
       </Container>
     )
   }
@@ -74,6 +90,10 @@ export function CategoryPage() {
             <h2 className="text-[16px] font-semibold">Filters</h2>
           </div>
           <div className="border-b border-line py-5">
+            <h3 className="mb-3 text-[13px] font-semibold tracking-[0.08em] uppercase">Store</h3>
+            <StoreSelector />
+          </div>
+          <div className="border-b border-line py-5">
             <h3 className="mb-3 text-[13px] font-semibold tracking-[0.08em] uppercase">Category</h3>
             <div className="flex flex-col">
               {catalog.facetLinks.map((item) => {
@@ -81,14 +101,64 @@ export function CategoryPage() {
                 return (
                   <Link
                     key={item.slug ?? 'all'}
-                    to={item.slug ? categoryPath(item.slug) : paths.catalog}
-                    onClick={() => catalog.setPage(1)}
+                    to={
+                      item.slug
+                        ? `${categoryPath(item.slug)}${listingQuery}`
+                        : `${paths.catalog}${listingQuery}`
+                    }
                     className={`py-[5px] text-[15px] transition-colors ${
                       isActive ? 'font-semibold text-ink' : 'text-muted hover:text-ink'
                     }`}
                   >
                     {item.name}
                   </Link>
+                )
+              })}
+            </div>
+            {catalog.subcategoryLinks.length > 0 ? (
+              <div className="mt-4 border-t border-line pt-4">
+                <h4 className="mb-2 text-[12px] font-semibold tracking-[0.06em] text-muted uppercase">
+                  Subcategories
+                </h4>
+                <div className="flex flex-col">
+                  {catalog.subcategoryLinks.map((item) => {
+                    const isActive = item.slug === catalog.slug
+                    return (
+                      <Link
+                        key={item.slug}
+                        to={`${categoryPath(item.slug)}${listingQuery}`}
+                        className={`py-[5px] pl-2 text-[14px] transition-colors ${
+                          isActive ? 'font-semibold text-ink' : 'text-muted hover:text-ink'
+                        }`}
+                      >
+                        {item.name}
+                      </Link>
+                    )
+                  })}
+                </div>
+              </div>
+            ) : null}
+          </div>
+          <div className="py-5">
+            <h3 className="mb-3 text-[13px] font-semibold tracking-[0.08em] uppercase">
+              Items per page
+            </h3>
+            <div className="flex flex-wrap gap-2">
+              {catalog.perPageOptions.map((size) => {
+                const active = catalog.perPage === size
+                return (
+                  <button
+                    key={size}
+                    type="button"
+                    onClick={() => catalog.setPerPage(size)}
+                    className={`rounded-[6px] border px-3 py-1.5 text-[13px] font-medium transition-colors ${
+                      active
+                        ? 'border-brand bg-brand-soft text-ink'
+                        : 'border-line text-muted hover:border-brand hover:text-ink'
+                    }`}
+                  >
+                    {size}
+                  </button>
                 )
               })}
             </div>
