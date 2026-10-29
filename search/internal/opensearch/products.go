@@ -92,6 +92,46 @@ func (c *Client) PatchProductAvailability(ctx context.Context, productID string,
 	return nil
 }
 
+func (c *Client) GetProduct(ctx context.Context, productID string) (ProductDocument, error) {
+	if productID == "" {
+		return ProductDocument{}, fmt.Errorf("product id is required")
+	}
+
+	url := fmt.Sprintf("%s/%s/_doc/%s", c.baseURL, productsIndex, productID)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return ProductDocument{}, err
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return ProductDocument{}, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusNotFound {
+		return ProductDocument{}, fmt.Errorf("product not found")
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		raw, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
+		return ProductDocument{}, fmt.Errorf("get product: status %d: %s", resp.StatusCode, strings.TrimSpace(string(raw)))
+	}
+
+	var payload struct {
+		Found  bool            `json:"found"`
+		Source ProductDocument `json:"_source"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		return ProductDocument{}, err
+	}
+	if !payload.Found {
+		return ProductDocument{}, fmt.Errorf("product not found")
+	}
+
+	return payload.Source, nil
+}
+
 func (c *Client) DeleteProduct(ctx context.Context, productID string) error {
 	if productID == "" {
 		return fmt.Errorf("product id is required")

@@ -64,9 +64,15 @@ Public `GET /search` (no JWT). Typical query parameters:
 
 ## Testing
 
+Default CI runs unit tests (`go test ./...`). Integration tests (`test/integration`, build tag `integration`) use OpenSearch, Kafka, and Redis:
+
 ```bash
-cd search
-go test ./...
+export OPENSEARCH_URL=http://127.0.0.1:9200
+export KAFKA_BROKERS=127.0.0.1:9092
+export REDIS_ADDR=127.0.0.1:6379
+go test -tags=integration ./test/integration/... -count=1
 ```
+
+Coverage includes Kafka consumer → OpenSearch indexing, `search.performed` publish, repeated product updates (idempotent upsert), and Redis search result cache.
 
 Load tests: `loadtests/`. CI: `.github/workflows/search.yml`.
