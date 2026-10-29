@@ -52,6 +52,7 @@ func TestSwaggerUI(t *testing.T) {
 
 	require.Equal(t, http.StatusOK, rec.Code)
 	require.Contains(t, rec.Body.String(), "swagger-ui")
+	require.Contains(t, rec.Body.String(), "openapi.yaml")
 }
 
 func TestOpenAPISpec(t *testing.T) {

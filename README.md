@@ -48,6 +48,22 @@ Notification `consumer` runs `php artisan kafka:consume-notifications`. Other se
 
 Self-signed TLS on service nginx (443 mapped to host ports above). Trust or skip verification in clients during dev.
 
+## API documentation (OpenAPI + Swagger UI)
+
+Each backend service ships `docs/openapi.yaml` and serves Swagger UI at `/docs` (YAML at `/docs/openapi.yaml`). Through the **Auth gateway** (after `auth` compose is up), use the paths below; each UI loads the spec from the same URL prefix (works on gateway and on direct ports).
+
+| Service | Gateway Swagger UI | Direct Swagger UI |
+| --- | --- | --- |
+| Auth | `https://localhost/docs` | same |
+| Catalog | `https://localhost/api/catalog/docs` | `https://localhost:8444/docs` |
+| Notification | `https://localhost/api/notifications/docs` | `https://localhost:8443/docs` |
+| Order | `https://localhost/api/orders/docs` | `https://localhost:8445/docs` |
+| Search | `https://localhost/api/search/docs` | `https://localhost:8446/docs` |
+| Analytics | `https://localhost/api/analytics/docs` | `https://localhost:8447/docs` |
+| Recommendation | `https://localhost/api/recommendations/docs` | `https://localhost:8448/docs` |
+
+Kafka event payloads are documented in each service `docs/events.md`, not in OpenAPI.
+
 ## Dev tooling
 
 | Tool | URL |

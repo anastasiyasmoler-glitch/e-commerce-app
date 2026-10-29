@@ -208,6 +208,49 @@ paths:
         '422':
           $ref: '#/components/responses/ValidationError'
 
+  /profile/email-verification:
+    post:
+      tags: [Profile]
+      summary: Send email verification code
+      operationId: sendEmailVerification
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+
+  /profile/verify-email:
+    post:
+      tags: [Profile]
+      summary: Verify email with token
+      operationId: verifyEmail
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token: { type: string }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
   /admin/users:
     get:
       tags: [Admin]

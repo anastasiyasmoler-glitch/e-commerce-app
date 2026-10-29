@@ -7,6 +7,8 @@ info:
     All routes are public GET endpoints with no `/api` prefix.
     Product images are served from the MinIO-backed `/product-images/` path via nginx.
 servers:
+  - url: https://localhost/api/catalog
+    description: Auth gateway (storefront)
   - url: https://localhost:8444
     description: Catalog nginx (direct dev)
 tags:
