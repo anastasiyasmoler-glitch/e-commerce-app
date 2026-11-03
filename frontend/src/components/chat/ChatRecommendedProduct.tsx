@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import type { RecommendedProduct } from '@/api/recommendationApi'
 import { ProductImage } from '@/components/catalog/ProductImage'
 import { Button } from '@/components/ui/button'
+import { productImagePublicUrl } from '@/lib/catalog/productImageUrl'
 import { productPath } from '@/paths'
 
 type ChatRecommendedProductProps = {
@@ -11,14 +12,15 @@ type ChatRecommendedProductProps = {
 
 export function ChatRecommendedProduct({ product, storeName }: ChatRecommendedProductProps) {
   const price = product.price_cents
+  const imageUrl = productImagePublicUrl(product.image_url)
 
   return (
     <article className="flex gap-3 rounded-[8px] border border-line bg-surface p-3 sm:gap-4 sm:p-4">
       <Link
         to={productPath(product.product_id)}
-        className="relative block size-[72px] shrink-0 overflow-hidden rounded-[6px] bg-subtle sm:size-[88px] [&_svg]:block [&_svg]:size-full"
+        className="relative block size-[72px] shrink-0 overflow-hidden rounded-[6px] bg-subtle sm:size-[88px] [&_img]:size-full [&_img]:object-cover [&_svg]:block [&_svg]:size-full"
       >
-        <ProductImage name={product.name} slug={product.slug} imageUrl={product.image_url} />
+        <ProductImage name={product.name} slug={product.slug} imageUrl={imageUrl} />
       </Link>
       <div className="flex min-w-0 flex-1 flex-col justify-center gap-1">
         <div className="text-[11px] font-semibold tracking-[0.08em] text-muted uppercase">

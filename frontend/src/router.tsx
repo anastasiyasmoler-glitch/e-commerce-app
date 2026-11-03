@@ -12,6 +12,8 @@ import { CartPage } from './pages/CartPage'
 import { CheckoutPage } from './pages/CheckoutPage'
 import { OrdersPage } from './pages/OrdersPage'
 import { OrderDetailPage } from './pages/OrderDetailPage'
+import { OrderConfirmationPage } from './pages/OrderConfirmationPage'
+import { NotFoundPage } from './pages/NotFoundPage'
 
 export const router = createBrowserRouter([
   {
@@ -31,9 +33,11 @@ export const router = createBrowserRouter([
           { path: 'assistant', element: <ChatPage /> },
           { path: 'checkout', element: <CheckoutPage /> },
           { path: 'orders', element: <OrdersPage /> },
+          { path: 'orders/:id/confirmation', element: <OrderConfirmationPage /> },
           { path: 'orders/:id', element: <OrderDetailPage /> },
         ],
       },
+      { path: '*', element: <NotFoundPage /> },
     ],
   },
 ])

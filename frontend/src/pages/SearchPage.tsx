@@ -2,10 +2,28 @@ import { Link } from 'react-router-dom'
 import { SearchProductCard } from '@/components/catalog/SearchProductCard'
 import { Button } from '@/components/ui/button'
 import { Container } from '@/components/ui/container'
-import { PageLoading } from '@/components/ui/loading-screen'
 import { useSearchPage } from '@/hooks/useSearchPage'
 import { formatPriceCents, priceRangeFromFacetKey } from '@/lib/search/searchParams'
 import { paths } from '@/paths'
+
+function SearchResultsSkeleton() {
+  return (
+    <div
+      className="grid grid-cols-2 gap-x-3 gap-y-6 sm:gap-x-5 sm:gap-y-8 lg:grid-cols-3 xl:grid-cols-4"
+      role="status"
+      aria-live="polite"
+      aria-label="Loading search results"
+    >
+      {Array.from({ length: 8 }, (_, index) => (
+        <div key={index} className="flex flex-col gap-3">
+          <div className="aspect-[3/4] animate-pulse rounded-[8px] bg-subtle" aria-hidden />
+          <div className="h-4 w-3/4 animate-pulse rounded bg-subtle" aria-hidden />
+          <div className="h-4 w-1/3 animate-pulse rounded bg-subtle" aria-hidden />
+        </div>
+      ))}
+    </div>
+  )
+}
 
 function isPriceFacetActive(
   facetKey: string,
@@ -18,10 +36,6 @@ function isPriceFacetActive(
 
 export function SearchPage() {
   const search = useSearchPage()
-
-  if (search.status === 'loading') {
-    return <PageLoading label="Searching…" />
-  }
 
   if (search.status === 'no-store') {
     return (
@@ -43,7 +57,8 @@ export function SearchPage() {
     )
   }
 
-  const result = search.result!
+  const result = search.result
+  const showResultsSkeleton = search.isFetchingResults
 
   return (
     <Container className="py-10">
@@ -51,11 +66,13 @@ export function SearchPage() {
         Search: {search.queryLabel}
       </h1>
       <p className="mt-2 text-[15px] text-muted">
-        {search.total} result{search.total === 1 ? '' : 's'} in {search.storeName}
+        {showResultsSkeleton
+          ? 'Searching…'
+          : `${search.total} result${search.total === 1 ? '' : 's'} in ${search.storeName}`}
       </p>
 
-      <div className="mt-10 grid gap-10 lg:grid-cols-[240px_1fr]">
-        <aside className="space-y-8">
+      <div className="mt-10 grid grid-cols-1 items-start gap-8 md:grid-cols-[240px_minmax(0,1fr)] md:gap-10">
+        <aside className="space-y-8 md:sticky md:top-[88px] md:shrink-0 md:self-start">
           <section>
             <h2 className="text-[13px] font-semibold tracking-[0.08em] text-muted uppercase">
               Sort
@@ -265,8 +282,10 @@ export function SearchPage() {
           ) : null}
         </aside>
 
-        <section>
-          {search.items.length === 0 ? (
+        <section className="min-w-0">
+          {showResultsSkeleton ? (
+            <SearchResultsSkeleton />
+          ) : search.items.length === 0 ? (
             <p className="text-[15px] text-muted">No products match your search.</p>
           ) : (
             <div className="grid grid-cols-2 gap-x-3 gap-y-6 sm:gap-x-5 sm:gap-y-8 lg:grid-cols-3 xl:grid-cols-4">
@@ -276,7 +295,7 @@ export function SearchPage() {
             </div>
           )}
 
-          {result.pagination.total_pages > 1 ? (
+          {result && !showResultsSkeleton && result.pagination.total_pages > 1 ? (
             <div className="mt-10 flex items-center justify-center gap-3">
               <Button
                 type="button"

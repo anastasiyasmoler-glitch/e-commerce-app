@@ -7,6 +7,7 @@ use App\Repositories\Contracts\CatalogProductProjectionRepositoryInterface;
 use App\Repositories\Contracts\ProductVectorIndexInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class ChatEndpointTest extends TestCase

@@ -75,6 +75,7 @@ Rate limits and schemas: OpenAPI.
 cd recommendation
 composer install
 cp .env.example .env && php artisan key:generate
+# set GEMINI_API_KEY; default GEMINI_MODEL=gemini-3.5-flash-lite (cheap text on free tier). Embeddings: gemini-embedding-001 — reindex calls embed once per product (easy to hit the daily free embed cap).
 php artisan test
 ```
 
