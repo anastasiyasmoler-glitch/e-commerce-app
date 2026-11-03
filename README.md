@@ -32,6 +32,62 @@ cd ../order && docker compose up -d --build
 
 Notification `consumer` runs `php artisan kafka:consume-notifications`. Other services run their own Kafka consumers (see each service README).
 
+### Recommended startup order
+
+Bring stacks up in this order so the gateway, broker, and Kafka consumers exist before you use the storefront or run sync commands.
+
+| Step | What | Why |
+| --- | --- | --- |
+| 1 | `docker network create microservices-net` | Shared network (once) |
+| 2 | `cd notification && docker compose up -d kafka` | Kafka broker for all publishers/consumers |
+| 3 | `cd auth && cp .env.example .env && docker compose up -d --build` | Gateway + JWT; seeds users (see below) |
+| 4 | `cd catalog && cp .env.example .env && docker compose up -d --build` | Products, stock, Filament; demo seed on empty DB |
+| 5 | `cd order && cp .env.example .env && docker compose up -d --build` | Orders saga (**`consumer`** runs `kafka:consume-orders`) |
+| 6 | Optional backends | `notification`, `search`, `recommendation`, `analytics` — each `cp .env.example .env` then `docker compose up -d --build` |
+| 7 | Stripe webhooks (checkout) | `cd order && docker compose --profile stripe up -d stripe-cli` — copy `whsec_…` from logs into `order/.env`, restart `back` |
+| 8 | SPAs | `cd frontend && npm install && npm run dev` (and `admin` on `:5174` if needed) |
+
+One-shot copy-paste (minimal full path through catalog + order):
+
+```bash
+docker network create microservices-net 2>/dev/null || true
+cd notification && docker compose up -d kafka
+cd ../auth && cp -n .env.example .env && docker compose up -d --build
+cd ../catalog && cp -n .env.example .env && docker compose up -d --build
+cd ../order && cp -n .env.example .env && docker compose up -d --build
+```
+
+Then start Search / Recommendation if you use search or the assistant, and the frontend dev server.
+
+### Seeders and demo data
+
+| Service | When data appears | Notes |
+| --- | --- | --- |
+| **Auth** | Every `back` container start | `php artisan db:seed` in [auth/docker/entrypoint.sh](auth/docker/entrypoint.sh). Default admin: **`admin@example.com`** / **`password`** ([auth/README.md](auth/README.md)). |
+| **Catalog** | First start on an **empty** database | `catalog:seed-demo-if-empty` in [catalog/docker/entrypoint.sh](catalog/docker/entrypoint.sh) runs demo stores/products once. |
+| **Catalog (manual reset)** | When you want ids from 1 again | `docker compose exec back php artisan catalog:reset-demo-catalog` — wipes and reruns [CatalogSeeder](catalog/database/seeders/CatalogSeeder.php). Add `--republish` to emit Kafka events in the same step. |
+| **Order / Search / Recommendation** | No product catalog seeder | They learn products from Kafka (`product.created` / `product.updated`). Start their **consumers** (and Catalog **outbox** relay) so events are applied. |
+
+Other Laravel services run **`migrate`** on start; only Auth always seeds, Catalog seeds only when the DB has no catalog data.
+
+### Refresh downstream after catalog changes
+
+Order keeps a **local product snapshot** for checkout; Search and Recommendation keep their own projections. If you reseeded Catalog, recreated volumes, or see **“product is not available for checkout”** / empty search while Catalog API looks fine, republish catalog facts to Kafka:
+
+```bash
+cd catalog && docker compose exec back php artisan catalog:republish-product-updates
+```
+
+This touches every product so **`product.updated`** is written to the outbox. Before running it, ensure **Catalog `outbox`** (relay to Kafka) is up and downstream **consumers** are running (at least **Order** for checkout, **Search** for `/api/search`, **Recommendation** for vectors/chat).
+
+After a full demo reset you can combine reseed + republish:
+
+```bash
+cd catalog && docker compose exec back php artisan catalog:reset-demo-catalog --republish
+```
+
+Equivalent to reset, then `catalog:republish-product-updates`.
+
 ## Services
 
 | Service | Role | Direct HTTPS (dev) | Gateway (typical) | README |
