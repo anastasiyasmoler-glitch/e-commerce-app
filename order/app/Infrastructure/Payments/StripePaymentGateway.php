@@ -40,6 +40,20 @@ class StripePaymentGateway implements PaymentGatewayInterface
         );
     }
 
+    public function clientSecretForPayment(string $providerPaymentId): string
+    {
+        Stripe::setApiKey((string) config('services.stripe.secret'));
+
+        $intent = PaymentIntent::retrieve($providerPaymentId);
+        $secret = (string) ($intent->client_secret ?? '');
+
+        if ($secret === '') {
+            throw new \RuntimeException('Stripe PaymentIntent client secret is missing.');
+        }
+
+        return $secret;
+    }
+
     /**
      * @param  array<string, string>  $headers
      */
@@ -57,6 +71,7 @@ class StripePaymentGateway implements PaymentGatewayInterface
 
         $array = $event->toArray();
         $type = (string) ($array['type'] ?? '');
+
         $intentId = (string) data_get($array, 'data.object.id', '');
 
         if ($intentId === '') {

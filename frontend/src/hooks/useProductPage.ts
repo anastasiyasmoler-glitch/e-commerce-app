@@ -40,7 +40,6 @@ export function useProductPage() {
         storeId: selectedStore.id,
         name: product.name,
         slug: product.slug,
-        sku: product.sku,
         priceCents: product.price,
         imageUrl: productImagePublicUrl(product.image_url),
       },

@@ -2,10 +2,15 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
 } from 'react'
+import {
+  readCartLinesFromStorage,
+  writeCartLinesToStorage,
+} from '@/lib/cart/cartStorage'
 import type { CartLine } from '@/lib/cart/types'
 
 type CartContextValue = {
@@ -21,7 +26,11 @@ type CartContextValue = {
 const CartContext = createContext<CartContextValue | null>(null)
 
 export function CartProvider({ children }: { children: ReactNode }) {
-  const [lines, setLines] = useState<CartLine[]>([])
+  const [lines, setLines] = useState<CartLine[]>(() => readCartLinesFromStorage())
+
+  useEffect(() => {
+    writeCartLinesToStorage(lines)
+  }, [lines])
 
   const addLine = useCallback((line: Omit<CartLine, 'quantity'>, quantity = 1) => {
     const qty = Math.max(1, quantity)

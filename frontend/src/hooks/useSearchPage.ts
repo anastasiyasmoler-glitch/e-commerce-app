@@ -149,6 +149,9 @@ export function useSearchPage() {
   const loading =
     storeId === undefined || (request !== null && searchQuery.isLoading && !searchQuery.data)
 
+  const isFetchingResults =
+    request !== null && storeId !== undefined && searchQuery.isFetching
+
   let status: SearchPageStatus = 'ready'
   if (loading) {
     status = 'loading'
@@ -171,6 +174,7 @@ export function useSearchPage() {
 
   return {
     status,
+    isFetchingResults,
     storeName,
     request,
     result,

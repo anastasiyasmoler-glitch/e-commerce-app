@@ -161,6 +161,36 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '404': { $ref: '#/components/responses/NotFound' }
 
+  /orders/{order}/payment:
+    get:
+      summary: Payment Element credentials
+      operationId: orderPaymentCheckout
+      description: |
+        Returns Stripe publishable key and PaymentIntent client secret when the
+        order is in `payment_pending` (Intent created after stock reservation).
+      parameters:
+        - name: order
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Stripe client credentials
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    required: [publishable_key, client_secret]
+                    properties:
+                      publishable_key: { type: string }
+                      client_secret: { type: string }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
   /orders/{order}/cancel:
     post:
       summary: Cancel order

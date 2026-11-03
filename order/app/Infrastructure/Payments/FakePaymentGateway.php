@@ -29,6 +29,11 @@ class FakePaymentGateway implements PaymentGatewayInterface
         );
     }
 
+    public function clientSecretForPayment(string $providerPaymentId): string
+    {
+        return 'cs_fake_'.$providerPaymentId;
+    }
+
     /**
      * @param  array<string, string>  $headers
      */

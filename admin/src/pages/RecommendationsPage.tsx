@@ -12,13 +12,25 @@ export function RecommendationsPage() {
       <p className="muted" style={{ marginBottom: 16, maxWidth: 560 }}>
         Rebuild Qdrant vectors from the local catalog projection (Kafka ingest). Use after a catalog
         re-seed or when chat search returns no matches despite products in the database. Calls Gemini
-        embed for each row — may take several minutes on large catalogs. Wait for the success toast;
-        HTTP 204 in DevTools is usually the OPTIONS preflight, not the POST result.
+        embed for each row — may take several minutes on large catalogs.
       </p>
       <Button type="button" disabled={page.reindexPending} onClick={() => page.runReindex()}>
         <Sparkles size={16} aria-hidden />
         {page.reindexPending ? 'Reindexing…' : 'Reindex product vectors'}
       </Button>
+      {page.lastFeedback ? (
+        <p
+          role="status"
+          className="muted"
+          style={{
+            marginTop: 16,
+            maxWidth: 560,
+            color: page.lastFeedback.kind === 'error' ? 'var(--danger)' : 'var(--success)',
+          }}
+        >
+          {page.lastFeedback.message}
+        </p>
+      ) : null}
     </>
   )
 }

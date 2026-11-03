@@ -1,5 +1,6 @@
 import { ArrowRight, Sparkles } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { useEffect } from 'react'
+import { Link, useLocation } from 'react-router-dom'
 import { ProductCard } from '@/components/catalog/ProductCard'
 import { Button } from '@/components/ui/button'
 import { Container } from '@/components/ui/container'
@@ -9,6 +10,13 @@ import { paths } from '@/paths'
 
 export function HomePage() {
   const home = useHomePage()
+  const location = useLocation()
+
+  useEffect(() => {
+    if (location.hash === '#stores') {
+      document.getElementById('stores')?.scrollIntoView({ behavior: 'smooth' })
+    }
+  }, [location.hash])
 
   if (home.status === 'loading') {
     return <PageLoading />
@@ -113,7 +121,7 @@ export function HomePage() {
         </div>
       </section>
 
-      <section className="mt-12 sm:mt-20">
+      <section id="stores" className="mt-12 scroll-mt-24 sm:mt-20">
         <div className="mb-6 flex items-end justify-between gap-4">
           <h2 className="font-display text-[22px] font-medium tracking-[-0.02em] sm:text-[28px]">
             Stores

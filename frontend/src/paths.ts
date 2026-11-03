@@ -3,6 +3,7 @@ export const paths = {
   profile: '/profile',
   assistant: '/assistant',
   catalog: '/categories',
+  stores: '/#stores',
   category: '/categories/:slug',
   product: '/products/:id',
   search: '/search',
@@ -10,6 +11,7 @@ export const paths = {
   checkout: '/checkout',
   orders: '/orders',
   order: '/orders/:id',
+  orderConfirmation: '/orders/:id/confirmation',
 } as const
 
 export function searchPath(query?: string): string {
@@ -29,4 +31,8 @@ export function productPath(id: number): string {
 
 export function orderPath(id: number): string {
   return `/orders/${id}`
+}
+
+export function orderConfirmationPath(id: number): string {
+  return `/orders/${id}/confirmation`
 }

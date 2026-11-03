@@ -22,7 +22,9 @@ export function StoreFooter() {
             <Link to={paths.catalog} className="hover:text-brand">
               Catalog
             </Link>
-            <span>Stores</span>
+            <Link to={paths.stores} className="hover:text-brand">
+              Stores
+            </Link>
             <Link to={paths.assistant} className="hover:text-brand">
               AI Assistant
             </Link>

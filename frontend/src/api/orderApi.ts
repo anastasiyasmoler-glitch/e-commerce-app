@@ -66,3 +66,16 @@ export async function cancelOrder(id: number): Promise<OrderRecord> {
   const { data } = await http.post<{ data: OrderRecord }>(`/api/orders/${id}/cancel`, {})
   return data.data
 }
+
+export type OrderPaymentCheckout = {
+  publishable_key: string
+  client_secret: string
+}
+
+export async function getOrderPaymentCheckout(orderId: number): Promise<OrderPaymentCheckout> {
+  const { data } = await http.get<{ data: OrderPaymentCheckout }>(
+    `/api/orders/${orderId}/payment`,
+  )
+
+  return data.data
+}

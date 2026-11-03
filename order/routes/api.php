@@ -11,6 +11,7 @@ Route::post('/webhooks/stripe', [StripeWebhookController::class, 'handle']);
 Route::middleware('gateway.user')->group(function (): void {
     Route::get('/orders', [OrderController::class, 'index']);
     Route::get('/orders/{order}', [OrderController::class, 'show'])->whereNumber('order');
+    Route::get('/orders/{order}/payment', [OrderController::class, 'payment'])->whereNumber('order');
     Route::post('/orders', [OrderController::class, 'store']);
     Route::post('/orders/{order}/cancel', [OrderController::class, 'cancel'])->whereNumber('order');
     Route::post('/orders/{order}/ship', [OrderController::class, 'ship'])->whereNumber('order');

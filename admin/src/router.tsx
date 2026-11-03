@@ -8,6 +8,7 @@ import { NotificationsPage } from '@/pages/NotificationsPage'
 import { OrdersPage } from '@/pages/OrdersPage'
 import { RedirectToCatalogFilament } from '@/pages/RedirectToCatalogFilament'
 import { RecommendationsPage } from '@/pages/RecommendationsPage'
+import { NotFoundPage } from '@/pages/NotFoundPage'
 import { UsersPage } from '@/pages/UsersPage'
 import { paths } from './paths'
 
@@ -39,7 +40,7 @@ export const router = createBrowserRouter([
               { path: 'products', element: <RedirectToCatalogFilament /> },
               { path: 'categories', element: <RedirectToCatalogFilament /> },
               { path: 'stores', element: <RedirectToCatalogFilament /> },
-              { path: '*', element: <Navigate to={paths.analytics} replace /> },
+              { path: '*', element: <NotFoundPage /> },
             ],
           },
         ],

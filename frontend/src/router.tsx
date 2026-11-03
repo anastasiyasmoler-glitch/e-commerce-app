@@ -9,9 +9,11 @@ import { CartPage } from './pages/CartPage'
 import { ChatPage } from './pages/ChatPage'
 import { CheckoutPage } from './pages/CheckoutPage'
 import { OrderDetailPage } from './pages/OrderDetailPage'
+import { OrderConfirmationPage } from './pages/OrderConfirmationPage'
 import { OrdersPage } from './pages/OrdersPage'
 import { ProfilePage } from './pages/ProfilePage'
 import { SearchPage } from './pages/SearchPage'
+import { NotFoundPage } from './pages/NotFoundPage'
 
 export const router = createBrowserRouter([
   {
@@ -31,9 +33,11 @@ export const router = createBrowserRouter([
           { path: 'assistant', element: <ChatPage /> },
           { path: 'checkout', element: <CheckoutPage /> },
           { path: 'orders', element: <OrdersPage /> },
+          { path: 'orders/:id/confirmation', element: <OrderConfirmationPage /> },
           { path: 'orders/:id', element: <OrderDetailPage /> },
         ],
       },
+      { path: '*', element: <NotFoundPage /> },
     ],
   },
 ])

@@ -5,7 +5,7 @@ return [
     'product_images_public_url' => env('PRODUCT_IMAGES_PUBLIC_URL', 'https://localhost/product-images'),
     'gemini' => [
         'api_key' => env('GEMINI_API_KEY'),
-        'model' => env('GEMINI_MODEL', 'gemini-2.0-flash'),
+        'model' => env('GEMINI_MODEL', 'gemini-3.5-flash-lite'),
         'embedding_model' => env('GEMINI_EMBEDDING_MODEL', 'gemini-embedding-001'),
         'timeout_seconds' => (int) env('GEMINI_TIMEOUT_SECONDS', 25),
         'retry_times' => (int) env('GEMINI_RETRY_TIMES', 2),

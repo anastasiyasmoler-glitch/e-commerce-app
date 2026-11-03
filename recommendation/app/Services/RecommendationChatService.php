@@ -166,9 +166,7 @@ class RecommendationChatService
             }
 
             $slug = isset($payload['slug']) ? (string) $payload['slug'] : '';
-            $imagePath = isset($payload['image']) && is_string($payload['image'])
-                ? trim($payload['image'])
-                : '';
+            $imagePath = self::resolveImagePath($payload);
             $products[] = [
                 'product_id' => $row['product_id'],
                 'store_id' => $storeId,
@@ -177,9 +175,7 @@ class RecommendationChatService
                 'price_cents' => $priceCents,
                 'score' => $scores[$row['product_id']] ?? null,
                 'url' => '/products/'.$row['product_id'],
-                'image_url' => $imagePath !== ''
-                    ? rtrim((string) config('recommendation.product_images_public_url'), '/').'/'.ltrim($imagePath, '/')
-                    : null,
+                'image_url' => self::imagePublicUrl($imagePath),
             ];
         }
 
@@ -207,5 +203,46 @@ class RecommendationChatService
         } catch (Throwable) {
             return $this->prompts->fallbackAnswer($products);
         }
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    private static function resolveImagePath(array $payload): ?string
+    {
+        foreach (['image', 'image_url'] as $key) {
+            if (! isset($payload[$key]) || ! is_string($payload[$key])) {
+                continue;
+            }
+
+            $trimmed = trim($payload[$key]);
+            if ($trimmed !== '') {
+                return $trimmed;
+            }
+        }
+
+        return null;
+    }
+
+    private static function imagePublicUrl(?string $imagePath): ?string
+    {
+        if ($imagePath === null || trim($imagePath) === '') {
+            return null;
+        }
+
+        $trimmed = trim($imagePath);
+
+        if (str_starts_with($trimmed, 'http://') || str_starts_with($trimmed, 'https://')) {
+            return $trimmed;
+        }
+
+        $base = rtrim((string) config('recommendation.product_images_public_url'), '/');
+        $path = ltrim($trimmed, '/');
+
+        if (str_starts_with($path, 'product-images/')) {
+            return $base.'/'.substr($path, strlen('product-images/'));
+        }
+
+        return $base.'/'.$path;
     }
 }

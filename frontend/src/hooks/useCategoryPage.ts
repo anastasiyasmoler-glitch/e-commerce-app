@@ -74,7 +74,6 @@ export function useCategoryPage() {
     (catalogReady &&
       (roots.isLoading ||
         products.isLoading ||
-        products.isFetching ||
         (slug ? categoryBySlug.isLoading : false)))
 
   const facetLinks = useMemo(
