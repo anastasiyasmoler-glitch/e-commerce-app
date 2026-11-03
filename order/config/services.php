@@ -36,8 +36,12 @@ return [
     ],
 
     'stripe' => [
+        'key' => env('STRIPE_PUBLISHABLE'),
         'secret' => env('STRIPE_SECRET'),
         'webhook_secret' => env('STRIPE_WEBHOOK_SECRET'),
+        'frontend_url' => rtrim((string) env('FRONTEND_URL', 'http://localhost:5173'), '/'),
+        'checkout_success_url' => env('STRIPE_CHECKOUT_SUCCESS_URL'),
+        'checkout_cancel_url' => env('STRIPE_CHECKOUT_CANCEL_URL'),
     ],
 
 ];

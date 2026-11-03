@@ -45,8 +45,10 @@ services:
       QUEUE_CONNECTION: sync
       KAFKA_BROKERS: kafka:9092
       KAFKA_CONSUMER_GROUP: order-service-group
+      STRIPE_PUBLISHABLE: ${STRIPE_PUBLISHABLE:-pk_test_placeholder}
       STRIPE_SECRET: ${STRIPE_SECRET:-sk_test_placeholder}
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-whsec_placeholder}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
     volumes:
       - .:/var/www/html
     healthcheck:
@@ -155,7 +157,7 @@ services:
       [
         "listen",
         "--forward-to",
-        "https://auth-nginx/webhooks/stripe",
+        "https://order-nginx/webhooks/stripe",
         "--skip-verify",
         "--events",
         "payment_intent.succeeded,payment_intent.payment_failed",

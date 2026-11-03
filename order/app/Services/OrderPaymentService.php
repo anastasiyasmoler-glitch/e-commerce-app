@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\DB;
 use Throwable;
 
 /**
- * Payment saga step after stock.reserved: start checkout with the configured provider, finish on webhook.
+ * Payment saga step after stock.reserved: start PaymentIntent with the provider, finish on webhook.
  */
 class OrderPaymentService
 {
@@ -43,24 +43,58 @@ class OrderPaymentService
             return;
         }
 
+        $order = $order->fresh() ?? $order;
+
         try {
             $checkout = $this->paymentGateway->startPayment(
                 (int) $order->total_cents,
                 (string) $order->currency,
                 ['order_id' => (string) $order->id],
             );
+        } catch (Throwable $exception) {
+            $this->markPaymentFailed($order, $exception->getMessage());
 
-            Payment::query()->create([
+            return;
+        }
+
+        Payment::query()->updateOrCreate(
+            [
                 'order_id' => $order->id,
                 'provider' => $checkout->provider,
+            ],
+            [
                 'provider_payment_id' => $checkout->providerPaymentId,
                 'status' => PaymentStatus::Pending->value,
                 'amount_cents' => $checkout->amountCents,
                 'currency' => $checkout->currency,
-            ]);
-        } catch (Throwable $exception) {
-            $this->markPaymentFailed($order, $exception->getMessage());
+            ],
+        );
+    }
+
+    /**
+     * @return array{publishable_key: string, client_secret: string}
+     */
+    public function paymentDetailsForOrder(Order $order): array
+    {
+        if ($order->status !== OrderStatus::PaymentPending->value) {
+            abort(422, 'Order is not awaiting payment.');
         }
+
+        $payment = Payment::query()
+            ->where('order_id', $order->id)
+            ->where('provider', $this->paymentGateway->providerName())
+            ->first();
+
+        if ($payment === null || $payment->provider_payment_id === null || $payment->provider_payment_id === '') {
+            abort(404, 'Payment not found.');
+        }
+
+        $clientSecret = $this->paymentGateway->clientSecretForPayment((string) $payment->provider_payment_id);
+
+        return [
+            'publishable_key' => (string) config('services.stripe.key'),
+            'client_secret' => $clientSecret,
+        ];
     }
 
     public function handleWebhookNotification(PaymentWebhookNotification $notification): void

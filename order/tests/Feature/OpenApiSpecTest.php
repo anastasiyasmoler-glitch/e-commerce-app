@@ -13,7 +13,7 @@ class OpenApiSpecTest extends TestCase
 
         $response->assertOk();
         $this->assertStringContainsString('openapi: 3.0.3', $body);
-        $this->assertStringContainsString('/orders', $body);
+        $this->assertStringContainsString('/orders/{order}/payment', $body);
         $this->assertStringContainsString('/webhooks/stripe', $body);
     }
 

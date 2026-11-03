@@ -10,6 +10,7 @@ use App\Models\Order;
 use App\Services\CancelOrderService;
 use App\Services\CreateOrderService;
 use App\Services\OrderFulfillmentService;
+use App\Services\OrderPaymentService;
 use App\Services\OrderReadService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -23,6 +24,7 @@ class OrderController extends Controller
         private readonly OrderReadService $orderRead,
         private readonly CancelOrderService $cancelOrder,
         private readonly OrderFulfillmentService $fulfillment,
+        private readonly OrderPaymentService $payments,
     ) {}
 
     public function index(ListOrdersRequest $request): JsonResponse
@@ -60,6 +62,21 @@ class OrderController extends Controller
         }
 
         return response()->json(['data' => OrderResource::toArray($model)]);
+    }
+
+    public function payment(Request $request, int $order): JsonResponse
+    {
+        $model = $this->orderRead->findForViewer(
+            $this->gatewayUserId($request),
+            $this->gatewayCanViewAllOrders($request),
+            $order,
+        );
+
+        if ($model === null) {
+            abort(404);
+        }
+
+        return response()->json(['data' => $this->payments->paymentDetailsForOrder($model)]);
     }
 
     public function store(StoreOrderRequest $request): JsonResponse

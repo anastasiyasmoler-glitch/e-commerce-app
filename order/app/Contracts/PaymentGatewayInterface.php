@@ -14,6 +14,8 @@ interface PaymentGatewayInterface
      */
     public function startPayment(int $amountCents, string $currency, array $metadata): PaymentCheckoutResult;
 
+    public function clientSecretForPayment(string $providerPaymentId): string;
+
     /**
      * @param  array<string, string>  $headers
      */
