@@ -30,18 +30,42 @@ status_stack() {
   done
 }
 
-materialize_deploy_env() {
-  if [ ! -d "$ROOT/shared" ]; then
+deploy_shared_root() {
+  if [ -d "$ROOT/shared" ]; then
+    printf '%s\n' "$ROOT"
     return 0
   fi
+  if [ -d "$ROOT/../../shared" ]; then
+    (CDPATH= cd -- "$ROOT/../.." && pwd)
+    return 0
+  fi
+  return 1
+}
+
+materialize_deploy_env() {
+  shared_root=$(deploy_shared_root) || return 0
   for dir in auth notification catalog order search analytics recommendation; do
-    rel_env="$ROOT/shared/$dir/.env"
+    rel_env="$shared_root/shared/$dir/.env"
     cur_env="$ROOT/$dir/.env"
     if [ -f "$rel_env" ] && { [ -L "$cur_env" ] || [ ! -f "$cur_env" ]; }; then
       rm -f "$cur_env"
       cp "$rel_env" "$cur_env"
     fi
   done
+}
+
+start_service() {
+  dir=$1
+  required=$2
+  echo "Starting $dir..."
+  if compose "$dir" up -d --build; then
+    return 0
+  fi
+  echo "WARNING: $dir stack failed to start" >&2
+  if [ "$required" = 1 ]; then
+    exit 1
+  fi
+  return 1
 }
 
 up_stack() {
@@ -52,13 +76,16 @@ up_stack() {
   echo "Waiting for Kafka..."
   sleep 5
 
-  for dir in auth catalog order notification search analytics recommendation; do
-    echo "Starting $dir..."
-    compose "$dir" up -d --build
-  done
+  start_service auth 1
+  start_service catalog 1
+  start_service order 1
+  start_service notification 1
+  start_service search 0
+  start_service analytics 0
+  start_service recommendation 0
 
   echo "Starting observability (Prometheus, Grafana, Jaeger)..."
-  compose observability up -d
+  compose observability up -d || echo "WARNING: observability failed to start" >&2
 
   echo ""
   echo "Full stack is up. API: https://localhost (gateway only on host :443)."
