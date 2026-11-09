@@ -72,7 +72,9 @@ up_stack() {
   ensure_network
   materialize_deploy_env
   echo "Starting Kafka (notification)..."
-  compose notification up -d kafka
+  compose notification up -d kafka || {
+    echo "WARNING: Kafka failed to start (port in use?); continuing if already running" >&2
+  }
   echo "Waiting for Kafka..."
   sleep 5
 

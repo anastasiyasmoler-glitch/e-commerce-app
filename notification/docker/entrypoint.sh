@@ -20,9 +20,11 @@ until php -r "exit(@fsockopen(getenv('MONGODB_HOST') ?: 'mongo', (int) (getenv('
     sleep 2
 done
 
-mkdir -p database
-echo "Migrating SQLite queue tables..."
-php artisan migrate --database=queue --force --no-interaction \
-    --path=database/migrations/0001_01_01_000002_create_jobs_table.php
+if [ "$1" = "php-fpm" ]; then
+    mkdir -p database
+    echo "Migrating SQLite queue tables..."
+    php artisan migrate --database=queue --force --no-interaction \
+        --path=database/migrations/0001_01_01_000002_create_jobs_table.php
+fi
 
 exec docker-php-entrypoint "$@"
