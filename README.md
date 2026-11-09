@@ -9,7 +9,24 @@ Microservices e-commerce platform for local development. Nine applications: **Au
 | **HTTP (people)** | Frontend or Admin → **Auth gateway** (`https://localhost`, JWT) → backend service |
 | **Events** | **Kafka** on `microservices-net` (broker in Notification compose). No request/response over the broker. |
 
-There is **no root `docker-compose.yml`**. Each backend service has its own compose under `<service>/docker-compose.yml`. Create the shared network once:
+Each backend service has its own compose under `<service>/docker-compose.yml`. For **full-stack local deploy (platform spec)**, use the repo root entry point — only **Auth gateway :443** is published on the host; service nginx and DB ports stay on the Docker network (`*/docker-compose.fullstack.yml` overlays).
+
+```bash
+chmod +x scripts/fullstack.sh scripts/vm-deploy.sh   # once
+./scripts/fullstack.sh up       # all backends
+./scripts/fullstack.sh down
+./scripts/fullstack.sh status
+```
+
+**VM deploy (VirtualBox / VPS):** [docs/deploy-vm.md](docs/deploy-vm.md). Updates: [Deployer](https://deployer.org/) — `composer install`, `.env.deploy`, `vendor/bin/dep deploy production` (recipe in root `deploy.php`). Fallback on the VM: `./scripts/vm-deploy.sh`.
+
+Single-service development (direct ports `8444`–`8448`, local Postgres on host, etc.) — drop the fullstack overlay:
+
+```bash
+cd catalog && docker compose up -d --build
+```
+
+Create the shared network once (the fullstack script also creates it):
 
 ```bash
 docker network create microservices-net
@@ -124,10 +141,15 @@ Kafka event payloads are documented in each service `docs/events.md`, not in Ope
 
 | Tool | URL |
 | --- | --- |
+| **Grafana** | `http://localhost:3000` (`admin` / `admin` — change in `observability/.env`) |
+| **Prometheus** | `http://localhost:9090` |
+| **Jaeger UI** | `http://localhost:16686` |
 | Auth Mailhog | `http://localhost:8025` |
 | Notification Mailhog | `http://localhost:8026` |
 | Mock OIDC (Auth) | `http://localhost:8080` |
 | Search load tests (k6) | [search/loadtests/](search/loadtests/) |
+
+Observability compose: [observability/README.md](observability/README.md). Started automatically by `./scripts/fullstack.sh up`.
 
 ## Tests and CI
 

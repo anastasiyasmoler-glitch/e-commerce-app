@@ -1,0 +1,16 @@
+# Full-stack overlay: only the gateway is published on the host (Confluence dev deploy).
+services:
+  sql:
+    ports: []
+  redis:
+    ports: []
+  mail:
+    ports:
+      - "8025:8025"
+  oidc:
+    ports:
+      - "8080:8080"
+  nginx:
+    ports:
+      - "80:80"
+      - "443:443"

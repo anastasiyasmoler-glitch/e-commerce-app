@@ -1,0 +1,9 @@
+services:
+  sql:
+    ports: []
+  redis:
+    ports: []
+  minio:
+    ports: []
+  nginx:
+    ports: []

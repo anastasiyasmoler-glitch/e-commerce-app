@@ -1,0 +1,25 @@
+# Full-stack local deploy (Confluence / platform NFR).
+# Service graphs stay in <service>/docker-compose.yml (unique service names per project).
+#
+# Recommended:
+#   ./scripts/fullstack.sh up
+#   ./scripts/fullstack.sh down
+#
+# Alternative entry (needs Docker CLI in the orchestrator image):
+#   docker compose run --rm orchestrator up
+#
+# Full-stack mode publishes only the Auth gateway on host 443 (see docker-compose.fullstack.yml per service).
+# Storefront / Admin: npm run dev on :5173 / :5174.
+
+name: ecommerce-platform
+
+services:
+  orchestrator:
+    image: docker:27.3.1-cli
+    network_mode: host
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - .:/work
+    working_dir: /work
+    entrypoint: ["/bin/sh", "/work/scripts/fullstack.sh"]
+    profiles: ["orchestrator"]

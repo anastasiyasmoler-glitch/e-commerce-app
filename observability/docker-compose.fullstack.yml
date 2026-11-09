@@ -1,0 +1,3 @@
+# Full-stack overlay: keep Grafana/Prometheus/Jaeger reachable on the host for dev (3000/9090/16686).
+# API traffic still uses only https://localhost (Auth gateway).
+services: {}

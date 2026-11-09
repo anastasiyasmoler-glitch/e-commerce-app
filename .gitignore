@@ -1,8 +1,10 @@
 .env
 .env.*
 !.env.example
+!.env.deploy.example
 
 vendor/
+.env.deploy
 node_modules/
 dist/
 

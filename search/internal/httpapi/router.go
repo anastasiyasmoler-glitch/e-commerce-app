@@ -5,11 +5,14 @@ import (
 	"encoding/json"
 	"net/http"
 	"time"
+
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func NewRouter(deps Dependencies) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", handleHealthz)
+	mux.Handle("GET /metrics", promhttp.Handler())
 	mux.HandleFunc("GET /readyz", func(w http.ResponseWriter, r *http.Request) {
 		handleReadyz(w, r, deps)
 	})

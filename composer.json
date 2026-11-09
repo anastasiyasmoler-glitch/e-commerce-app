@@ -1,0 +1,18 @@
+{
+    "name": "e-commerce-app/monorepo",
+    "description": "Monorepo tooling (Deployer for VM releases)",
+    "license": "proprietary",
+    "require-dev": {
+        "deployer/deployer": "^7.5"
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "php-http/discovery": true
+        }
+    },
+    "scripts": {
+        "deploy": "dep deploy production",
+        "deploy:setup": "dep deploy:setup production"
+    }
+}

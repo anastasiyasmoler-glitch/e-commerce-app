@@ -26,7 +26,7 @@ function ChatThreadView({ storeId, storeName }: { storeId: number; storeName: st
 
   return (
     <section
-      className="flex h-[calc(100dvh-116px)] min-h-[480px] flex-col bg-surface"
+      className="flex min-h-0 flex-1 flex-col bg-surface"
       aria-label="Chat with AI assistant"
     >
       <ChatMessengerHeader

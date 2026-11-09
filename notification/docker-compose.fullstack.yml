@@ -1,0 +1,10 @@
+services:
+  mongo:
+    ports: []
+  kafka:
+    ports: []
+  nginx:
+    ports: []
+  mail:
+    ports:
+      - "8026:8025"

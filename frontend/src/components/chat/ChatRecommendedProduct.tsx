@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import type { RecommendedProduct } from '@/api/recommendationApi'
 import { ProductImage } from '@/components/catalog/ProductImage'
 import { Button } from '@/components/ui/button'
-import { productImagePublicUrl } from '@/lib/catalog/productImageUrl'
+import { useRecommendedProductImage } from '@/hooks/useRecommendedProductImage'
 import { productPath } from '@/paths'
 
 type ChatRecommendedProductProps = {
@@ -12,7 +12,7 @@ type ChatRecommendedProductProps = {
 
 export function ChatRecommendedProduct({ product, storeName }: ChatRecommendedProductProps) {
   const price = product.price_cents
-  const imageUrl = productImagePublicUrl(product.image_url)
+  const imageUrl = useRecommendedProductImage(product)
 
   return (
     <article className="flex gap-3 rounded-[8px] border border-line bg-surface p-3 sm:gap-4 sm:p-4">

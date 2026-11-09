@@ -1,0 +1,7 @@
+services:
+  postgres:
+    ports: []
+  qdrant:
+    ports: []
+  nginx:
+    ports: []

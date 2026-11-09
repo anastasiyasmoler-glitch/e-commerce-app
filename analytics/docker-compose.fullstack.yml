@@ -1,0 +1,5 @@
+services:
+  clickhouse:
+    ports: []
+  nginx:
+    ports: []

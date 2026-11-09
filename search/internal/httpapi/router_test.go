@@ -27,6 +27,17 @@ func TestHealthz(t *testing.T) {
 	require.Equal(t, "ok", rec.Body.String())
 }
 
+func TestMetrics(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/metrics", nil)
+	rec := httptest.NewRecorder()
+
+	NewRouter(Dependencies{}).ServeHTTP(rec, req)
+
+	require.Equal(t, http.StatusOK, rec.Code)
+	require.Contains(t, rec.Header().Get("Content-Type"), "text/plain")
+	require.Contains(t, rec.Body.String(), "go_goroutines")
+}
+
 func TestSearchRequiresService(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/search?q=chair", nil)
 	rec := httptest.NewRecorder()
