@@ -8,7 +8,7 @@ cd "$ROOT"
 BRANCH="${DEPLOY_BRANCH:-main}"
 
 if ! command -v docker >/dev/null 2>&1; then
-  echo "Docker is not installed. See docs/deploy-vm.md" >&2
+  echo "Docker is not installed. See README VM deploy section." >&2
   exit 1
 fi
 

@@ -18,7 +18,7 @@ chmod +x scripts/fullstack.sh scripts/vm-deploy.sh   # once
 ./scripts/fullstack.sh status
 ```
 
-**VM deploy (VirtualBox / VPS):** [docs/deploy-vm.md](docs/deploy-vm.md). Updates: [Deployer](https://deployer.org/) — `composer install`, `.env.deploy`, `vendor/bin/dep deploy production` (recipe in root `deploy.php`). Fallback on the VM: `./scripts/vm-deploy.sh`.
+**VM deploy (VirtualBox / VPS):** [Deployer](https://deployer.org/) — `composer install`, copy `.env.deploy.example` → `.env.deploy`, `vendor/bin/dep deploy production` (root `deploy.php`). Fallback on the VM: `./scripts/vm-deploy.sh`.
 
 Single-service development (direct ports `8444`–`8448`, local Postgres on host, etc.) — drop the fullstack overlay:
 
