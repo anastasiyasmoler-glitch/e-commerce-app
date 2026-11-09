@@ -28,6 +28,10 @@ run_as_www_data() {
 
 fix_writable_dirs
 
+if [ ! -f vendor/autoload.php ] || [ ! -d vendor/filament ]; then
+    run_as_www_data composer install --no-interaction --prefer-dist
+fi
+
 if [ "$1" = "php-fpm" ]; then
     until php -r "exit(@fsockopen(getenv('DB_HOST') ?: 'sql', (int) (getenv('DB_PORT') ?: 5432)) ? 0 : 1);" 2>/dev/null; do
         sleep 1

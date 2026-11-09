@@ -4,9 +4,9 @@ set -eu
 ROOT="$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-export COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-ecommerce}"
-
+# One Compose project per service dir — avoids colliding back/sql/vendor names (ecommerce-back-1).
 STACK_FILES="-f docker-compose.yml -f docker-compose.fullstack.yml"
+COMPOSE_PREFIX="${COMPOSE_PROJECT_PREFIX:-ecommerce}"
 
 cmd="${1:-up}"
 
@@ -18,8 +18,9 @@ ensure_network() {
 compose() {
   dir=$1
   shift
+  project="${COMPOSE_PREFIX}-${dir}"
   # shellcheck disable=SC2086
-  (cd "$dir" && docker compose $STACK_FILES "$@")
+  (cd "$dir" && COMPOSE_PROJECT_NAME="$project" docker compose $STACK_FILES "$@")
 }
 
 status_stack() {
@@ -29,8 +30,23 @@ status_stack() {
   done
 }
 
+materialize_deploy_env() {
+  if [ ! -d "$ROOT/shared" ]; then
+    return 0
+  fi
+  for dir in auth notification catalog order search analytics recommendation; do
+    rel_env="$ROOT/shared/$dir/.env"
+    cur_env="$ROOT/$dir/.env"
+    if [ -f "$rel_env" ] && { [ -L "$cur_env" ] || [ ! -f "$cur_env" ]; }; then
+      rm -f "$cur_env"
+      cp "$rel_env" "$cur_env"
+    fi
+  done
+}
+
 up_stack() {
   ensure_network
+  materialize_deploy_env
   echo "Starting Kafka (notification)..."
   compose notification up -d kafka
   echo "Waiting for Kafka..."
