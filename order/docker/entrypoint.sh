@@ -7,7 +7,10 @@ if [ ! -f .env ]; then
     cp .env.example .env
 fi
 
-composer install --no-interaction --prefer-dist
+# Only php-fpm runs composer; consumer/outbox share the vendor volume and would race.
+if [ "$1" = "php-fpm" ]; then
+    composer install --no-interaction --prefer-dist --no-progress
+fi
 
 if ! grep -qE '^APP_KEY=base64:' .env; then
     php artisan key:generate --force --no-interaction
