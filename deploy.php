@@ -76,7 +76,7 @@ task('app:docker:up', function (): void {
     cd('{{deploy_path}}/current');
     run('chmod +x scripts/fullstack.sh');
     // First fullstack build can take 30+ minutes; disable Deployer SSH timeout.
-    run('COMPOSE_PROJECT_NAME=ecommerce ./scripts/fullstack.sh up', [
+    run('./scripts/fullstack.sh up', [
         'timeout' => 0,
         'idle_timeout' => 0,
     ]);
