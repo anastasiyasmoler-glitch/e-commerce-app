@@ -85,7 +85,7 @@ services:
       AWS_DEFAULT_REGION: us-east-1
       AWS_BUCKET: product-images
       AWS_ENDPOINT: http://minio:9000
-      AWS_URL: https://localhost/product-images
+      AWS_URL: ${AWS_URL:-https://localhost/product-images}
       AWS_TEMPORARY_URL: https://localhost
       AWS_USE_PATH_STYLE_ENDPOINT: "true"
       KAFKA_BROKERS: kafka:9092
@@ -141,7 +141,7 @@ services:
       AWS_DEFAULT_REGION: us-east-1
       AWS_BUCKET: product-images
       AWS_ENDPOINT: http://minio:9000
-      AWS_URL: https://localhost/product-images
+      AWS_URL: ${AWS_URL:-https://localhost/product-images}
       AWS_TEMPORARY_URL: https://localhost
       AWS_USE_PATH_STYLE_ENDPOINT: "true"
       KAFKA_BROKERS: kafka:9092
@@ -186,7 +186,7 @@ services:
       AWS_DEFAULT_REGION: us-east-1
       AWS_BUCKET: product-images
       AWS_ENDPOINT: http://minio:9000
-      AWS_URL: https://localhost/product-images
+      AWS_URL: ${AWS_URL:-https://localhost/product-images}
       AWS_TEMPORARY_URL: https://localhost
       AWS_USE_PATH_STYLE_ENDPOINT: "true"
       KAFKA_BROKERS: kafka:9092

@@ -61,7 +61,7 @@ trait SeedsCatalogDemo
             ]);
 
             $this->seedProductImage($product);
-            $attributeMap = $item['attributes'] ?? $this->defaultAttributesForCategory($item['cat']);
+            $attributeMap = $item['attributes'] ?? $this->defaultAttributesForCategory($item['cat'], $item['slug']);
             $this->syncProductAttributes($store, $product, $attributeMap);
 
             Stock::query()->create([
@@ -114,32 +114,86 @@ trait SeedsCatalogDemo
     /**
      * @return array<string, string>
      */
-    private function defaultAttributesForCategory(string $categorySlug): array
+    private function defaultAttributesForCategory(string $categorySlug, string $productSlug): array
     {
         $palette = ['natural', 'beige', 'grey', 'black', 'white', 'oak', 'walnut', 'sage', 'terracotta'];
 
+        $color = $palette[abs(crc32($productSlug)) % count($palette)];
+
         return match (true) {
-            str_contains($categorySlug, 'sofa'), str_contains($categorySlug, 'bed') => [
-                'color' => $palette[abs(crc32($categorySlug)) % count($palette)],
+            str_contains($categorySlug, 'bed') && ! str_contains($categorySlug, 'bedding') => [
+                'color' => $color,
                 'material' => 'fabric',
-                'width_cm' => '200',
+                'size' => $this->bedSizeFromSlug($productSlug),
+                'width_cm' => $this->bedWidthFromSlug($productSlug),
+            ],
+            str_contains($categorySlug, 'sofa') => [
+                'color' => $color,
+                'material' => 'fabric',
+                'size' => str_contains($productSlug, 'two-seat') ? '2-seat' : (str_contains($productSlug, 'corner') ? 'corner' : '3-seat'),
+                'width_cm' => str_contains($productSlug, 'two-seat') ? '160' : (str_contains($productSlug, 'corner') ? '280' : '220'),
             ],
             str_contains($categorySlug, 'lamp'), str_contains($categorySlug, 'chandelier'), str_contains($categorySlug, 'light') => [
                 'color' => 'brass',
+                'material' => 'metal',
                 'bulb_type' => 'E27',
-                'wattage' => '40',
+                'size' => str_contains($categorySlug, 'floor') ? 'floor' : (str_contains($categorySlug, 'table') ? 'table' : 'ceiling'),
             ],
             str_contains($categorySlug, 'bedding'), str_contains($categorySlug, 'blanket'), str_contains($categorySlug, 'curtain'), str_contains($categorySlug, 'towel') => [
-                'color' => 'cream',
+                'color' => $color,
                 'material' => 'cotton',
-                'size' => 'king',
+                'size' => $this->textileSizeFromSlug($productSlug),
             ],
             default => [
-                'color' => 'natural',
+                'color' => $color,
                 'material' => 'wood',
                 'width_cm' => '120',
             ],
         };
+    }
+
+    private function bedSizeFromSlug(string $slug): string
+    {
+        if (str_contains($slug, '140')) {
+            return '140×200';
+        }
+        if (str_contains($slug, '180')) {
+            return '180×200';
+        }
+
+        return '160×200';
+    }
+
+    private function bedWidthFromSlug(string $slug): string
+    {
+        if (str_contains($slug, '140')) {
+            return '140';
+        }
+        if (str_contains($slug, '180')) {
+            return '180';
+        }
+
+        return '160';
+    }
+
+    private function textileSizeFromSlug(string $slug): string
+    {
+        if (str_contains($slug, 'single')) {
+            return 'single';
+        }
+        if (str_contains($slug, 'double')) {
+            return 'double';
+        }
+        if (str_contains($slug, 'king')) {
+            return 'king';
+        }
+
+        return 'one size';
+    }
+
+    protected function refreshDemoProductImages(): void
+    {
+        Product::query()->each(fn (Product $product) => $this->seedProductImage($product));
     }
 
     private function seedProductImage(Product $product): void
@@ -148,9 +202,13 @@ trait SeedsCatalogDemo
             return;
         }
 
-        $map = ProductImageMap::all();
-        $image = $map[$product->slug] ?? 'sofa-modern.jpg';
+        $source = ProductImageMap::pathForSlug($product->slug);
+        if ($source === null) {
+            return;
+        }
 
-        $product->forceFill(['image' => $image])->save();
+        $filename = $product->slug.'.jpg';
+        Storage::disk('s3')->put($filename, (string) file_get_contents($source));
+        $product->forceFill(['image' => $filename])->save();
     }
 }
