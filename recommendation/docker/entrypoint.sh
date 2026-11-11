@@ -7,7 +7,9 @@ if [ ! -f .env ]; then
     cp .env.example .env
 fi
 
-composer install --no-interaction --prefer-dist
+if [ "$1" = "php-fpm" ]; then
+    composer install --no-interaction --prefer-dist --no-progress
+fi
 
 if ! grep -qE '^APP_KEY=base64:' .env; then
     php artisan key:generate --force --no-interaction

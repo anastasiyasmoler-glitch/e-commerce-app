@@ -145,6 +145,38 @@ class RecommendationChatService
         $minPrice = $filters['min_price_cents'] ?? null;
         $attributeFilters = is_array($filters['attributes'] ?? null) ? $filters['attributes'] : [];
 
+        $products = $this->mapFilteredProducts($storeId, $rows, $scores, $attributeFilters, $minPrice, $maxPrice);
+        if ($products === [] && $attributeFilters !== []) {
+            $products = $this->mapFilteredProducts($storeId, $rows, $scores, [], $minPrice, $maxPrice);
+        }
+
+        usort($products, static function (array $a, array $b): int {
+            return ($b['score'] ?? 0) <=> ($a['score'] ?? 0);
+        });
+
+        return $products;
+    }
+
+    /**
+     * @param  list<array{
+     *     product_id: int,
+     *     store_id: int,
+     *     payload: array<string, mixed>,
+     *     is_published: bool,
+     *     in_stock: bool
+     * }>  $rows
+     * @param  array<int, float>  $scores
+     * @param  array<string, mixed>  $attributeFilters
+     * @return list<array<string, mixed>>
+     */
+    private function mapFilteredProducts(
+        int $storeId,
+        array $rows,
+        array $scores,
+        array $attributeFilters,
+        mixed $minPrice,
+        mixed $maxPrice,
+    ): array {
         $products = [];
         foreach ($rows as $row) {
             $payload = $row['payload'];
@@ -167,21 +199,25 @@ class RecommendationChatService
 
             $slug = isset($payload['slug']) ? (string) $payload['slug'] : '';
             $imagePath = self::resolveImagePath($payload);
+            $description = isset($payload['description']) && is_string($payload['description'])
+                ? trim($payload['description'])
+                : '';
+            $sku = isset($payload['sku']) && is_string($payload['sku']) ? trim($payload['sku']) : '';
             $products[] = [
                 'product_id' => $row['product_id'],
                 'store_id' => $storeId,
                 'name' => (string) ($payload['name'] ?? ''),
                 'slug' => $slug,
+                'sku' => $sku !== '' ? $sku : null,
+                'description' => $description !== '' ? $description : null,
+                'attributes' => $productAttributes,
+                'in_stock' => (bool) $row['in_stock'],
                 'price_cents' => $priceCents,
                 'score' => $scores[$row['product_id']] ?? null,
                 'url' => '/products/'.$row['product_id'],
                 'image_url' => self::imagePublicUrl($imagePath),
             ];
         }
-
-        usort($products, static function (array $a, array $b): int {
-            return ($b['score'] ?? 0) <=> ($a['score'] ?? 0);
-        });
 
         return $products;
     }

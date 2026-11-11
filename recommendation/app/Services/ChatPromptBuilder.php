@@ -56,7 +56,7 @@ class ChatPromptBuilder
         $sections[] = 'Verified catalog products (use only these; do not invent others):';
         $sections[] = $this->formatProductBlock($products);
         $sections[] = '';
-        $sections[] = 'Write a short helpful answer in English (1–3 short paragraphs). Mention only products from the verified list.';
+        $sections[] = 'Write a short helpful answer in English (1–3 short paragraphs). Mention only products from the verified list. If the shopper asks for details, quote description, attributes, price_usd, and stock from that list. Never say "Price on request" when price_usd is present.';
 
         return implode("\n", array_filter($sections, static fn (string $line): bool => $line !== ''));
     }
@@ -131,15 +131,45 @@ class ChatPromptBuilder
                 'product_id='.(int) ($product['product_id'] ?? 0),
             ];
 
+            if (isset($product['sku']) && is_string($product['sku']) && $product['sku'] !== '') {
+                $parts[] = 'sku='.$product['sku'];
+            }
+
             if (isset($product['slug']) && (string) $product['slug'] !== '') {
                 $parts[] = 'slug='.(string) $product['slug'];
             }
 
-            if (array_key_exists('score', $product) && $product['score'] !== null) {
-                $parts[] = 'relevance_score='.(string) $product['score'];
+            $priceCents = $product['price_cents'] ?? null;
+            if (is_numeric($priceCents) && (int) $priceCents > 0) {
+                $parts[] = 'price_usd='.number_format(((int) $priceCents) / 100, 2, '.', '');
+            }
+
+            if (array_key_exists('in_stock', $product)) {
+                $parts[] = 'in_stock='.($product['in_stock'] ? 'yes' : 'no');
             }
 
             $lines[] = implode(', ', $parts);
+
+            $description = $product['description'] ?? null;
+            if (is_string($description) && trim($description) !== '') {
+                $lines[] = '  description: '.trim($description);
+            }
+
+            $attributes = $product['attributes'] ?? [];
+            if (is_array($attributes) && $attributes !== []) {
+                $attrParts = [];
+                foreach ($attributes as $key => $value) {
+                    if (! is_string($key) || $key === '') {
+                        continue;
+                    }
+                    if (is_scalar($value)) {
+                        $attrParts[] = $key.'='.(string) $value;
+                    }
+                }
+                if ($attrParts !== []) {
+                    $lines[] = '  attributes: '.implode(', ', $attrParts);
+                }
+            }
         }
 
         return implode("\n", $lines);
