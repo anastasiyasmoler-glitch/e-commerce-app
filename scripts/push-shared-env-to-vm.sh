@@ -42,6 +42,10 @@ for f in "$REMOTE_ROOT"/shared/{auth,notification,catalog,order,analytics,recomm
     sed -i "s|^APP_URL=.*|APP_URL=${GATEWAY}|" "$f"
   fi
 done
+catalog_env="$REMOTE_ROOT/shared/catalog/.env"
+if [ -f "$catalog_env" ] && grep -q '^AWS_URL=' "$catalog_env"; then
+  sed -i "s|^AWS_URL=.*|AWS_URL=${GATEWAY}/product-images|" "$catalog_env"
+fi
 auth_env="$REMOTE_ROOT/shared/auth/.env"
 if [ -f "$auth_env" ] && grep -q '^GOOGLE_REDIRECT_URI=' "$auth_env"; then
   sed -i "s|^GOOGLE_REDIRECT_URI=.*|GOOGLE_REDIRECT_URI=${GATEWAY}/auth/google/callback|" "$auth_env"
