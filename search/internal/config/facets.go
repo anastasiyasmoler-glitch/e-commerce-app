@@ -3,7 +3,7 @@ package config
 import "strings"
 
 func FacetAttributeKeysFromEnv() []string {
-	raw := strings.TrimSpace(envOrDefault("FACET_ATTRIBUTE_KEYS", "color,material"))
+	raw := strings.TrimSpace(envOrDefault("FACET_ATTRIBUTE_KEYS", "color,material,size,width_cm,bulb_type"))
 	if raw == "" {
 		return []string{}
 	}

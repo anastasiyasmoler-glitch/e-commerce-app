@@ -45,6 +45,7 @@ services:
       REDIS_ADDR: redis:6379
       CACHE_ENABLED: "true"
       FUZZY_SEARCH: "true"
+      FACET_ATTRIBUTE_KEYS: "color,material,size,width_cm,bulb_type"
     depends_on:
       opensearch:
         condition: service_healthy
@@ -72,6 +73,7 @@ services:
       KAFKA_BROKERS: kafka:9092
       KAFKA_CONSUMER_GROUP: search-service-group
       REDIS_ADDR: redis:6379
+      FACET_ATTRIBUTE_KEYS: "color,material,size,width_cm,bulb_type"
     depends_on:
       opensearch:
         condition: service_healthy
