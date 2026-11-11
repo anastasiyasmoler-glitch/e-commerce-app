@@ -44,6 +44,19 @@ export function ProductPage() {
     return <PageLoading />
   }
 
+  if (productPage.status === 'no-store') {
+    return (
+      <Container className="py-20 text-center">
+        <h2 className="font-display text-[28px] font-medium">Catalog could not be loaded</h2>
+        <p className="mt-2 text-[15px] text-muted">
+          <Link to={paths.home} className="text-brand hover:underline">
+            Back to home
+          </Link>
+        </p>
+      </Container>
+    )
+  }
+
   const { product, category, selectedStore, inStock } = productPage
 
   return (
@@ -141,6 +154,14 @@ export function ProductPage() {
                   <td className="w-[42%] py-3 text-muted">SKU</td>
                   <td className="py-3">{product.sku}</td>
                 </tr>
+                {Object.entries(product.attributes ?? {}).map(([code, value]) => (
+                  <tr key={code} className="border-t border-line text-[15px]">
+                    <td className="w-[42%] py-3 text-muted">
+                      {code.replaceAll('_', ' ')}
+                    </td>
+                    <td className="py-3">{value}</td>
+                  </tr>
+                ))}
                 <tr className="border-t border-line text-[15px]">
                   <td className="w-[42%] py-3 text-muted">Available</td>
                   <td className="py-3">{product.stock.quantity}</td>

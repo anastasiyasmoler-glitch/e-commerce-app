@@ -14,7 +14,12 @@ export type CategoryPageStatus = 'loading' | 'no-store' | 'error' | 'ready' | 'u
 export function useCategoryPage() {
   const { slug } = useParams()
   const [searchParams, setSearchParams] = useSearchParams()
-  const { selectedStore, stores, selectStore, isPending: storesPending } = useSelectedStore()
+  const {
+    selectedStore,
+    stores,
+    isPending: storesPending,
+    isError: storesError,
+  } = useSelectedStore()
 
   const { page, perPage } = useMemo(
     () => parseCatalogListingParams(searchParams),
@@ -75,6 +80,7 @@ export function useCategoryPage() {
       (roots.isLoading ||
         products.isLoading ||
         (slug ? categoryBySlug.isLoading : false)))
+  const isFetchingResults = catalogReady && products.isFetching
 
   const facetLinks = useMemo(
     () => [
@@ -92,6 +98,8 @@ export function useCategoryPage() {
   let status: CategoryPageStatus = 'ready'
   if (loading) {
     status = 'loading'
+  } else if (storesError) {
+    status = 'error'
   } else if (!catalogReady) {
     status = 'no-store'
   } else if (slug && categoryBySlug.isSuccess && current === null) {
@@ -102,6 +110,7 @@ export function useCategoryPage() {
 
   return {
     status,
+    isFetchingResults,
     slug,
     page,
     setPage,
@@ -111,7 +120,6 @@ export function useCategoryPage() {
     storeName,
     selectedStore,
     stores,
-    selectStore,
     storesPending,
     title: current?.name ?? 'Catalog',
     current,

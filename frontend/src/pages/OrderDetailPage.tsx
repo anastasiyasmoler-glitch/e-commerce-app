@@ -38,7 +38,7 @@ export function OrderDetailPage() {
     )
   }
 
-  if (detail.query.isPending) {
+  if (detail.query.isLoading) {
     return <PageLoading />
   }
 

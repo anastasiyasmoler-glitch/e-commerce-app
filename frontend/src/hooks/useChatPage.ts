@@ -7,7 +7,7 @@ export function useChatPage(): {
   storeId?: number
   storeName: string
 } {
-  const { selectedStore, isPending: storesPending } = useSelectedStore()
+  const { selectedStore, isPending: storesPending, isError: storesError } = useSelectedStore()
   const storeId = selectedStore?.id
   const storeName = selectedStore?.name ?? ''
 
@@ -15,7 +15,7 @@ export function useChatPage(): {
     return { status: 'loading', storeName }
   }
 
-  if (storeId === undefined) {
+  if (storesError || storeId === undefined) {
     return { status: 'no-store', storeName }
   }
 

@@ -76,12 +76,14 @@ export function useProfilePage() {
   }
 
   const detailsLoading = profile.isPending && !me
+  const detailsError = profile.isError
   const role = me?.roles[0] ?? 'Customer'
 
   return {
     me,
     role,
     detailsLoading,
+    detailsError,
     detailsForm,
     passwordForm,
     deleteForm,

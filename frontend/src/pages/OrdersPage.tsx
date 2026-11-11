@@ -28,7 +28,7 @@ export function OrdersPage() {
     )
   }
 
-  if (orders.query.isPending) {
+  if (orders.query.isLoading) {
     return <PageLoading />
   }
 

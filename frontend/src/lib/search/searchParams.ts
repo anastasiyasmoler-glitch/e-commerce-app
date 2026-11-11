@@ -17,6 +17,7 @@ export function parseAttributeFilters(searchParams: URLSearchParams): Record<str
 export function parseSearchRequest(
   searchParams: URLSearchParams,
   storeId: number,
+  options?: { perPage?: number },
 ): SearchParams {
   const q = searchParams.get('q') ?? ''
   const categoryIds = searchParams.getAll('category_id')
@@ -46,7 +47,7 @@ export function parseSearchRequest(
     q,
     category_id: categoryIds.length > 0 ? categoryIds : undefined,
     page: Number.isFinite(page) && page > 0 ? page : 1,
-    per_page: 20,
+    per_page: options?.perPage ?? 20,
     sort,
     available,
     price_min: priceMin !== undefined && Number.isFinite(priceMin) && priceMin >= 0 ? priceMin : undefined,
@@ -89,4 +90,31 @@ export function formatPriceCents(cents: number): string {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   })}`
+}
+
+/** OpenSearch price buckets are in cents (`0-5000` = $0–$50). */
+export function formatPriceFacetLabel(facetKey: string): string {
+  const { price_min: min, price_max: max } = priceRangeFromFacetKey(facetKey)
+  if (min !== undefined && max !== undefined) {
+    return `${formatPriceCents(min)}–${formatPriceCents(max)}`
+  }
+  if (min !== undefined) {
+    return `${formatPriceCents(min)}+`
+  }
+  if (max !== undefined) {
+    return `Up to ${formatPriceCents(max)}`
+  }
+  return facetKey
+}
+
+export function formatFacetAttributeName(code: string): string {
+  const labels: Record<string, string> = {
+    color: 'Color',
+    material: 'Material',
+    size: 'Size',
+    width_cm: 'Width',
+    bulb_type: 'Bulb type',
+  }
+
+  return labels[code] ?? code.replaceAll('_', ' ')
 }

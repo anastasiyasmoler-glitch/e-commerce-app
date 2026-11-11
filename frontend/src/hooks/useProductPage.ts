@@ -6,13 +6,13 @@ import { productImagePublicUrl } from '@/lib/catalog/productImageUrl'
 import { useCategories } from '@/hooks/useCategories'
 import { useProduct } from '@/hooks/useProduct'
 
-export type ProductPageStatus = 'loading' | 'not-found' | 'ready'
+export type ProductPageStatus = 'loading' | 'no-store' | 'not-found' | 'ready'
 
 export function useProductPage() {
   const { id } = useParams()
   const productId = Number(id)
   const validId = Number.isFinite(productId) ? productId : undefined
-  const { selectedStore } = useSelectedStore()
+  const { selectedStore, isPending: storesPending, isError: storesError } = useSelectedStore()
   const storeId = selectedStore?.id
 
   const productQuery = useProduct(storeId, validId)
@@ -24,9 +24,11 @@ export function useProductPage() {
   const inStock = (product?.stock.quantity ?? 0) > 0
 
   let status: ProductPageStatus = 'ready'
-  if (productQuery.isPending) {
+  if (storesPending || productQuery.isLoading) {
     status = 'loading'
-  } else if (productQuery.isError || !product) {
+  } else if (storesError || storeId === undefined) {
+    status = 'no-store'
+  } else if (!validId || productQuery.isError || !product) {
     status = 'not-found'
   }
 

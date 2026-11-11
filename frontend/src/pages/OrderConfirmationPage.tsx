@@ -33,10 +33,6 @@ export function OrderConfirmationPage() {
     )
   }
 
-  if (page.query.isPending || !page.order || !page.banner || !page.timeline) {
-    return <PageLoading />
-  }
-
   if (page.query.isError) {
     return (
       <Container className="py-16 text-center">
@@ -46,6 +42,10 @@ export function OrderConfirmationPage() {
         </Button>
       </Container>
     )
+  }
+
+  if (page.query.isLoading || !page.order || !page.banner || !page.timeline) {
+    return <PageLoading />
   }
 
   const order = page.order

@@ -4,7 +4,13 @@ import { useProducts } from '@/hooks/useProducts'
 export type HomePageStatus = 'loading' | 'no-store' | 'error' | 'ready'
 
 export function useHomePage() {
-  const { stores, selectedStore, selectStore, isPending: storesPending } = useSelectedStore()
+  const {
+    stores,
+    selectedStore,
+    selectStore,
+    isPending: storesPending,
+    isError: storesError,
+  } = useSelectedStore()
   const storeId = selectedStore?.id
 
   const latestQuery = useProducts(storeId, { section: 'latest', per_page: 4, page: 1 })
@@ -18,6 +24,8 @@ export function useHomePage() {
   let status: HomePageStatus = 'ready'
   if (loading) {
     status = 'loading'
+  } else if (storesError) {
+    status = 'error'
   } else if (!catalogReady) {
     status = 'no-store'
   } else if (latestQuery.isError || moreQuery.isError) {

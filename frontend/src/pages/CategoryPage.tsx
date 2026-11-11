@@ -10,27 +10,19 @@ import {
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
 import { Container } from '@/components/ui/container'
+import { PageLoading } from '@/components/ui/loading-screen'
 import { useCategoryPage } from '@/hooks/useCategoryPage'
 import { categoryPath, paths } from '@/paths'
 import { catalogListingQueryString } from '@/lib/catalog/catalogListingParams'
 
-function ProductGridSkeleton() {
-  return (
-    <div className="grid grid-cols-2 gap-x-3 gap-y-6 sm:gap-x-5 sm:gap-y-8 xl:grid-cols-3">
-      {Array.from({ length: 6 }, (_, index) => (
-        <div
-          key={index}
-          className="aspect-[3/4] animate-pulse rounded-[8px] bg-subtle"
-          aria-hidden
-        />
-      ))}
-    </div>
-  )
-}
-
 export function CategoryPage() {
   const catalog = useCategoryPage()
   const listingQuery = catalogListingQueryString(catalog.perPage)
+  const showLoader = catalog.status === 'loading' || catalog.isFetchingResults
+
+  if (showLoader) {
+    return <PageLoading label="Loading products…" />
+  }
 
   if (catalog.status === 'no-store') {
     return (
@@ -96,7 +88,7 @@ export function CategoryPage() {
       <div className="mt-4 grid grid-cols-1 items-start gap-8 md:grid-cols-[260px_minmax(0,1fr)] md:gap-10">
         <aside className="md:sticky md:top-[88px] md:shrink-0 md:self-start">
           <div className="mb-2 flex items-baseline justify-between border-b border-ink pb-4">
-            <h2 className="text-[16px] font-semibold">Filters</h2>
+            <h2 className="text-[16px] font-semibold">Browse</h2>
           </div>
           <div className="border-b border-line py-5">
             <h3 className="mb-3 text-[13px] font-semibold tracking-[0.08em] uppercase">Store</h3>
@@ -184,9 +176,7 @@ export function CategoryPage() {
             </h1>
           </div>
 
-          {catalog.status === 'loading' ? (
-            <ProductGridSkeleton />
-          ) : catalog.rows.length === 0 ? (
+          {catalog.rows.length === 0 ? (
             <div className="mx-auto max-w-[480px] px-4 py-20 text-center">
               <h2 className="mb-2 font-display text-[28px] font-medium">No products found</h2>
               <p className="text-muted">Try another category or store.</p>

@@ -19,11 +19,24 @@ import { Container } from '@/components/ui/container'
 import { Field } from '@/components/ui/field'
 import { FormError } from '@/components/ui/form-error'
 import { PhoneField } from '@/components/ui/phone-field'
-import { FieldSkeleton, Skeleton } from '@/components/ui/skeleton'
+import { PageLoading } from '@/components/ui/loading-screen'
 import { Separator } from '@/components/ui/separator'
 
 export function ProfilePage() {
   const profile = useProfilePage()
+
+  if (profile.detailsLoading) {
+    return <PageLoading label="Loading profile…" />
+  }
+
+  if (profile.detailsError || !profile.me) {
+    return (
+      <Container className="py-20 text-center">
+        <h1 className="font-display text-[28px] font-medium">Profile could not be loaded</h1>
+        <p className="mt-2 text-[15px] text-muted">Please sign in again or try later.</p>
+      </Container>
+    )
+  }
 
   return (
     <Container className="py-8">
@@ -40,18 +53,8 @@ export function ProfilePage() {
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
-      <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
+      <div className="mb-8">
         <h1 className="font-display text-[36px] font-medium">Profile</h1>
-        <Button
-          type="button"
-          variant="outline"
-          className="h-11 rounded-sm"
-          onClick={profile.onSignOut}
-          disabled={profile.logout.isPending}
-        >
-          <LogOut />
-          {profile.logout.isPending ? 'Signing out…' : 'Sign out'}
-        </Button>
       </div>
       <div className="grid gap-10 lg:grid-cols-[240px_1fr]">
         <nav className="flex flex-col gap-1">
@@ -84,26 +87,11 @@ export function ProfilePage() {
             <CardHeader>
               <CardTitle>Personal details</CardTitle>
               <CardDescription className="flex items-center gap-2">
-                Role:{' '}
-                {profile.detailsLoading ? (
-                  <Skeleton className="inline-block h-5 w-20 rounded-4xl" />
-                ) : (
-                  <Badge variant="secondary">{profile.role}</Badge>
-                )}
+                Role: <Badge variant="secondary">{profile.role}</Badge>
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {profile.detailsLoading ? (
-                <>
-                  <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                    <FieldSkeleton label="Full name" />
-                    <FieldSkeleton label="Phone" />
-                  </div>
-                  <FieldSkeleton label="Email" />
-                  <Skeleton className="h-11 w-36" />
-                </>
-              ) : (
-                <form onSubmit={profile.detailsForm.handleSubmit(profile.onSaveDetails)}>
+              <form onSubmit={profile.detailsForm.handleSubmit(profile.onSaveDetails)}>
                   <FormError message={firstFormError(profile.detailsForm.formState.errors)} />
                   <div className="mt-4 grid gap-4 sm:grid-cols-2">
                     <Field
@@ -145,7 +133,6 @@ export function ProfilePage() {
                     {profile.updateProfile.isPending ? 'Saving…' : 'Save changes'}
                   </Button>
                 </form>
-              )}
             </CardContent>
           </Card>
           <Card>
