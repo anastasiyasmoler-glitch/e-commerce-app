@@ -2,7 +2,6 @@
 
 namespace App\Tracing;
 
-use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 use Throwable;
 
@@ -131,7 +130,7 @@ class Tracer
             Http::timeout(1)
                 ->withHeaders(['Content-Type' => 'application/json'])
                 ->post(rtrim((string) config('tracing.endpoint'), '/').'/v1/traces', $this->otlp($spans));
-        } catch (ConnectionException|Throwable) {
+        } catch (Throwable) {
             // Tracing must not break checkout.
         }
     }
