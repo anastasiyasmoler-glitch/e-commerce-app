@@ -1,6 +1,7 @@
 <?php
 
 use App\Exceptions\InvalidRefreshTokenException;
+use App\Http\Middleware\RecordHttpMetrics;
 use App\Http\Middleware\RequireAccessToken;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
@@ -22,6 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->trustProxies(at: '*');
+        $middleware->append(RecordHttpMetrics::class);
 
         $middleware->alias([
             'auth.access' => RequireAccessToken::class,

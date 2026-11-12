@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\RecordHttpMetrics;
 use App\Http\Middleware\RequireAnalystOrAdmin;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -15,6 +16,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->trustProxies(at: '*');
+        $middleware->append(RecordHttpMetrics::class);
         $middleware->alias([
             'staff.analytics' => RequireAnalystOrAdmin::class,
         ]);

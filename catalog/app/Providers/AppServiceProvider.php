@@ -20,6 +20,7 @@ use App\Repositories\Contracts\StockRepositoryInterface;
 use App\Repositories\EloquentCatalogReadRepository;
 use App\Repositories\EloquentOutboxMessageRepository;
 use App\Repositories\EloquentStockRepository;
+use App\Tracing\Tracer;
 use Filament\Auth\Http\Responses\Contracts\LogoutResponse as LogoutResponseContract;
 use Illuminate\Support\ServiceProvider;
 
@@ -40,6 +41,7 @@ class AppServiceProvider extends ServiceProvider
             EloquentOutboxMessageRepository::class,
         );
         $this->app->singleton(ArrayKafkaPublisher::class);
+        $this->app->singleton(Tracer::class);
         $this->app->bind(KafkaPublisherInterface::class, function ($app) {
             if ($app->environment('testing')) {
                 return $app->make(ArrayKafkaPublisher::class);

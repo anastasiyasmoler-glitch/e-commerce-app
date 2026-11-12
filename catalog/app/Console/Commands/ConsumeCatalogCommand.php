@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Services\StockReservationService;
+use App\Tracing\Tracer;
 use Illuminate\Console\Command;
 use JsonException;
 use longlang\phpkafka\Consumer\ConsumeMessage;
@@ -16,7 +17,7 @@ class ConsumeCatalogCommand extends Command
 
     protected $description = 'Consume order.created and stock.release_requested from Kafka';
 
-    public function handle(StockReservationService $stock): int
+    public function handle(StockReservationService $stock, Tracer $tracer): int
     {
         $config = new ConsumerConfig;
         $config->setBroker((string) config('kafka.brokers'));
@@ -29,8 +30,8 @@ class ConsumeCatalogCommand extends Command
 
         $this->info('Listening: '.implode(', ', config('kafka.consume_topics')));
 
-        $consumer = new Consumer($config, function (ConsumeMessage $message) use ($stock): void {
-            $this->process($stock, $message);
+        $consumer = new Consumer($config, function (ConsumeMessage $message) use ($stock, $tracer): void {
+            $this->process($stock, $tracer, $message);
         });
 
         $consumer->start();
@@ -38,7 +39,7 @@ class ConsumeCatalogCommand extends Command
         return self::SUCCESS;
     }
 
-    private function process(StockReservationService $stock, ConsumeMessage $message): void
+    private function process(StockReservationService $stock, Tracer $tracer, ConsumeMessage $message): void
     {
         try {
             $payload = json_decode((string) $message->getValue(), true, 512, JSON_THROW_ON_ERROR);
@@ -56,7 +57,11 @@ class ConsumeCatalogCommand extends Command
         }
 
         try {
-            $stock->handle($message->getTopic(), $payload);
+            $tracer->extractFromPayload($payload);
+            $tracer->run(
+                'kafka.consume '.$message->getTopic(),
+                fn () => $stock->handle($message->getTopic(), $payload),
+            );
             $this->info('Handled '.$message->getTopic());
         } catch (Throwable $exception) {
             $this->error($exception->getMessage());

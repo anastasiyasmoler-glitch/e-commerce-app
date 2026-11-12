@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Contracts\KafkaPublisherInterface;
 use App\Repositories\Contracts\StockRepositoryInterface;
+use App\Tracing\Tracer;
 use Illuminate\Support\Facades\DB;
 use Throwable;
 
@@ -12,6 +13,7 @@ class StockReservationService
     public function __construct(
         private readonly KafkaPublisherInterface $kafka,
         private readonly StockRepositoryInterface $stocks,
+        private readonly Tracer $tracer,
     ) {}
 
     /**
@@ -20,7 +22,7 @@ class StockReservationService
     public function handle(string $topic, array $payload): void
     {
         if ($topic === 'order.created') {
-            $this->reserve($payload);
+            $this->tracer->run('catalog.reserve', fn () => $this->reserve($payload));
 
             return;
         }

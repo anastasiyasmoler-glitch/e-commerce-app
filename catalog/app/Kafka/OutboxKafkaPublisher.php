@@ -4,11 +4,13 @@ namespace App\Kafka;
 
 use App\Contracts\KafkaPublisherInterface;
 use App\Repositories\Contracts\OutboxMessageRepositoryInterface;
+use App\Tracing\Tracer;
 
 class OutboxKafkaPublisher implements KafkaPublisherInterface
 {
     public function __construct(
         private readonly OutboxMessageRepositoryInterface $outbox,
+        private readonly Tracer $tracer,
     ) {}
 
     /**
@@ -16,6 +18,6 @@ class OutboxKafkaPublisher implements KafkaPublisherInterface
      */
     public function publish(string $topic, array $body): void
     {
-        $this->outbox->enqueue($topic, $body);
+        $this->outbox->enqueue($topic, $this->tracer->inject($body));
     }
 }

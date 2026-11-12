@@ -90,6 +90,8 @@ services:
       AWS_USE_PATH_STYLE_ENDPOINT: "true"
       KAFKA_BROKERS: kafka:9092
       KAFKA_CONSUMER_GROUP: catalog-service-group
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
+      OTEL_SERVICE_NAME: catalog
     volumes:
       - .:/var/www/html
       - vendor:/var/www/html/vendor
@@ -146,6 +148,8 @@ services:
       AWS_USE_PATH_STYLE_ENDPOINT: "true"
       KAFKA_BROKERS: kafka:9092
       KAFKA_CONSUMER_GROUP: catalog-service-group
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
+      OTEL_SERVICE_NAME: catalog
     volumes:
       - .:/var/www/html
       - vendor:/var/www/html/vendor
@@ -191,6 +195,8 @@ services:
       AWS_USE_PATH_STYLE_ENDPOINT: "true"
       KAFKA_BROKERS: kafka:9092
       KAFKA_CONSUMER_GROUP: catalog-service-group
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
+      OTEL_SERVICE_NAME: catalog
     volumes:
       - .:/var/www/html
       - vendor:/var/www/html/vendor

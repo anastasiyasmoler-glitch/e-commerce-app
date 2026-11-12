@@ -1,6 +1,9 @@
 <?php
 
+use App\Http\Controllers\MetricsController;
 use Illuminate\Support\Facades\Route;
+
+Route::get('/metrics', MetricsController::class);
 
 Route::get('/', function () {
     return response()->json(['service' => 'order']);

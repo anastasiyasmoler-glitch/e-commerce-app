@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Middleware\RecordHttpMetrics;
+use App\Http\Middleware\StartHttpTrace;
 use App\Http\Middleware\TrustGatewayUser;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -16,6 +18,8 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->trustProxies(at: '*');
+        $middleware->append(RecordHttpMetrics::class);
+        $middleware->append(StartHttpTrace::class);
         $middleware->alias([
             'gateway.user' => TrustGatewayUser::class,
         ]);

@@ -16,3 +16,51 @@ scrape_configs:
     metrics_path: /metrics
     static_configs:
       - targets: ["search-back:8080"]
+
+  - job_name: auth
+    scheme: https
+    tls_config:
+      insecure_skip_verify: true
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["auth-nginx:443"]
+
+  - job_name: catalog
+    scheme: https
+    tls_config:
+      insecure_skip_verify: true
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["catalog-nginx:443"]
+
+  - job_name: order
+    scheme: https
+    tls_config:
+      insecure_skip_verify: true
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["order-nginx:443"]
+
+  - job_name: notification
+    scheme: https
+    tls_config:
+      insecure_skip_verify: true
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["notification-nginx:443"]
+
+  - job_name: recommendation
+    scheme: https
+    tls_config:
+      insecure_skip_verify: true
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["recommendation-nginx:443"]
+
+  - job_name: analytics
+    scheme: https
+    tls_config:
+      insecure_skip_verify: true
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["analytics-nginx:443"]

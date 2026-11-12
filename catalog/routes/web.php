@@ -1,6 +1,9 @@
 <?php
 
+use App\Http\Controllers\MetricsController;
 use Illuminate\Support\Facades\Route;
+
+Route::get('/metrics', MetricsController::class);
 
 Route::get('/docs', function () {
     return response()->file(public_path('docs/index.html'));

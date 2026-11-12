@@ -16,6 +16,7 @@ use App\Repositories\EloquentOrderIdempotencyRepository;
 use App\Repositories\EloquentOrderRepository;
 use App\Repositories\EloquentOutboxMessageRepository;
 use App\Repositories\EloquentProductSnapshotRepository;
+use App\Tracing\Tracer;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -32,6 +33,8 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(OrderIdempotencyRepositoryInterface::class, EloquentOrderIdempotencyRepository::class);
 
         $this->app->singleton(ArrayKafkaPublisher::class);
+
+        $this->app->singleton(Tracer::class);
 
         $this->app->bind(KafkaPublisherInterface::class, OutboxKafkaPublisher::class);
 

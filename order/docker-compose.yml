@@ -45,6 +45,8 @@ services:
       QUEUE_CONNECTION: sync
       KAFKA_BROKERS: kafka:9092
       KAFKA_CONSUMER_GROUP: order-service-group
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
+      OTEL_SERVICE_NAME: order
       STRIPE_PUBLISHABLE: ${STRIPE_PUBLISHABLE:-pk_test_placeholder}
       STRIPE_SECRET: ${STRIPE_SECRET:-sk_test_placeholder}
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-whsec_placeholder}
@@ -91,6 +93,8 @@ services:
       QUEUE_CONNECTION: sync
       KAFKA_BROKERS: kafka:9092
       KAFKA_CONSUMER_GROUP: order-service-group
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
+      OTEL_SERVICE_NAME: order
     volumes:
       - .:/var/www/html
     depends_on:
@@ -124,6 +128,8 @@ services:
       QUEUE_CONNECTION: sync
       KAFKA_BROKERS: kafka:9092
       KAFKA_CONSUMER_GROUP: order-service-group
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
+      OTEL_SERVICE_NAME: order
     volumes:
       - .:/var/www/html
     depends_on:

@@ -9,6 +9,7 @@ use App\Models\ProductSnapshot;
 use App\Repositories\Contracts\OrderIdempotencyRepositoryInterface;
 use App\Repositories\Contracts\OrderRepositoryInterface;
 use App\Repositories\Contracts\ProductSnapshotRepositoryInterface;
+use App\Tracing\Tracer;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -19,6 +20,7 @@ class CreateOrderService
         private readonly ProductSnapshotRepositoryInterface $snapshots,
         private readonly KafkaPublisherInterface $kafka,
         private readonly OrderIdempotencyRepositoryInterface $idempotency,
+        private readonly Tracer $tracer,
     ) {}
 
     /**
@@ -32,7 +34,7 @@ class CreateOrderService
         ?array $shippingAddress = null,
         string $currency = 'USD',
     ): Order {
-        return DB::transaction(function () use (
+        return $this->tracer->run('order.create', fn (): Order => DB::transaction(function () use (
             $userId,
             $userEmail,
             $idempotencyKey,
@@ -85,7 +87,7 @@ class CreateOrderService
             ]);
 
             return $order;
-        });
+        }));
     }
 
     /**
