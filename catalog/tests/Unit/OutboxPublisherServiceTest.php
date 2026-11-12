@@ -8,6 +8,7 @@ use App\Kafka\OutboxKafkaPublisher;
 use App\Models\OutboxMessage;
 use App\Repositories\EloquentOutboxMessageRepository;
 use App\Services\OutboxPublisherService;
+use App\Tracing\Tracer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -17,7 +18,7 @@ class OutboxPublisherServiceTest extends TestCase
 
     public function test_outbox_publisher_writes_rows_instead_of_kafka(): void
     {
-        $publisher = new OutboxKafkaPublisher(new EloquentOutboxMessageRepository);
+        $publisher = new OutboxKafkaPublisher(new EloquentOutboxMessageRepository, new Tracer);
         $publisher->publish('product.created', ['id' => 7]);
 
         $this->assertDatabaseHas('outbox_messages', [
